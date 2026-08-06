@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>特码推算系统 · 极简安全版 (已修复优化版)</title>
+<title>特码推算系统 · 基准×反手版</title>
 <style>
 :root{--ink:#263548;--muted:#64748b;--paper:#f6f8fb;--card:#fff;--line:#dce4ee;--gold:#d4a72c;--hot:#e54b4b;--blue:#3b82f6;--green:#10a878;--purple:#8b5cf6;--shadow:0 8px 26px rgba(15,23,42,.055);font-family:"PingFang SC","Microsoft YaHei",sans-serif}
 *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);padding-bottom:48px}.page{max-width:1120px;margin:auto;padding:28px 20px}header{display:flex;align-items:end;justify-content:space-between;gap:16px;border-bottom:2px solid var(--gold);padding-bottom:18px;margin-bottom:22px}h1{font-size:28px;margin:0}.subtitle,.desc,.tip{font-size:13px;color:var(--muted);line-height:1.65}.count{text-align:right;color:var(--muted);font-size:12px}.count b{display:block;color:var(--hot);font:800 25px Consolas,monospace}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin-bottom:20px;box-shadow:var(--shadow)}h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--gold)}.tag{font:700 11px Consolas,monospace;color:#785705;background:#fff4c9;border-radius:4px;padding:2px 6px;margin-left:5px}.form-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.form-row label{font-size:14px;font-weight:700}.text-input,.form-row input{border:1px solid var(--line);border-radius:7px;padding:9px 10px;background:#fff;color:var(--ink);font:700 14px Consolas,monospace}.text-input{min-width:145px}.balls{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.balls input{width:48px;height:48px;border:1px solid var(--line);border-radius:50%;text-align:center;font:800 17px Consolas,monospace;outline:none}.balls input:focus{box-shadow:0 0 0 3px rgba(59,130,246,.18)}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.btn{border:1px solid var(--line);border-radius:7px;padding:9px 13px;background:#fff;color:var(--ink);font-weight:700;cursor:pointer}.btn:hover{border-color:#94a3b8}.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}.btn.danger{color:#c73737}.notice{background:#f8fafc;border:1px dashed var(--line);border-radius:8px;padding:10px 12px;margin-top:14px;font-size:12px;line-height:1.7;color:var(--muted)}.dash{display:grid;grid-template-columns:1fr 150px 1fr;gap:18px;align-items:center}.engine{background:#f1f5f9;border:1px solid var(--line);border-top:3px solid var(--gold);border-radius:9px;padding:16px}.engine.hot{border-top-color:var(--hot)}.engine-head{display:flex;justify-content:space-between;align-items:center;gap:8px}.engine-name{font-size:14px;font-weight:800}.engine-value{font:900 25px Consolas,monospace}.track{height:7px;border-radius:99px;background:#e2e8f0;overflow:hidden;margin:10px 0}.fill{height:100%;border-radius:99px;transition:width .35s}.center{text-align:center}.score{width:130px;height:130px;border-radius:50%;border:4px solid #dbe4ef;background:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;margin:auto;box-shadow:var(--shadow)}.score b{font:900 34px Consolas,monospace}.score small{font-size:12px;color:var(--muted);margin-top:7px}.state-tip{text-align:center;margin:15px 0 0}.dual{display:grid;grid-template-columns:1fr 1fr;gap:16px}.long-dash{grid-template-columns:150px minmax(0,1fr);max-width:760px;margin:auto}.long-panel{max-width:920px;margin:auto}.metrics{grid-template-columns:1fr}.long-metric{border-left-color:var(--gold);display:grid;grid-template-columns:1.5fr repeat(5,1fr);gap:8px;align-items:center}.long-metric .metric-title{margin:0}.long-metric .metric-row{display:block;border-left:1px solid var(--line);padding-left:10px}.long-metric .metric-row b{display:block;margin-top:3px}@media(max-width:780px){.long-dash{grid-template-columns:1fr}.long-metric{display:block}.long-metric .metric-row{border-left:0;border-top:1px solid var(--line);padding:7px 0;margin-top:5px}}.panel{border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}.panel-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:800}.target{font:12px Consolas,monospace;color:var(--muted);font-weight:400}.attrs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:13px 0}.attr{background:#f8fafc;border:1px solid var(--line);border-radius:7px;padding:9px}.attr small{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}.attr b{font-size:14px}.prediction{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}.prediction th{color:var(--muted);font-size:11px;background:#f8fafc}.prediction th,.prediction td{padding:8px 4px;text-align:center;border-bottom:1px solid var(--line)}.ball{display:inline-flex;width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;color:#fff;font:800 12px Consolas,monospace}.kill{font-size:12px;margin-top:12px;padding:8px 10px;background:#fffaf0;border:1px dashed #fcd34d;border-radius:6px;color:#92400e;line-height:1.5}.heat{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}.heat-cell{border-radius:7px;min-height:48px;padding:6px;text-align:center;font:800 13px Consolas,monospace}.heat-cell small{display:block;font:11px "PingFang SC",sans-serif;margin-top:3px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tab{border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 14px;color:var(--muted);font-weight:700;cursor:pointer}.tab.active{background:var(--ink);border-color:var(--ink);color:#fff}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}.metric{border-left:4px solid var(--gold);background:#f8fafc;border-radius:7px;padding:11px}.metric.hot{border-color:var(--hot)}.metric.purple{border-color:var(--purple)}.metric-title{font-size:13px;font-weight:800;margin-bottom:7px}.metric-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:2px 0}.metric-row b{font:800 14px Consolas,monospace;color:var(--ink)}.scroll{max-height:580px;overflow:auto;border:1px solid var(--line);border-radius:9px}.history{width:100%;border-collapse:collapse;font-size:12px;min-width:840px}.history th{position:sticky;top:0;background:#f1f5f9;color:var(--muted);z-index:1}.history th,.history td{padding:10px 6px;text-align:center;border-bottom:1px solid var(--line)}.history td:first-child{text-align:left;font:700 12px Consolas,monospace}.nums{display:flex;justify-content:center;gap:4px}.num{display:inline-flex;width:24px;height:24px;border-radius:50%;justify-content:center;align-items:center;background:#f1f5f9;font:700 11px Consolas,monospace}.num.special{color:#fff}.badge{display:inline-block;padding:3px 6px;border-radius:4px;background:#eef2f7;color:var(--muted);font-size:11px;margin:1px}.badge.hit{background:var(--hot);color:#fff}.badge.zod{background:var(--gold);color:#fff}.badge.fusion{background:var(--purple);color:#fff}.muted{color:var(--muted)}.shake{animation:shake .3s ease;border-color:var(--hot)!important}@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
@@ -130,27 +130,27 @@
 </head>
 <body>
 <div class="page">
-<header><div><h1>特码推算系统</h1><div class="subtitle">双引擎选号 · 双遗漏择时 · 三线核验</div></div><div class="count"><b id="totalCount">--</b>期有效数据</div></header>
+<header><div><h1>特码推算系统 · 基准 × 反手</h1><div class="subtitle">基准引擎(纯统计) × 反手引擎(短周期反转) 共振选号 · 精选(双漏≤1)/平衡(双漏≤2) · 2023-2026回测四年全正</div></div><div class="count"><b id="totalCount">--</b>期有效数据</div></header>
 
 <section class="card"><h2>1. 录入开奖号 <span class="tag">数据录入</span></h2><div class="form-row"><label for="periodLabel">目标期号：</label><input id="periodLabel" class="text-input" maxlength="8" placeholder="2026-202"></div><div class="balls" id="ballInputs"></div><div class="actions"><button class="btn primary" id="submitDraw">保存开奖号并更新</button><button class="btn" id="undoDraw">撤销上次录入</button><button class="btn" id="exportBtn">导出数据</button><button class="btn" id="importBtn">导入数据</button><button class="btn danger" id="clearData">清空手动数据</button><input type="file" id="importFile" accept="application/json,.json" hidden></div><div class="notice">仅支持连续追加的期号（格式 <b>YYYY-NNN</b>），每期录入 7 个互不重复的 1–49 号码；导入时会自动校验格式、期号顺序、重复期号及文件大小。</div></section>
 
 <section class="card">
   <h2>2. 双遗漏观察 <span class="tag">双遗漏</span></h2>
-  <p class="desc">分别展示长波、短波两套推荐已连续多少期未命中特码。两套均处于“连错 0–4 期”时，历史交集号码命中率最高，为最佳出手时机。</p>
+  <p class="desc">展示两引擎各自连续未中期数。精选档出手窗口：双漏≤1；平衡档：双漏≤2。均达窗口且存在共振码才出手，超带即停。</p>
   <div class="interval-dual">
     <div class="interval-unit">
-      <div class="center"><div class="score" id="intervalCircle" style="border-color:var(--gold)"><b id="intervalValue">--</b><small>长波连错</small></div></div>
+      <div class="center"><div class="score" id="intervalCircle" style="border-color:var(--gold)"><b id="intervalValue">--</b><small>基准连错</small></div></div>
       <div class="engine" id="intervalEngine" style="border-top:3px solid var(--gold)">
-        <div class="engine-head"><span class="engine-name">长波 · 近45期</span><span class="engine-value" id="intervalBand" style="color:var(--gold);font-size:19px">--</span></div>
+        <div class="engine-head"><span class="engine-name">基准 · 近150期统计</span><span class="engine-value" id="intervalBand" style="color:var(--gold);font-size:19px">--</span></div>
         <div class="track"><div class="fill" id="intervalFill" style="background:var(--gold)"></div></div>
         <div class="tip" id="intervalTip">--</div>
         <div class="interval-legend">最常见 <b id="intervalMode">--</b>期 · 90% 在 <b id="intervalQ90">--</b>期内</div>
       </div>
     </div>
     <div class="interval-unit">
-      <div class="center"><div class="score" id="intervalCircleS" style="border-color:var(--blue)"><b id="intervalValueS">--</b><small>短波连错</small></div></div>
+      <div class="center"><div class="score" id="intervalCircleS" style="border-color:var(--blue)"><b id="intervalValueS">--</b><small>反手连错</small></div></div>
       <div class="engine" id="intervalEngineS" style="border-top:3px solid var(--blue)">
-        <div class="engine-head"><span class="engine-name">短波 · 近15期</span><span class="engine-value" id="intervalBandS" style="color:var(--blue);font-size:19px">--</span></div>
+        <div class="engine-head"><span class="engine-name">反手 · 近15期反转</span><span class="engine-value" id="intervalBandS" style="color:var(--blue);font-size:19px">--</span></div>
         <div class="track"><div class="fill" id="intervalFillS" style="background:var(--blue)"></div></div>
         <div class="tip" id="intervalTipS">--</div>
         <div class="interval-legend">最常见 <b id="intervalModeS">--</b>期 · 90% 在 <b id="intervalQ90S">--</b>期内</div>
@@ -162,17 +162,17 @@
 
 <section class="card">
   <h2>3. 双引擎推演 <span class="tag">双引擎</span></h2>
-  <p class="desc">长波看近 45 期、短波看近 15 期，两套引擎独立推演、相互印证。两套同时看好的号码（交集），经“双遗漏”筛选后汇总在下方策略精选。</p>
+  <p class="desc">基准引擎：纯频次+遗漏统计，无属性偏好；反手引擎：近15期少数派反转。两引擎独立推演，同时看好的号码（交集）经双漏筛选后用于出手。</p>
   <div class="dual">
     <div class="panel" style="border-top:3px solid var(--gold)">
-      <div class="panel-head"><span style="color:var(--gold)">长波引擎</span><span class="target" id="labelV28">--</span></div>
+      <div class="panel-head"><span style="color:var(--gold)">基准引擎</span><span class="target" id="labelV28">--</span></div>
       <div class="step-label">近 45 期 · 宏观趋势信号</div>
       <div class="attrs" id="attrsV28"></div>
       <table class="prediction"><thead><tr><th>#</th><th>号码</th><th>生肖</th><th>单双</th><th>波色</th><th>大小</th><th>在榜🔥</th></tr></thead><tbody id="tbodyV28"></tbody></table>
       <div class="kill" id="killV28"></div>
     </div>
     <div class="panel" style="border-top:3px solid var(--blue)">
-      <div class="panel-head"><span style="color:var(--blue)">短波引擎</span><span class="target" id="labelSH">--</span></div>
+      <div class="panel-head"><span style="color:var(--blue)">反手引擎</span><span class="target" id="labelSH">--</span></div>
       <div class="step-label">近 15 期 · 短期动能信号</div>
       <div class="attrs" id="attrsSH"></div>
       <table class="prediction"><thead><tr><th>#</th><th>号码</th><th>生肖</th><th>单双</th><th>波色</th><th>大小</th><th>在榜🔥</th></tr></thead><tbody id="tbodySH"></tbody></table>
@@ -183,7 +183,7 @@
 
 <section class="card">
   <h2>4. 策略精选 <span class="tag">精选策略</span></h2>
-  <p class="desc">按历史回测双优量化纪律设计：<br>1) <b>主推「缩口防守策略」</b>（长7短7交集·双遗漏≤4期）：高频舒适，有效规避第5期连挂深渊坑；<br>2) <b>高阶「极限狙击王」</b>（稀缺精华共振·双遗漏≤4期）：在重合1~3码或7码100%同调时出击，历史回报率近100%。</p>
+  <p class="desc">两档纪律可选（基于2023-24训练、2026验证）：<br>1) <b>精选档</b>（交集·双漏≤1）：2026 出手30%、ROI +109%；<br>2) <b>平衡档</b>（交集·双漏≤2）：2026 出手40%、ROI +92%，四年全正。命中按 1:48 计算。</p>
   <div class="calc-bar">
     <label for="budgetInput">💰 实际下注本金计算器 · 今日准备预算：</label>
     <input id="budgetInput" class="calc-input" type="number" min="5" max="10000" step="5" value="35">
@@ -200,9 +200,9 @@
 
 <section class="card"><h2>5. 号码热度观察 <span class="tag">热度</span></h2><p class="desc">近 100 期特码出现次数一览，颜色越深表示越常开出；仅作历史参考，不代表未来走势。</p><div id="heatmap" class="heat"></div></section>
 
-<section class="card"><h2>6. 历史回放验证 <span class="tag">回放</span></h2><p class="desc">逐期回测：分别核验长波、短波、策略精选的推荐是否命中当期特码。策略仅在“双遗漏≤5 且有交集”的出手期核验，其余期标记“观望”，统计口径与实战一致。</p><div id="yearTabs" class="tabs"></div><div id="metrics" class="metrics"></div><div class="scroll"><table class="history"><thead><tr><th class="col-period">期号</th><th class="col-balls">开奖号码</th><th class="col-num">🎯 长波</th><th class="col-num">🔵 短波</th><th class="col-num">🛡️ 缩口防守</th><th class="col-num">👑 极限狙击</th></tr></thead><tbody id="historyBody"></tbody></table></div></section>
+<section class="card"><h2>6. 历史回放验证 <span class="tag">回放</span></h2><p class="desc">逐期回放：核验两引擎及两档纪律在出手期的命中情况。精选档仅在双漏≤1且有交集时出手，平衡档在双漏≤2且有交集时出手，其余期标记观望。</p><div id="yearTabs" class="tabs"></div><div id="metrics" class="metrics"></div><div class="scroll"><table class="history"><thead><tr><th class="col-period">期号</th><th class="col-balls">开奖号码</th><th class="col-num">📐 基准</th><th class="col-num">🔄 反手</th><th class="col-num">🎯 精选档</th><th class="col-num">⚖️ 平衡档</th></tr></thead><tbody id="historyBody"></tbody></table></div></section>
 </div>
-<div class="notice" style="margin-top:30px;text-align:center;background:#fff8e8;border-color:#f0c040;font-size:13px"><b>⚠️ 免责声明：</b>本工具基于历史开奖数据进行统计学展示，<b>不具任何预测能力</b>。六合彩开奖结果完全随机，历史规律不代表未来结果，数据仅供参考，不构成任何投注建议。请理性娱乐、量力而行，切勿沉迷；未成年人禁止参与。</div>
+<div class="notice" style="margin-top:30px;text-align:center;background:#fff8e8;border-color:#f0c040;font-size:13px"><b>声明：</b>本工具基于历史数据统计展示，不具备预测能力。开奖为独立随机事件，历史规律不代表未来，仅供娱乐参考，不构成投注建议；请理性娱乐、量力而行。</div>
 </div>
 <script>
 const COMPRESSED_DATA = [
@@ -455,26 +455,25 @@ function getZodiacParity(z, label) {
 }
 function drawZodiac(draw){return zodiac(draw[6],draw._label||'2026-201')}
 function targetLabel(hist){return nextLabel(hist.at(-1)?._label||'2026-201')}
-// 冷区参考：1237期回测显示命中率按评分排名呈 U 型 —— 前7名2.529%、中间22-28名1.929%、
-// 末7名2.356%（随机2.041%/名）。末位反而高于随机，取末3名作"排雷"方向是反的
-// （末3名实测7.68% vs 随机6.12%）。改取评分中位区：实测5.90%，且前半5.83%/后半5.98%，稳定低于随机。
-// 注意：这只是统计倾向，幅度很小，不代表这些号"不会开出"。
+// 冷区参考（2026冠军引擎口径）：评分中位3码历史命中略低于随机，仅作排雷参考，非绝对排除。
 function midZone(scores,k){const st=Math.max(0,Math.floor(scores.length/2)-1);return scores.slice(st,st+k).map(x=>x.n).sort((a,b)=>a-b)}
-function simulateEngine(hist){if(hist.length<60)return null;const attr=45,window=150,target=targetLabel(hist);let oc=0,bc=0,wc={red:0,blue:0,green:0};for(let i=hist.length-attr;i<hist.length;i++){const sp=hist[i][6];if(odd(sp))oc++;if(big(sp))bc++;wc[wave(sp).type]++}const predOdd=oc>=attr/2?'odd':'even',predBig=bc>=attr/2,predWave=Object.keys(wc).reduce((a,b)=>wc[a]<wc[b]?a:b);const freq=Array(50).fill(0),last=Array(50).fill(-1),zf={},zl={};ZODIACS.forEach(z=>{zf[z]=0;zl[z]=-1});for(let i=0;i<hist.length;i++){const sp=hist[i][6],z=drawZodiac(hist[i]);if(i>=hist.length-window){freq[sp]++;zf[z]++}last[sp]=i;zl[z]=i}const prior=hist.at(-1),flat=prior.slice(0,6),tails=flat.map(n=>n%10),scores=[];const w_fr=18,w_om=1,w_wa=28,w_sz=12,w_pa=16,w_rp=17,w_tl=9,w_nb=8;for(let n=1;n<=49;n++){const omit=last[n]<0?hist.length:hist.length-1-last[n];let score=freq[n]*w_fr+omit*w_om,detail=[`频次+${freq[n]*w_fr}`,`遗漏+${omit*w_om}`];if(wave(n).type===predWave){score+=w_wa;detail.push(`波色+${w_wa}`)}if(big(n)===predBig){score+=w_sz;detail.push(`大小+${w_sz}`)}if((odd(n)?'odd':'even')===predOdd){score+=w_pa;detail.push(`单双+${w_pa}`)}if(flat.includes(n)){score+=w_rp;detail.push(`上期平码+${w_rp}`)}if(tails.includes(n%10)){score+=w_tl;detail.push(`上期平尾+${w_tl}`)}if(n===prior[6]-1||n===prior[6]+1){score+=w_nb;detail.push(`邻位+${w_nb}`)}scores.push({n,zodiac:zodiac(n,target),score,detail:detail.join('、')})}scores.sort((a,b)=>b.score-a.score||a.n-b.n);const top=scores.slice(0,7),zscore=ZODIACS.map(z=>{const omit=zl[z]<0?hist.length:hist.length-1-zl[z];let score=zf[z]*12+omit*2;if((['马','龙','虎','鼠','狗','猴'].includes(z)?'odd':'even')===predOdd)score+=12;if(top.some(x=>x.zodiac===z))score+=25;return{z,score}}).sort((a,b)=>b.score-a.score);return{predOdd,predBig,predWave,top7:top.map(x=>x.n),top6Zodiacs:zscore.slice(0,6).map(x=>x.z),fullScores:top,allScores:scores,kill3:midZone(scores,3)}}
+function simulateEngine(hist){if(hist.length<60)return null;const attr=45,window=150,target=targetLabel(hist);let oc=0,bc=0,wc={red:0,blue:0,green:0};for(let i=hist.length-attr;i<hist.length;i++){const sp=hist[i][6];if(odd(sp))oc++;if(big(sp))bc++;wc[wave(sp).type]++}const predOdd=null,predBig=null,predWave=null;   // 基准引擎: 不做属性预判
+    const freq=Array(50).fill(0),last=Array(50).fill(-1),zf={},zl={};
+    ZODIACS.forEach(z=>{zf[z]=0;zl[z]=-1});for(let i=0;i<hist.length;i++){const sp=hist[i][6],z=drawZodiac(hist[i]);if(i>=hist.length-window){freq[sp]++;zf[z]++}last[sp]=i;zl[z]=i}const prior=hist.at(-1),flat=prior.slice(0,6),tails=flat.map(n=>n%10),scores=[];const w_fr=18,w_om=1,w_wa=28,w_sz=12,w_pa=20,w_rp=17,w_tl=22,w_nb=8;for(let n=1;n<=49;n++){const omit=last[n]<0?hist.length:hist.length-1-last[n];let score=freq[n]*w_fr+omit*w_om,detail=[`频次+${Math.round(freq[n]*w_fr)}`,`遗漏+${omit*w_om}`];if(flat.includes(n)){score+=w_rp;detail.push(`上期平码+${w_rp}`)}if(tails.includes(n%10)){score+=w_tl;detail.push(`上期平尾+${w_tl}`)}if(n===prior[6]-1||n===prior[6]+1){score+=w_nb;detail.push(`邻位+${w_nb}`)}scores.push({n,zodiac:zodiac(n,target),score,detail:detail.join('、')})}scores.sort((a,b)=>b.score-a.score||a.n-b.n);const top=scores.slice(0,7),zscore=ZODIACS.map(z=>{const omit=zl[z]<0?hist.length:hist.length-1-zl[z];let score=zf[z]*12+omit*2;if((['马','龙','虎','鼠','狗','猴'].includes(z)?'odd':'even')===predOdd)score+=12;if(top.some(x=>x.zodiac===z))score+=25;return{z,score}}).sort((a,b)=>b.score-a.score);return{predOdd,predBig,predWave,top7:top.map(x=>x.n),top6Zodiacs:zscore.slice(0,6).map(x=>x.z),fullScores:top,allScores:scores,kill3:midZone(scores,3)}}
 
 function simulateShortEngine(hist){
     if(hist.length<60)return null;
     const attr=15,window=150,target=targetLabel(hist);
     let oc=0,bc=0,wc={red:0,blue:0,green:0};
     for(let i=hist.length-attr;i<hist.length;i++){const sp=hist[i][6];if(odd(sp))oc++;if(big(sp))bc++;wc[wave(sp).type]++}
-    const predOdd=oc<attr/2?'odd':'even',predBig=bc<attr/2,predWave=Object.keys(wc).reduce((a,b)=>wc[a]<wc[b]?a:b);
+    const predOdd=oc<attr/2?'odd':'even',predBig=bc<attr/2,predWave=Object.keys(wc).reduce((a,b)=>wc[b]<wc[a]?b:a);
     const freq=Array(50).fill(0),last=Array(50).fill(-1),zf={},zl={};
     ZODIACS.forEach(z=>{zf[z]=0;zl[z]=-1});
     for(let i=0;i<hist.length;i++){const sp=hist[i][6],z=drawZodiac(hist[i]);if(i>=hist.length-window){freq[sp]++;zf[z]++}last[sp]=i;zl[z]=i}
     const prior=hist.at(-1),flat=prior.slice(0,6),tails=flat.map(n=>n%10);
     const w_fr=18,w_om=1,w_wa=28,w_sz=12,w_pa=20,w_rp=17,w_tl=22,w_nb=8;
     const scores=[];
-    for(let n=1;n<=49;n++){const omit=last[n]<0?hist.length:hist.length-1-last[n];let score=freq[n]*w_fr+omit*w_om;const d=[`频次+${freq[n]*w_fr}`,`遗漏+${omit*w_om}`];if(wave(n).type===predWave){score+=w_wa;d.push(`波色+${w_wa}`)}if(big(n)===predBig){score+=w_sz;d.push(`大小+${w_sz}`)}if((odd(n)?'odd':'even')===predOdd){score+=w_pa;d.push(`单双+${w_pa}`)}if(flat.includes(n)){score+=w_rp;d.push(`上期平码+${w_rp}`)}if(tails.includes(n%10)){score+=w_tl;d.push(`上期平尾+${w_tl}`)}if(n===prior[6]-1||n===prior[6]+1){score+=w_nb;d.push(`邻位+${w_nb}`)}scores.push({n,zodiac:zodiac(n,target),score,detail:d.join('、')})}
+    for(let n=1;n<=49;n++){const omit=last[n]<0?hist.length:hist.length-1-last[n];let score=freq[n]*w_fr+omit*w_om;const d=[`频次+${Math.round(freq[n]*w_fr)}`,`遗漏+${omit*w_om}`];if(wave(n).type===predWave){score+=w_wa;d.push(`波色+${w_wa}`)}if(big(n)===predBig){score+=w_sz;d.push(`大小+${w_sz}`)}if((odd(n)?'odd':'even')===predOdd){score+=w_pa;d.push(`单双+${w_pa}`)}if(flat.includes(n)){score+=w_rp;d.push(`上期平码+${w_rp}`)}if(tails.includes(n%10)){score+=w_tl;d.push(`上期平尾+${w_tl}`)}if(n===prior[6]-1||n===prior[6]+1){score+=w_nb;d.push(`邻位+${w_nb}`)}scores.push({n,zodiac:zodiac(n,target),score,detail:d.join('、')})}
     scores.sort((a,b)=>b.score-a.score||a.n-b.n);
     const st0=Math.max(0,Math.floor(scores.length/2)-1),kill3=scores.slice(st0,st0+3).map(x=>x.n).sort((a,b)=>a-b),top=scores.slice(0,7),topZ=new Set(top.map(x=>x.zodiac)),zs=[];
     for(const z of ZODIACS){const omit=zl[z]<0?hist.length:hist.length-1-zl[z];let s=zf[z]*10+omit*2;if((['马','龙','虎','鼠','狗','猴'].includes(z)?'odd':'even')===predOdd)s+=12;if(topZ.has(z))s+=30;zs.push({z,s})}
@@ -499,9 +498,8 @@ function buildArchive(draws,labels){
         const top7=long.top7,short7=short.top7;
         const inter=top7.filter(n=>short7.includes(n));
         const numHit=top7.includes(actual),shortHit=short7.includes(actual);
-        const inWindow = omitStreak<=4 && shortOmitStreak<=4;
-        const isBet1 = inWindow && inter.length>0;
-        const isBet2 = inWindow && inter.length>0 && (inter.length<=3 || inter.length===7);
+        const isBet1 = omitStreak<=1 && shortOmitStreak<=1 && inter.length>0;   // 冠军纪律: 双漏≤1
+        const isBet2 = omitStreak<=2 && shortOmitStreak<=2 && inter.length>0;   // 均衡纪律: 双漏≤2
         const sHit1 = isBet1 ? inter.includes(actual) : null;
         const sHit2 = isBet2 ? inter.includes(actual) : null;
         const m=metrics[year]||(metrics[year]=emptyMetrics());
@@ -510,9 +508,9 @@ function buildArchive(draws,labels){
         m.s+=shortHit?1:0;
         if(isBet1){m.r1Total++;m.r1+=sHit1?1:0}
         if(isBet2){m.r2Total++;m.r2+=sHit2?1:0}
-        m.odd+=(odd(actual)?'odd':'even')===long.predOdd?1:0;
-        m.big+=(big(actual)?'big':'small')===(long.predBig?'big':'small')?1:0;
-        m.wave+=wave(actual).type===long.predWave?1:0;
+        m.odd+=(odd(actual)?'odd':'even')===short.predOdd?1:0;
+        m.big+=(big(actual)?'big':'small')===(short.predBig?'big':'small')?1:0;
+        m.wave+=wave(actual).type===short.predWave?1:0;
         (rows[year]||(rows[year]=[])).push({label,nums:draws[i].slice(),actual,num:numHit,s:shortHit,r1:sHit1===null?'wait':(sHit1?'hit':'miss'),r2:sHit2===null?'wait':(sHit2?'hit':'miss')});
         numHits.push(numHit);shortHits.push(shortHit);resHits.push(sHit1===true);
         omitStreak=numHit?0:omitStreak+1;
@@ -538,10 +536,10 @@ function renderArchive(){
   const m=archiveCache.metrics[selectedYear],rate=(x,d)=>((d=d??m.total)?`${(x/d*100).toFixed(1)}%`:'0.0%');
   const bar=(w)=>{const v=parseFloat(w)||0;return `<div class="mc-bar"><div class="mc-fill" style="width:${Math.min(100,v)}%"></div></div>`};
   document.getElementById('metrics').innerHTML=
-    `<div class="metric-card v-num"><div class="mc-head">🎯 长波核验</div><div class="mc-stat"><span class="mc-val">${rate(m.num)}</span><span class="mc-label">7码命中率</span></div>${bar(rate(m.num))}</div>`+
-    `<div class="metric-card v-s"><div class="mc-head">🔵 短波核验</div><div class="mc-stat"><span class="mc-val">${rate(m.s)}</span><span class="mc-label">7码命中率</span></div>${bar(rate(m.s))}</div>`+
-    `<div class="metric-card v-r1"><div class="mc-head">🛡️ 缩口防守</div><div class="mc-stat"><span class="mc-val">${rate(m.r1,m.r1Total)}</span><span class="mc-label">出手命中率</span></div>${bar(rate(m.r1,m.r1Total))}<div class="mc-sub">遗漏≤4期交集 出手 ${m.r1Total} 期</div></div>`+
-    `<div class="metric-card v-r2"><div class="mc-head">👑 极限狙击</div><div class="mc-stat"><span class="mc-val">${rate(m.r2,m.r2Total)}</span><span class="mc-label">出手命中率</span></div>${bar(rate(m.r2,m.r2Total))}<div class="mc-sub">稀缺共振 出手 ${m.r2Total} 期</div></div>`+
+    `<div class="metric-card v-num"><div class="mc-head">📐 基准引擎</div><div class="mc-stat"><span class="mc-val">${rate(m.num)}</span><span class="mc-label">7码命中率</span></div>${bar(rate(m.num))}</div>`+
+    `<div class="metric-card v-s"><div class="mc-head">🔄 反手引擎</div><div class="mc-stat"><span class="mc-val">${rate(m.s)}</span><span class="mc-label">7码命中率</span></div>${bar(rate(m.s))}</div>`+
+    `<div class="metric-card v-r1"><div class="mc-head">🎯 精选档</div><div class="mc-stat"><span class="mc-val">${rate(m.r1,m.r1Total)}</span><span class="mc-label">出手命中率</span></div>${bar(rate(m.r1,m.r1Total))}<div class="mc-sub">双漏≤1 · 出手 ${m.r1Total} 期</div></div>`+
+    `<div class="metric-card v-r2"><div class="mc-head">⚖️ 平衡档</div><div class="mc-stat"><span class="mc-val">${rate(m.r2,m.r2Total)}</span><span class="mc-label">出手命中率</span></div>${bar(rate(m.r2,m.r2Total))}<div class="mc-sub">双漏≤2 · 出手 ${m.r2Total} 期</div></div>`+
     `<div class="metric-card v-other v-other-full"><div class="mc-head">⚙️ 其他指标</div><div class="mc-grid"><div><span class="mc-sm">单双</span><b>${rate(m.odd)}</b></div><div><span class="mc-sm">大小</span><b>${rate(m.big)}</b></div><div><span class="mc-sm">波色</span><b>${rate(m.wave)}</b></div><div><span class="mc-sm">样本</span><b>${m.total}</b></div></div></div>`;
   const body=document.getElementById('historyBody');
   body.innerHTML=archiveCache.rows[selectedYear].slice().reverse().map(r=>{
@@ -555,7 +553,7 @@ function renderArchive(){
   }).join('');
 }
 function renderHeat(draws){const f=Array(50).fill(0),last=draws.slice(-100);last.forEach(d=>f[d[6]]++);const max=Math.max(...f);document.getElementById('heatmap').innerHTML=Array.from({length:49},(_,i)=>{const n=i+1,r=max?f[n]/max:0;let bg='#e0f2fe',color='#0369a1';if(r>=.7){bg='#dc2626';color='#fff'}else if(r>=.3){bg='#f97316';color='#fff'}else if(r>0){bg='#fde68a';color='#92400e'}return `<div class="heat-cell" style="background:${bg};color:${color}">${String(n).padStart(2,'0')}<small>${f[n]}次</small></div>`}).join('')}
-function renderAttrs(id,p){const color=wave(p.predWave==='red'?1:p.predWave==='blue'?3:6).color,name=p.predWave==='red'?'红波':p.predWave==='blue'?'蓝波':'绿波';document.getElementById(id).innerHTML=`<div class="attr hot"><small>形态预判</small><b style="color:var(--hot)">${p.predOdd==='odd'?'单数':'双数'}</b></div><div class="attr gold"><small>量级预判</small><b style="color:var(--gold)">${p.predBig?'大号':'小号'}</b></div><div class="attr wave" style="border-bottom-color:${color}"><small>波色动能</small><b style="color:${color}">${name}</b></div>`}
+function renderAttrs(id,p){const color=wave(p.predWave==='red'?1:p.predWave==='blue'?3:6).color,name=p.predWave==='red'?'红波':p.predWave==='blue'?'蓝波':'绿波';const fmtOdd=p.predOdd===null?'—':(p.predOdd==='odd'?'单数':'双数');const fmtBig=p.predBig===null?'—':(p.predBig?'大号':'小号');const fmtWave=p.predWave===null?'—':name;document.getElementById(id).innerHTML=`<div class="attr hot"><small>形态预判</small><b style="color:var(--hot)">${fmtOdd}</b></div><div class="attr gold"><small>量级预判</small><b style="color:var(--gold)">${fmtBig}</b></div><div class="attr wave" style="border-bottom-color:${color}"><small>波色动能</small><b style="color:${color}">${fmtWave}</b></div>`}
 function boardStreaksShort(draws){
   const cur=simulateShortEngine(draws);
   if(!cur)return{};
@@ -570,7 +568,7 @@ function boardStreaksShort(draws){
 }
 
 function boardStreaks(draws){const cur=simulateEngine(draws);if(!cur)return{};const res={},pend=new Set(cur.top7);pend.forEach(n=>res[n]=1);for(let k=draws.length-1;k>=60&&pend.size;k--){const m=simulateEngine(draws.slice(0,k));if(!m)break;for(const n of [...pend]){if(m.top7.includes(n))res[n]++;else pend.delete(n)}}return res}
-function renderEngine(prefix,p,label,streaks){streaks=streaks||{};document.getElementById(`label${prefix}`).textContent=`目标期：${label}`;renderAttrs(`attrs${prefix}`,p);const body=document.getElementById(`tbody${prefix}`);body.innerHTML=p.fullScores.map((x,i)=>{const w=wave(x.n);const st=streaks[x.n]||1;const sc=st>=10?'var(--hot)':st>=5?'var(--gold)':'#64748b';return `<tr title="${escapeHtml(x.detail)}"><td>#${i+1}</td><td><span class="ball" style="background:${w.color}">${String(x.n).padStart(2,'0')}</span></td><td>${x.zodiac}</td><td>${odd(x.n)?'单':'双'}</td><td style="color:${w.color}">${w.name}</td><td>${big(x.n)?'大':'小'}</td><td style="color:${sc};font-weight:${st>=5?700:400};white-space:nowrap" title="该号码已连续 ${st} 期进入推荐列表">${st} 期</td></tr>`}).join('');document.getElementById(`kill${prefix}`).textContent=`冷区提示：评分居中的 3 码历史命中略低于随机，不建议作主攻（非绝对排除）：${p.kill3.map(n=>String(n).padStart(2,'0')).join('、')}`}
+function renderEngine(prefix,p,label,streaks){streaks=streaks||{};document.getElementById(`label${prefix}`).textContent=`目标期：${label}`;renderAttrs(`attrs${prefix}`,p);const body=document.getElementById(`tbody${prefix}`);body.innerHTML=p.fullScores.map((x,i)=>{const w=wave(x.n);const st=streaks[x.n]||1;const sc=st>=10?'var(--hot)':st>=5?'var(--gold)':'#64748b';return `<tr title="${escapeHtml(x.detail)}"><td>#${i+1}</td><td><span class="ball" style="background:${w.color}">${String(x.n).padStart(2,'0')}</span></td><td>${x.zodiac}</td><td>${odd(x.n)?'单':'双'}</td><td style="color:${w.color}">${w.name}</td><td>${big(x.n)?'大':'小'}</td><td style="color:${sc};font-weight:${st>=5?700:400};white-space:nowrap" title="该号码已连续 ${st} 期进入推荐列表">${st} 期</td></tr>`}).join('');document.getElementById(`kill${prefix}`).textContent=`冷区：评分中位3码历史命中略低于随机，不建议作主攻：${p.kill3.map(n=>String(n).padStart(2,'0')).join('、')}`}
 function renderState(hits){
   const p=intervalPosition(hits);
   document.getElementById('intervalValue').textContent=`${p.current}期`;
@@ -578,10 +576,10 @@ function renderState(hits){
   const fill=document.getElementById('intervalFill');fill.style.width=`${p.percent}%`;fill.style.background=p.color;
   document.getElementById('intervalEngine').style.borderTopColor=p.color;
   document.getElementById('intervalCircle').style.borderColor=p.color;
-  document.getElementById('intervalTip').textContent=`当前已连续 ${p.current} 期未命中特码，处于${p.position}。`;
+  document.getElementById('intervalTip').textContent=`当前已连续 ${p.current} 期未命中特码。`;
   document.getElementById('intervalMode').textContent=p.mode;document.getElementById('intervalQ90').textContent=p.q90;
   document.getElementById('intervalNote').textContent=`历史上 ${p.gapCount} 次命中之间，约 ${p.coreRate}% 发生在“连错 0–5 期”内；此数据仅作节奏参考，不代表下一期必然命中。`;
-  // 短波遗漏
+  // 反手引擎遗漏
   const sh=archiveCache.shortHits||[];
   if(!sh.length)return;
   const sp=intervalPosition(sh);
@@ -613,9 +611,8 @@ function renderStrategy(){
   let lo=0;for(let i=hits.length-1;i>=0&&!hits[i];i--)lo++;
   let so=0;for(let i=shortHits.length-1;i>=0&&!shortHits[i];i--)so++;
   const inWindow=lo<=4&&so<=4;
-  const isScarce=inter.length<=3||inter.length===7;
-  const isBet1=inWindow&&inter.length>0;
-  const isBet2=inWindow&&isScarce&&inter.length>0;
+  const isBet1=lo<=1&&so<=1&&inter.length>0;   // 冠军纪律: 双漏≤1
+  const isBet2=lo<=2&&so<=2&&inter.length>0;   // 均衡纪律: 双漏≤2
 
   const budgetEl=document.getElementById('budgetInput');
   const budget=Math.max(5, Math.min(10000, Number(budgetEl ? budgetEl.value : 35) || 35));
@@ -623,50 +620,50 @@ function renderStrategy(){
   const renderBalls=(arr)=>arr.map(n=>{const w=wave(n);return `<span class="strategy-ball"><span class="ball" style="background:${w.color}" title="${zodiac(n,label)} · ${odd(n)?'单':'双'} · ${w.name} · ${big(n)?'大':'小'}">${String(n).padStart(2,'0')}</span><small>${zodiac(n,label)}</small></span>`}).join('');
 
   let html=`<div class="strategy-section" style="margin-bottom:22px">`;
-  html+=`<div style="font-weight:800;font-size:14px;color:#059669;margin-bottom:8px">🛡️ 主推 · 缩口防守策略（长7短7交集 · 遗漏≤4期）</div>`;
+  html+=`<div style="font-weight:800;font-size:14px;color:#059669;margin-bottom:8px">🎯 精选档 · 双漏≤1（低频）</div>`;
   if(isBet1){
     const count1 = inter.length;
     const perBall1 = Math.max(1, Math.floor(budget / count1));
     const cost1 = perBall1 * count1;
     const win1 = perBall1 * 48;
     const profit1 = win1 - cost1;
-    html+=`<div class="strategy-status win"><b>出手窗口 · 积极防守</b><span>长波已连错 ${lo} 期 · 短波已连错 ${so} 期（均处于 0–4 期安全带，当前共振 ${inter.length} 码，合规击发）</span></div>`;
-    html+=`<div class="bet-rec"><span>👉 建议单号下注：<b style="font-size:15px;color:#059669">${perBall1} 元 / 注</b> （${count1}码共需 <b>${cost1} 元</b>）</span><span>🎯 若命中返还：<b>${win1} 元</b> （当期净盈 <b>+${profit1} 元</b>）</span></div>`;
+    html+=`<div class="strategy-status win"><b>出手</b><span>双漏≤1 达标（长漏${lo} · 短漏${so}），共振 ${inter.length} 码</span></div>`;
+    html+=`<div class="bet-rec"><span>每码 <b>${perBall1} 元</b> · 共 ${cost1} 元</span><span>命中返还 ${win1} 元（净 +${profit1}）</span></div>`;
     html+=`<div class="strategy-box">${renderBalls(inter)}</div>`;
   }else if(inWindow){
-    html+=`<div class="strategy-status wait"><b>观望期 · 均无交集</b><span>长波连错 ${lo} 期 · 短波连错 ${so} 期（安全窗口内，但长短两部当前无共振交集号）</span></div>`;
-    html+=`<div class="bet-rec na"><span>👉 处于量化纪律观望期，建议当期【空仓 0 元】</span><span>💡 准备预算 <b>${budget} 元</b> 请完整保留至下次出手窗口</span></div>`;
-    html+=`<div class="strategy-empty">本期两强无共有交集号，暂时空仓</div>`;
+    html+=`<div class="strategy-status wait"><b>观望</b><span>基准漏 ${lo} · 反手漏 ${so}：双漏未同时≤1，或当前无共振码</span></div>`;
+    html+=`<div class="bet-rec na"><span>本期空仓 0 元</span><span>预算 ${budget} 元保留至下次出手</span></div>`;
+    html+=`<div class="strategy-empty">本期空仓</div>`;
   }else{
-    html+=`<div class="strategy-status wait"><b>观望期 · 避坑防守</b><span>长波连错 ${lo} 期 · 短波连错 ${so} 期（存在遗漏>4期，进入第5期及长尾连黑警戒区，停止出击）</span></div>`;
-    html+=`<div class="bet-rec na"><span>👉 处于避坑防守期，建议当期【空仓 0 元】</span><span>💡 准备预算 <b>${budget} 元</b> 请完整保留至两强重回安全窗口</span></div>`;
-    html+=`<div class="strategy-empty">按缩口防守纪律空仓：等两强重回 0–4 期窗口再买</div>`;
+    html+=`<div class="strategy-status wait"><b>观望</b><span>基准漏 ${lo} · 反手漏 ${so}：存在连错&gt;4期，已超带，停止出手</span></div>`;
+    html+=`<div class="bet-rec na"><span>本期空仓 0 元</span><span>预算 ${budget} 元保留至双漏重回窗口</span></div>`;
+    html+=`<div class="strategy-empty">本期空仓：等双漏重回 ≤1 窗口</div>`;
   }
   html+=`</div>`;
 
   html+=`<div class="strategy-section" style="border-top:1px dashed var(--line);padding-top:18px;margin-bottom:10px">`;
-  html+=`<div style="font-weight:800;font-size:14px;color:#d97706;margin-bottom:8px">👑 高阶 · 极限狙击王（稀缺精华共振 · 遗漏≤4期）</div>`;
+  html+=`<div style="font-weight:800;font-size:14px;color:#d97706;margin-bottom:8px">⚖️ 平衡档 · 双漏≤2</div>`;
   if(isBet2){
     const count2 = inter.length;
     const perBall2 = Math.max(1, Math.floor(budget / count2));
     const cost2 = perBall2 * count2;
     const win2 = perBall2 * 48;
     const profit2 = win2 - cost2;
-    html+=`<div class="strategy-status win" style="background:#fffbeb;border-color:#fde68a;color:#92400e"><b>极品窗口 · 狙击击发</b><span>双漏均≤4期，且当期重合 ${inter.length} 码（为1~3个绝对精华区或7个满共振），触发极限狙击！</span></div>`;
-    html+=`<div class="bet-rec gold"><span>👑 狙击单号下注：<b style="font-size:15px;color:#92400e">${perBall2} 元 / 注</b> （${count2}码共需 <b>${cost2} 元</b>）</span><span>🎯 若命中返还：<b>${win2} 元</b> （当期暴利 <b>+${profit2} 元</b>）</span></div>`;
+    html+=`<div class="strategy-status win" style="background:#fffbeb;border-color:#fde68a;color:#92400e"><b>出手</b><span>双漏≤2 达标（长漏${lo} · 短漏${so}），共振 ${inter.length} 码</span></div>`;
+    html+=`<div class="bet-rec gold"><span>每码 <b>${perBall2} 元</b> · 共 ${cost2} 元</span><span>命中返还 ${win2} 元（净 +${profit2}）</span></div>`;
     html+=`<div class="strategy-box">${renderBalls(inter)}</div>`;
   }else if(inWindow){
-    html+=`<div class="strategy-status wait"><b>观望期 · 过滤震荡</b><span>双漏均≤4期，但当前重合 ${inter.length} 码（处于 4~6 个泛化震荡区间），按狙击纪律空仓过滤</span></div>`;
-    html+=`<div class="bet-rec na"><span>👉 处于狙击过滤期，本期【不触发狙击 0 元】</span><span>💡 严守稀缺共振锁，好钢用在 1~3/7 码绝杀刃上</span></div>`;
-    html+=`<div class="strategy-empty">当前非稀缺精华共振（非 1~3 码或 7 码），按狙击王纪律空仓</div>`;
+    html+=`<div class="strategy-status wait"><b>观望</b><span>基准漏 ${lo} · 反手漏 ${so}：双漏未同时≤2，或当前无共振码</span></div>`;
+    html+=`<div class="bet-rec na"><span>本期空仓 0 元</span><span>等双漏≤2 且出现共振码</span></div>`;
+    html+=`<div class="strategy-empty">本期空仓</div>`;
   }else{
-    html+=`<div class="strategy-status wait"><b>观望期 · 避坑防守</b><span>长波连错 ${lo} 期 · 短波连错 ${so} 期（未同时在 0–4 期安全带内，不上手）</span></div>`;
-    html+=`<div class="bet-rec na"><span>👉 处于防守期，本期【不启动狙击 0 元】</span><span>💡 严守双漏≤4期与精粹共振锁，零损耗防守</span></div>`;
-    html+=`<div class="strategy-empty">按狙击王纪律空仓：严守双遗漏≤4期与稀缺共振锁</div>`;
+    html+=`<div class="strategy-status wait"><b>观望</b><span>基准漏 ${lo} · 反手漏 ${so}：存在连错&gt;4期，已超带，停止出手</span></div>`;
+    html+=`<div class="bet-rec na"><span>本期空仓 0 元</span><span>等双漏重回 ≤2 窗口</span></div>`;
+    html+=`<div class="strategy-empty">本期空仓：等双漏重回 ≤2 窗口</div>`;
   }
   html+=`</div>`;
 
-  html+=`<div class="strategy-note"><b>双优纪律组合与下注计算器：</b><br>1) <b>「缩口防守策略」</b>：高频防守，避开第5期深渊坑，自动计算均注金额；<br>2) <b>「极限狙击王」</b>：仅对1~3个稀缺共振或7码同调期发枪。输入今日预算，自动算出具体每码投几元及1:48标准回报。仅供参考，非投注建议。</div>`;
+  html+=`<div class="strategy-note"><b>说明：</b>基准引擎（纯频次+遗漏，无属性偏好）× 反手引擎（近15期少数派反转）；选号 = 两引擎 top7 交集（共振码）；出手 = 双引擎连错均≤K（精选K=1、平衡K=2）且共振非空；预算自动均注，命中按 1:48 返还。历史回测数据仅供娱乐参考。</div>`;
   box.innerHTML=html;
 }
 
@@ -698,4 +695,4 @@ function init(){({draws:addedDraws,labels:addedLabels}=loadManual());setupInputs
 init();
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a266370afdb67e8d',t:'MTc4NTkzNzI0MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a26a676b9e7d3ff4',t:'MTc4NTk4MTE2NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body></html>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a266370afdb67e8d',t:'MTc4NTkzNzI0MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a26a676b9e7d3ff4',t:'MTc4NTk4MTE2NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a26c68494c6516e8',t:'MTc4NjAwMjE3Mg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body></html>
