@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>六合彩历史统计 · v3.3</title>
+<title>特码历史统计 </title>
 <style>
 :root{--ink:#263548;--muted:#64748b;--paper:#f6f8fb;--card:#fff;--line:#dce4ee;--gold:#d4a72c;--hot:#e54b4b;--blue:#3b82f6;--green:#10a878;--purple:#8b5cf6;--shadow:0 8px 26px rgba(15,23,42,.055);font-family:"PingFang SC","Microsoft YaHei",sans-serif}
 *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);padding-bottom:48px}.page{max-width:1120px;margin:auto;padding:28px 20px}header{display:flex;align-items:end;justify-content:space-between;gap:16px;border-bottom:2px solid var(--gold);padding-bottom:18px;margin-bottom:22px}h1{font-size:28px;margin:0}.subtitle,.desc{font-size:13px;color:var(--muted);line-height:1.65}.count{text-align:right;color:var(--muted);font-size:12px}.count b{display:block;color:var(--hot);font:800 25px Consolas,monospace}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin-bottom:20px;box-shadow:var(--shadow)}h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--gold)}.tag{font:700 11px Consolas,monospace;color:#785705;background:#fff4c9;border-radius:4px;padding:2px 6px;margin-left:5px}.form-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.form-row label{font-size:14px;font-weight:700}.text-input,.form-row input{border:1px solid var(--line);border-radius:7px;padding:9px 10px;background:#fff;color:var(--ink);font:700 14px Consolas,monospace}.text-input{min-width:145px}.balls{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.balls input{width:48px;height:48px;border:1px solid var(--line);border-radius:50%;text-align:center;font:800 17px Consolas,monospace;outline:none}.balls input:focus{box-shadow:0 0 0 3px rgba(59,130,246,.18)}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.btn{border:1px solid var(--line);border-radius:7px;padding:9px 13px;background:#fff;color:var(--ink);font-weight:700;cursor:pointer}.btn:hover{border-color:#94a3b8}.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}.btn.danger{color:#c73737}.notice{background:#f8fafc;border:1px dashed var(--line);border-radius:8px;padding:10px 12px;margin-top:14px;font-size:12px;line-height:1.7;color:var(--muted)}
@@ -28,8 +28,8 @@
 </head>
 <body>
 <div class="page">
-<header><div><h1>六合彩历史统计</h1>
-<div class="subtitle" style="color:var(--purple);font-weight:700;">v3.3 · 回测优化版</div><div class="subtitle">饱和度主导 / 频次微调 / 波色 · 固定7码</div></div><div class="count"><b id="totalCount">--</b>期数据</div></header>
+<header><div><h1>特码历史统计</h1>
+<div class="subtitle" style="color:var(--purple);font-weight:700;"></div><div class="subtitle">饱和度主导 / 频次微调 / 波色 · 固定7码</div></div><div class="count"><b id="totalCount">--</b>期数据</div></header>
 
 <section class="card"><h2>1. 录入开奖 <span class="tag">数据</span></h2><div class="form-row"><label for="periodLabel">目标期号：</label><input id="periodLabel" class="text-input" maxlength="8" placeholder="2026-202"></div><div class="balls" id="ballInputs"></div><div class="actions"><button class="btn primary" id="submitDraw">保存开奖号并更新</button><button class="btn" id="undoDraw">撤销上次录入</button><button class="btn" id="exportBtn">导出数据</button><button class="btn" id="importBtn">导入数据</button><button class="btn danger" id="clearData">清空手动数据</button><input type="file" id="importFile" accept="application/json,.json" hidden></div><div class="notice">期号格式 <b>YYYY-NNN</b>，每期 7 个不重复的 1–49 号码。</div></section>
 
