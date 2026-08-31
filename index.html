@@ -748,7 +748,7 @@ function showPlanResult(plan,result,tag){
   setSS('ssMsg',parts.slice(1).join('；'),cls);
   return parts;
 }
-function logTo(id,lines){const el=document.getElementById(id);if(el)el.textContent=lines.join('\n');}
+function logTo(id,lines){const el=document.getElementById(id);if(el)el.textContent=Array.isArray(lines)?lines.join('\n'):String(lines??'');}
 
 /* ---------- 读取仓库 JSON ---------- */
 async function fetchJson(){
