@@ -81,6 +81,7 @@
 <div class="actions">
   <button class="btn primary" id="syncBtn">🔄 一键同步（读取仓库 JSON）</button>
   <button class="btn" id="syncCheck">仅检查（不写入）</button>
+  <button class="btn" id="ssRepair" hidden>🛠 以数据源为准修复冲突</button>
 </div>
 <div class="notice sync-log" id="syncLog">提示：若提示无法读取 JSON（404 / 网络错误），说明 Actions 尚未成功运行或仓库缺少 data/am-latest.json，请使用下方“粘贴导入”兜底。</div>
 <div class="sub-title">粘贴导入兜底（永远可用）</div>
@@ -740,12 +741,13 @@ function showPlanResult(plan,result,tag){
     setSS('ssAppend','0 期（已是最新）','ok');
   }
   if(plan.conflicts.length){
-    parts.push(`⚠️ 冲突 ${plan.conflicts.length} 期（期号相同但号码不同，保留本地值）：${plan.conflictLabels.slice(0,6).join('、')}${plan.conflictLabels.length>6?' …':''}`);
+    parts.push(`⚠️ 冲突 ${plan.conflicts.length} 期（期号相同但号码不同，保留本地值）：${plan.conflictLabels.slice(0,6).join('、')}${plan.conflictLabels.length>6?' …':''}。如确认以数据源为准，可点击上方「🛠 修复冲突」按钮`);
   }
   if(plan.dupes)parts.push(`数据源内部重复期号 ${plan.dupes} 条（已忽略）`);
   if(plan.invalid.length)parts.push(`无效数据期号（未写入）：${plan.invalid.slice(0,6).join('、')}`);
   const cls=(result&&!result.ok)?'bad':(plan.conflicts.length||plan.gapFrom||(cmpLabel(plan.remoteLatest||'',last)<0))?'warn':'ok';
   setSS('ssMsg',parts.slice(1).join('；'),cls);
+  updateRepairBtn(plan);
   return parts;
 }
 function logTo(id,lines){const el=document.getElementById(id);if(el)el.textContent=Array.isArray(lines)?lines.join('\n'):String(lines??'');}
@@ -914,8 +916,40 @@ function runForward(){
 }
 function scheduleForward(delay){setTimeout(runForward,delay||80);}
 
+/* ---------- 冲突修复：以数据源为准改写本地手动记录 ---------- */
+let lastConflictFixes=null; // [{label,nums}]，由 showPlanResult 根据最近一次检测更新
+function updateRepairBtn(plan){
+  const btn=document.getElementById('ssRepair');
+  if(!btn)return;
+  lastConflictFixes=(plan&&plan.conflicts&&plan.conflicts.length)?plan.conflicts.map(c=>({label:c.label,nums:c.json.slice()})):null;
+  if(lastConflictFixes){btn.hidden=false;btn.textContent=`🛠 以数据源为准修复 ${lastConflictFixes.length} 期冲突`;}
+  else btn.hidden=true;
+}
+function repairConflicts(){
+  if(!lastConflictFixes||!lastConflictFixes.length)return alert('当前没有待修复的冲突。请先「一键同步」或「仅检查」检测冲突。');
+  const manualIdx=new Map(addedLabels.map((l,i)=>[l,i]));
+  const fixable=lastConflictFixes.filter(f=>manualIdx.has(f.label));
+  const skipBase=lastConflictFixes.filter(f=>!manualIdx.has(f.label));
+  if(!fixable.length)return alert('冲突期全部位于内置数据段（2023-001 ~ 2026-201），内置数组不可修改。如确认数据源是对的，请人工核对后再手动录入更正。');
+  let msg=`将把本地手动记录中 ${fixable.length} 期改为数据源号码：\n`+fixable.map(f=>`${f.label} → [${f.nums.join(', ')}]`).join('\n');
+  if(skipBase.length)msg+=`\n\n另有 ${skipBase.length} 期位于内置数据段（${skipBase.map(f=>f.label).join('、')}），内置数组不可修改，将跳过。`;
+  if(!confirm(msg))return;
+  const bkD=addedDraws.slice(),bkL=addedLabels.slice();
+  for(const f of fixable)addedDraws[manualIdx.get(f.label)]=f.nums.slice();
+  if(!saveManual()){addedDraws=bkD;addedLabels=bkL;return alert('本机存储失败，已回滚，请先导出备份。');}
+  dataVersion++;archiveCache=null;
+  const line=`已按数据源修复 ${fixable.length} 期：${fixable.map(f=>f.label).join('、')}${skipBase.length?`；跳过内置段 ${skipBase.length} 期（${skipBase.map(f=>f.label).join('、')}）`:''}`;
+  setSS('ssConflict','已修复 '+fixable.length+' 期（以数据源为准）','ok');
+  logTo('syncLog',[`[${new Date().toLocaleString('zh-CN',{hour12:false})}] 🛠 冲突修复`,line,'7码模型与前瞻验证已重算。']);
+  scheduleRefresh();scheduleForward(120);
+  lastConflictFixes=null;
+  const btn=document.getElementById('ssRepair');if(btn)btn.hidden=true;
+  alert(`修复完成（${fixable.length} 期）：${fixable.map(f=>f.label).join('、')}`);
+}
+
 /* ---------- 事件绑定与初始化 ---------- */
 document.getElementById('syncBtn').addEventListener('click',syncNow);
+document.getElementById('ssRepair').addEventListener('click',repairConflicts);
 document.getElementById('syncCheck').addEventListener('click',async()=>{const btn=document.getElementById('syncCheck');btn.disabled=true;try{const plan=await checkOnly(false);if(plan){const lines=showPlanResult(plan,{ok:true,wrote:0},'仅检查');logTo('syncLog',[`[${new Date().toLocaleString('zh-CN',{hour12:false})}] 仅检查（未写入）`].concat(lines));}}finally{btn.disabled=false;}});
 document.getElementById('pastePreview').addEventListener('click',pastePreview);
 document.getElementById('pasteApply').addEventListener('click',pasteApply);
@@ -927,7 +961,7 @@ setSS('ssLocal',lastLocalLabel(),'');
 window.addEventListener('load',()=>{scheduleForward(400);checkOnly(true);});
 
 /* ---------- 测试钩子（不影响页面行为） ---------- */
-window.__LOTTO_SYNC_TEST__={collectHeaders,numsFromBody,stripHtml,parseDrawText,planAppend,applyPlan,normalizeRecords,normalizeJsonRecord,computeForward,normSf,cmpLabel,lastLocalLabel,checkOnly};
+window.__LOTTO_SYNC_TEST__={collectHeaders,numsFromBody,stripHtml,parseDrawText,planAppend,applyPlan,normalizeRecords,normalizeJsonRecord,computeForward,normSf,cmpLabel,lastLocalLabel,checkOnly,repairConflicts,get lastConflictFixes(){return lastConflictFixes}};
 })();
 </script>
 </body></html>
