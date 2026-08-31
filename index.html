@@ -24,6 +24,23 @@
 
 /* 饱和度列 */
 .sat-col{font:800 11px Consolas,monospace}.sat-col.urgent{color:#dc2626}.sat-col.death{color:#94a3b8}.sat-col.edge{color:#d97706}.sat-col.normal{color:#16a34a}
+/* ============ 新增：数据同步 & 前瞻验证 ============ */
+.sync-status{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+.ss-item{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-width:0}
+.ss-item small{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
+.ss-item b{font:700 14px Consolas,monospace;word-break:break-all}
+.ss-item b.ok{color:var(--green)}.ss-item b.warn{color:#d97706}.ss-item b.bad{color:var(--hot)}
+.ss-item.span2{grid-column:span 2}
+.sub-title{font-size:14px;font-weight:800;margin:18px 0 8px;padding-left:8px;border-left:3px solid var(--green)}
+#pasteBox{width:100%;min-height:150px;border:1px solid var(--line);border-radius:8px;padding:10px;font:12px/1.7 Consolas,monospace;resize:vertical;background:#fff;color:var(--ink)}
+#pasteBox:focus{outline:none;border-color:#94a3b8;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+.sync-log{font:12px/1.8 Consolas,monospace;white-space:pre-wrap;word-break:break-all}
+.fwd-range{font:800 14px Consolas,monospace;color:var(--purple)}
+#fwdMetrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+#fwdMetrics .metric-card{padding:12px 14px}
+#fwdMetrics .mc-val{font-size:24px}
+#fwdConclusion{font-size:12.5px;line-height:1.8;color:var(--muted);background:#f8fafc;border:1px dashed var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+@media(max-width:780px){.sync-status{grid-template-columns:1fr 1fr}.ss-item.span2{grid-column:span 2}#fwdMetrics{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -50,6 +67,50 @@
 <h2>3. 号码热度 <span class="tag">近100期</span></h2><p class="desc">近100期特码出现次数，颜色越深越频繁。</p><div id="heatmap" class="heat"></div></section>
 
 <section class="card"><h2>4. 历史回放 <span class="tag">验证</span></h2><p class="desc">逐期回放，每期只用此前数据。命中率需对比随机覆盖率基线。</p><div id="yearTabs" class="tabs"></div><div id="metrics" class="metrics"></div><div class="scroll"><table class="history"><thead><tr><th class="col-period">期号</th><th class="col-balls">开奖号码</th><th class="col-num">📐 长周期固定7码</th></tr></thead><tbody id="historyBody"></tbody></table></div></section>
+
+<section class="card"><h2>5. 数据同步 <span class="tag">一键 / 兜底</span></h2>
+<p class="desc">浏览器直连源站会被 403 拦截，因此“一键同步”不再请求源站，而是读取仓库内 <b>./data/am-latest.json</b>（由 GitHub Actions 定时抓取源站生成并提交）。新增数据只写入本机 localStorage，<b>不修改</b> HTML 内置数组。</p>
+<div class="sync-status">
+  <div class="ss-item"><small>本地最后一期</small><b id="ssLocal">--</b></div>
+  <div class="ss-item"><small>JSON 数据源最新一期</small><b id="ssRemote">--</b></div>
+  <div class="ss-item"><small>JSON 更新时间</small><b id="ssUpdated">--</b></div>
+  <div class="ss-item"><small>本次追加</small><b id="ssAppend">--</b></div>
+  <div class="ss-item span2"><small>同步结论</small><b id="ssMsg">尚未同步</b></div>
+  <div class="ss-item span2"><small>冲突 / 缺口</small><b id="ssConflict">--</b></div>
+</div>
+<div class="actions">
+  <button class="btn primary" id="syncBtn">🔄 一键同步（读取仓库 JSON）</button>
+  <button class="btn" id="syncCheck">仅检查（不写入）</button>
+</div>
+<div class="notice sync-log" id="syncLog">提示：若提示无法读取 JSON（404 / 网络错误），说明 Actions 尚未成功运行或仓库缺少 data/am-latest.json，请使用下方“粘贴导入”兜底。</div>
+<div class="sub-title">粘贴导入兜底（永远可用）</div>
+<textarea id="pasteBox" placeholder="直接粘贴源网页正文 / HTML 源码 / Markdown，例如：
+
+242 期(开奖时间:2026-08-30)
+
+29 虎
+35 猴
+46 鸡
+32 猪
+13 马
+31 鼠
+09 狗"></textarea>
+<div class="actions">
+  <button class="btn" id="pastePreview">解析预览</button>
+  <button class="btn primary" id="pasteApply">解析并追加缺失期</button>
+  <button class="btn" id="pasteClear">清空</button>
+</div>
+<div class="notice" id="pasteLog">将自动对比本地最后一期，只追加缺失的连续期号；发现期号缺口或号码冲突时会明确提示，不会写入有问题的数据。</div>
+</section>
+
+<section class="card"><h2>6. 前瞻验证 <span class="tag">冻结样本</span></h2>
+<p class="desc">模型参数视为截止 <b>2026-201</b> 前已经冻结。验证第 N 期时，<b>只使用第 N 期之前的数据</b>生成 7 码（不偷看当期及之后数据），逐期与实际开奖比对，并对照随机 7 码基线 <b>14.29%</b>。“一键同步 / 粘贴导入”追加的新数据会自动纳入本统计。</p>
+<div class="form-row" style="margin-bottom:6px"><label for="fwdStart">起算期：</label><input id="fwdStart" class="text-input" value="2026-201" maxlength="8"><button class="btn primary" id="fwdRun">重新计算</button><span class="fwd-range" id="fwdRange"></span></div>
+<div id="fwdMetrics"></div>
+<div id="fwdConclusion"></div>
+<div class="scroll" style="max-height:480px"><table class="history"><thead><tr><th class="col-period">期号</th><th class="col-balls">当期预测 7 码</th><th>实际特码</th><th>7码命中</th><th>单双</th><th>大小</th><th>波色</th></tr></thead><tbody id="fwdBody"><tr><td colspan="7" style="color:var(--muted)">等待计算…</td></tr></tbody></table></div>
+</section>
+
 </div>
 <div class="notice" style="margin-top:30px;text-align:center;background:#fff8e8;border-color:#f0c040;font-size:13px"><b>⚠️ 免责</b>：本工具仅做历史统计展示，<b>不具预测能力</b>。六合彩完全随机，历史不代表未来，不构成投注建议。理性娱乐，量力而行。</div>
 <script>
@@ -501,4 +562,372 @@ function init(){({draws:addedDraws,labels:addedLabels}=loadManual());setupInputs
 init();
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a29e42a959909c51',t:'MTc4NjUyNDkxOQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body></html>
+<script>
+/* =====================================================================
+   新增模块：数据同步（仓库 JSON + 粘贴导入兜底） 与 前瞻验证
+   —— 独立附加在原模型代码之后，不修改上方任何模型逻辑与内置数据 ——
+   ===================================================================== */
+(function(){
+'use strict';
+const SYNC_JSON=['./data/am-latest.json','./data/am-2026.json'];
+const FROZEN_DEFAULT='2026-201';
+
+/* ---------- 通用解析（与 scripts/sync-am.js 保持一致；兼容 HTML / 纯文本 / Markdown） ---------- */
+function collectHeaders(text){
+  const list=[];let m;
+  const reA=/(?:第\s*)?(\d{4})?\s*[-—·~／/]?\s*(\d{1,3})\s*期/g;
+  while((m=reA.exec(text))){const period=+m[2];if(period>=1&&period<=366)list.push({idx:m.index,end:m.index+m[0].length,year:m[1]?+m[1]:null,period});}
+  const reB=/(\d{4})-(\d{1,3})(?![\d])(?!\s*[-/.]\d)/g;
+  while((m=reB.exec(text))){const period=+m[2];if(period>=1&&period<=366)list.push({idx:m.index,end:m.index+m[0].length,year:+m[1],period});}
+  list.sort((a,b)=>a.idx-b.idx||b.end-a.end);
+  const out=[];
+  for(const h of list){const prev=out[out.length-1];if(prev&&h.idx<prev.end)continue;out.push(h);}
+  return out;
+}
+function numsFromBody(body){
+  let b=String(body||'');
+  b=b.replace(/\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/g,' ');
+  b=b.replace(/\d{1,2}:\d{2}(:\d{2})?/g,' ');
+  b=b.replace(/\d{3,}/g,' ');
+  const tokens=b.match(/\d{1,2}/g)||[];
+  const nums=[];
+  for(const t of tokens){const n=+t;if(n>=1&&n<=49){nums.push(n);if(nums.length===7)break;}}
+  return nums;
+}
+function stripHtml(raw){
+  let s=String(raw==null?'':raw);
+  if(s.indexOf('<')===-1)return s;
+  s=s.replace(/<script\b[\s\S]*?<\/script\s*>/gi,' ').replace(/<style\b[\s\S]*?<\/style\s*>/gi,' ').replace(/<!--[\s\S]*?-->/g,' ');
+  s=s.replace(/<br\s*\/?\s*>/gi,'\n').replace(/<\/(p|div|tr|li|h[1-6]|section|article|table)\s*>/gi,'\n');
+  s=s.replace(/<[^>]*>/g,' ');
+  s=s.replace(/&#x([0-9a-f]+);/gi,(m,h)=>{try{return String.fromCodePoint(parseInt(h,16))}catch(e){return ' '}});
+  s=s.replace(/&#(\d+);/g,(m,d)=>{try{return String.fromCodePoint(+d)}catch(e){return ' '}});
+  s=s.replace(/&nbsp;|&ensp;|&emsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'");
+  return s;
+}
+function parseDrawText(raw){
+  const errors=[];const records=[];
+  const text=stripHtml(raw).replace(/\r\n?/g,'\n');
+  const headers=collectHeaders(text);
+  if(!headers.length){errors.push('未识别到任何期号（需要类似 “242 期(开奖时间:2026-08-30)” 或 “2026-242” 的期号行）');return{records,errors};}
+  const pending=[];
+  for(let i=0;i<headers.length;i++){
+    const h=headers[i];
+    const body=text.slice(h.end,i+1<headers.length?headers[i+1].idx:undefined);
+    let date='';
+    const dm=body.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+    if(dm)date=`${dm[1]}-${String(+dm[2]).padStart(2,'0')}-${String(+dm[3]).padStart(2,'0')}`;
+    const nums=numsFromBody(body);
+    if(nums.length<7){errors.push(`期 ${h.period}：只解析到 ${nums.length} 个号码，已跳过`);continue;}
+    if(new Set(nums).size<7){errors.push(`期 ${h.period}：号码出现重复，已跳过`);continue;}
+    pending.push({year:h.year,period:h.period,date,nums});
+  }
+  let prevYear=null,prevPeriod=null;
+  for(const r of pending){
+    if(!r.year){
+      if(r.date)r.year=+r.date.slice(0,4);
+      else if(prevYear!=null)r.year=(prevPeriod!=null&&r.period<prevPeriod)?prevYear+1:prevYear;
+    }
+    prevYear=r.year;prevPeriod=r.period;
+  }
+  for(const r of pending){
+    if(!r.year||r.year<2000||r.year>2100){errors.push(`期 ${r.period}：无法确定年份，已跳过`);continue;}
+    if(r.period<1||r.period>maxPeriod(r.year)){errors.push(`期 ${r.period}：超出 ${r.year} 年期号范围，已跳过`);continue;}
+    records.push({label:`${r.year}-${String(r.period).padStart(3,'0')}`,year:r.year,period:r.period,date:r.date||'',nums:r.nums.slice(),special:r.nums[6]});
+  }
+  return{records,errors};
+}
+
+/* ---------- 本地数据工具 ---------- */
+function cmpLabel(a,b){const [ay,ap]=String(a).split('-').map(Number),[by,bp]=String(b).split('-').map(Number);return ay-by||ap-bp;}
+function lastLocalLabel(){return addedLabels.length?addedLabels.at(-1):BASE_LABELS.at(-1);}
+function localMap(){const map=new Map();BASE_DRAWS.forEach((d,i)=>map.set(BASE_LABELS[i],d.slice()));addedLabels.forEach((l,i)=>map.set(l,addedDraws[i].slice()));return map;}
+
+/* ---------- JSON 记录规范化 ---------- */
+function normalizeJsonRecord(r){
+  if(!r||typeof r!=='object')return null;
+  let year=+r.year,period=+r.period;
+  if((!year||!period)&&typeof r.label==='string'){const m=r.label.trim().match(/^(\d{4})-(\d{1,3})$/);if(m){year=+m[1];period=+m[2];}}
+  if(!year||!period)return null;
+  if(!Array.isArray(r.nums)||r.nums.length!==7)return null;
+  const nums=r.nums.map(Number);
+  if(!validDraw(nums))return null;
+  const label=normalLabel(`${year}-${period}`);
+  if(!label)return null;
+  return{label,year,period,date:String(r.date||''),nums,special:nums[6]};
+}
+function normalizeRecords(j){
+  const src=(j&&Array.isArray(j.records))?j.records:[];
+  const out=[];
+  for(const r of src){const n=normalizeJsonRecord(r);if(n)out.push(n);}
+  return out;
+}
+
+/* ---------- 追加计划（纯计算，不写数据）：只追加本地缺失的连续期号 ---------- */
+function planAppend(records){
+  const map=localMap(),last=lastLocalLabel();
+  const res={append:[],overlap:0,conflicts:[],conflictLabels:[],dupes:0,gapFrom:'',remoteLatest:'',invalid:[]};
+  const seen=new Set(),clean=[];
+  for(const r of records){
+    if(!r||!r.label)continue;
+    if(seen.has(r.label)){res.dupes++;continue;}
+    seen.add(r.label);clean.push(r);
+  }
+  clean.sort((a,b)=>cmpLabel(a.label,b.label));
+  res.remoteLatest=clean.length?clean[clean.length-1].label:'';
+  let expected=nextLabel(last);
+  for(const r of clean){
+    const c=cmpLabel(r.label,last);
+    if(c<=0){
+      const local=map.get(r.label);
+      if(local){
+        const same=local.length===r.nums.length&&r.nums.every((n,i)=>+n===+local[i]);
+        if(!same){res.conflicts.push({label:r.label,local:local.slice(),json:r.nums.slice()});res.conflictLabels.push(r.label);}
+        res.overlap++;
+      }
+      continue;
+    }
+    if(cmpLabel(r.label,expected)<0){res.overlap++;continue;}
+    if(cmpLabel(r.label,expected)>0){res.gapFrom=expected;break;}
+    if(!validDraw(r.nums)){res.invalid.push(r.label);break;}
+    res.append.push(r);
+    expected=nextLabel(r.label);
+  }
+  return res;
+}
+
+/* ---------- 写入 localStorage ---------- */
+function applyPlan(plan){
+  if(!plan.append.length)return{ok:true,wrote:0};
+  if(plan.append.length>2000)return{ok:false,error:'单次追加超过 2000 期，请分批操作。'};
+  const bkD=addedDraws.slice(),bkL=addedLabels.slice();
+  for(const r of plan.append){addedDraws.push(r.nums.slice());addedLabels.push(r.label);}
+  if(!saveManual()){addedDraws=bkD;addedLabels=bkL;return{ok:false,error:'本机存储失败（可能空间不足），已回滚，请先导出备份。'};}
+  dataVersion++;archiveCache=null;
+  document.getElementById('periodLabel').value=expectedLabel();
+  scheduleRefresh();scheduleForward(120);
+  return{ok:true,wrote:plan.append.length};
+}
+
+/* ---------- 状态渲染 ---------- */
+function setSS(id,text,cls){const el=document.getElementById(id);if(!el)return;el.textContent=text;el.className=cls||'';}
+function fmtTime(iso){if(!iso)return'--';const d=new Date(iso);return isNaN(d)?String(iso):d.toLocaleString('zh-CN',{hour12:false});}
+function showPlanResult(plan,result,tag){
+  const last=lastLocalLabel();
+  setSS('ssLocal',last,'');
+  const conflictTxt=(plan.conflicts.length?`冲突 ${plan.conflicts.length} 期`:'')+(plan.gapFrom?`${plan.conflicts.length?' · ':''}缺口自 ${plan.gapFrom}`:'');
+  setSS('ssConflict',conflictTxt||'无',conflictTxt?'warn':'ok');
+  const parts=[];
+  parts.push(`${tag}：本地最后一期 ${last}；数据源最新 ${plan.remoteLatest||'--'}`);
+  if(result&&result.ok&&result.wrote>0){
+    const a=plan.append;
+    parts.push(`✅ 本次追加 ${result.wrote} 期（${a[0].label} ~ ${a[a.length-1].label}），已写入本机 localStorage${plan.gapFrom?`；⚠️ 之后仍有缺口（自 ${plan.gapFrom} 起），剩余期号需补齐后再试`:''}`);
+    setSS('ssAppend',`+${result.wrote} 期`,'ok');
+  }else if(result&&!result.ok){
+    parts.push(`❌ ${result.error}`);
+    setSS('ssAppend','写入失败','bad');
+  }else if(plan.append.length){
+    parts.push(`可追加 ${plan.append.length} 期（${plan.append[0].label} ~ ${plan.append[plan.append.length-1].label}），点击“一键同步”写入`);
+    setSS('ssAppend',`可追加 ${plan.append.length} 期`,'warn');
+  }else if(plan.gapFrom){
+    parts.push(`⚠️ 期号缺口：本地到 ${last}，数据源却从 ${plan.gapFrom} 之后才有新记录，缺号需先用“粘贴导入”补齐`);
+    setSS('ssAppend','被缺口阻塞','warn');
+  }else if(cmpLabel(plan.remoteLatest||'',last)<0){
+    parts.push(`⚠️ 数据源落后本地（源 ${plan.remoteLatest||'--'} < 本地 ${last}），等待 Actions 更新或用粘贴导入`);
+    setSS('ssAppend','0 期','warn');
+  }else{
+    parts.push('✅ 已是最新：本地与数据源一致');
+    setSS('ssAppend','0 期（已是最新）','ok');
+  }
+  if(plan.conflicts.length){
+    parts.push(`⚠️ 冲突 ${plan.conflicts.length} 期（期号相同但号码不同，保留本地值）：${plan.conflictLabels.slice(0,6).join('、')}${plan.conflictLabels.length>6?' …':''}`);
+  }
+  if(plan.dupes)parts.push(`数据源内部重复期号 ${plan.dupes} 条（已忽略）`);
+  if(plan.invalid.length)parts.push(`无效数据期号（未写入）：${plan.invalid.slice(0,6).join('、')}`);
+  const cls=(result&&!result.ok)?'bad':(plan.conflicts.length||plan.gapFrom||(cmpLabel(plan.remoteLatest||'',last)<0))?'warn':'ok';
+  setSS('ssMsg',parts.slice(1).join('；'),cls);
+  return parts;
+}
+function logTo(id,lines){const el=document.getElementById(id);if(el)el.textContent=lines.join('\n');}
+
+/* ---------- 读取仓库 JSON ---------- */
+async function fetchJson(){
+  const errs=[];
+  for(const url of SYNC_JSON){
+    try{
+      const r=await fetch(url,{cache:'no-store'});
+      if(r.status===404){errs.push(url+' → 404');continue;}
+      if(!r.ok){errs.push(url+' → HTTP '+r.status);continue;}
+      const j=await r.json();
+      if(!j||!Array.isArray(j.records)){errs.push(url+' → JSON 缺少 records');continue;}
+      return{j,url};
+    }catch(e){errs.push(url+' → '+(e&&e.message||e));}
+  }
+  throw new Error(errs.join('；'));
+}
+
+/* ---------- 一键同步 / 仅检查 ---------- */
+async function checkOnly(silent){
+  setSS('ssLocal',lastLocalLabel(),'');
+  let j;
+  try{const r=await fetchJson();j=r.j;}
+  catch(e){
+    const msg=`❌ 无法读取仓库 JSON（${e.message}）。请使用下方“粘贴导入”兜底。`;
+    setSS('ssMsg',msg,'bad');setSS('ssRemote','--','');setSS('ssUpdated','--','');setSS('ssAppend','--','');
+    if(!silent)logTo('syncLog',[`[${new Date().toLocaleString('zh-CN',{hour12:false})}] 一键同步失败`,msg,'—— 源站 403 时 Actions 也无法抓取；此时请：',' 1) 浏览器打开源站页面复制内容；',' 2) 粘贴到下方文本框 → 解析并追加缺失期。']);
+    return null;
+  }
+  const records=normalizeRecords(j);
+  const plan=planAppend(records);
+  setSS('ssRemote',plan.remoteLatest||'--','');
+  setSS('ssUpdated',fmtTime(j.updatedAt),'');
+  return plan;
+}
+async function syncNow(){
+  const btn=document.getElementById('syncBtn');btn.disabled=true;btn.textContent='同步中…';
+  try{
+    const plan=await checkOnly(true);
+    if(!plan){return;}
+    const parts=showPlanResult(plan,{ok:true,wrote:0},'一键同步');
+    let result={ok:true,wrote:0};
+    if(plan.append.length)result=applyPlan(plan);
+    const lines=showPlanResult(plan,result,'一键同步');
+    setSS('ssLocal',lastLocalLabel(),'');
+    logTo('syncLog',[`[${new Date().toLocaleString('zh-CN',{hour12:false})}] 一键同步`].concat(lines));
+    if(result.ok&&result.wrote>0)alert(`同步成功：已追加 ${result.wrote} 期（${plan.append[0].label} ~ ${plan.append[plan.append.length-1].label}）。`);
+  }finally{btn.disabled=false;btn.textContent='🔄 一键同步（读取仓库 JSON）';}
+}
+
+/* ---------- 粘贴导入 ---------- */
+function parsePaste(){return parseDrawText(document.getElementById('pasteBox').value);}
+function pastePreview(){
+  const {records,errors}=parsePaste();
+  if(!records.length){logTo('pasteLog',['❌ 未解析到有效开奖记录。'].concat(errors.slice(0,8)));return;}
+  const lines=[`✅ 解析到 ${records.length} 期：${records[0].label} ~ ${records[records.length-1].label}（最新一期特码 ${records[records.length-1].special}）`];
+  if(errors.length)lines.push(`⚠️ ${errors.length} 条警告：`).concat(errors.slice(0,8));
+  lines.push('—— 仅预览，未写入。点击“解析并追加缺失期”执行。');
+  logTo('pasteLog',lines);
+}
+function pasteApply(){
+  const {records,errors}=parsePaste();
+  if(!records.length){logTo('pasteLog',['❌ 未解析到有效开奖记录。'].concat(errors.slice(0,8)));return;}
+  const plan=planAppend(records);
+  let result={ok:true,wrote:0};
+  if(plan.append.length)result=applyPlan(plan);
+  const lines=showPlanResult(plan,result,'粘贴导入');
+  setSS('ssLocal',lastLocalLabel(),'');
+  const all=[`[${new Date().toLocaleString('zh-CN',{hour12:false})}] 粘贴导入（解析 ${records.length} 期）`].concat(lines);
+  if(errors.length)all.push(`解析警告 ${errors.length} 条：`).concat(errors.slice(0,8));
+  logTo('pasteLog',all);
+  if(result.ok&&result.wrote>0)alert(`粘贴导入成功：已追加 ${result.wrote} 期（${plan.append[0].label} ~ ${plan.append[plan.append.length-1].label}）。`);
+  else if(result.ok&&plan.gapFrom)alert(`解析到 ${records.length} 期，但数据源与本地之间存在期号缺口（自 ${plan.gapFrom} 起），本次未写入。请补齐缺口期号的记录后再试。`);
+}
+
+/* ---------- 前瞻验证 ---------- */
+function normSf(z){
+  if(z<0)return 1-normSf(-z);
+  if(z===0)return .5;
+  if(z<6){
+    const x=z/Math.SQRT2;
+    const pp=.3275911,a1=.254829592,a2=-.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429;
+    const t=1/(1+pp*x);
+    const y=1-((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+    return (1-y)/2;
+  }
+  const phi=Math.exp(-z*z/2)/Math.sqrt(2*Math.PI);
+  return phi/z*(1-1/(z*z)+3/Math.pow(z,4)-15/Math.pow(z,6)+105/Math.pow(z,8));
+}
+function computeForward(startLabel){
+  const {draws,labels}=allData();
+  let idx=labels.indexOf(startLabel);
+  if(idx<0)idx=labels.findIndex(l=>cmpLabel(l,startLabel)>=0);
+  if(idx<0)return{error:`数据中没有 ${startLabel} 或更晚的期号（当前数据到 ${labels.length?labels[labels.length-1]:'无'}）`};
+  const from=Math.max(idx,60);
+  const rows=[];
+  for(let i=from;i<draws.length;i++){
+    const hist=draws.slice(0,i); // 关键：只用第 i 期之前的数据
+    const model=longWaveEngine(hist,labels[i]);
+    if(!model)continue;
+    const actual=draws[i][6];
+    const hit=model.mergeNums.includes(actual);
+    rows.push({label:labels[i],pred:model.mergeNums.slice(),actual,hit,
+      oddHit:(odd(actual)?'odd':'even')===model.predOdd,
+      bigHit:(big(actual)?'big':'small')===(model.predBig?'big':'small'),
+      waveHit:wave(actual).type===model.predWave});
+  }
+  return{rows,start:rows.length?rows[0].label:startLabel,end:rows.length?rows[rows.length-1].label:'--'};
+}
+function renderForward(res){
+  const m=document.getElementById('fwdMetrics'),cEl=document.getElementById('fwdConclusion'),body=document.getElementById('fwdBody'),range=document.getElementById('fwdRange');
+  if(res.error){
+    m.innerHTML='';cEl.textContent='';range.textContent='';
+    body.innerHTML=`<tr><td colspan="7" style="color:var(--hot)">${escapeHtml(res.error)}</td></tr>`;
+    return;
+  }
+  const rows=res.rows,n=rows.length,hits=rows.filter(r=>r.hit).length;
+  const p=7/49,expected=n*p,excess=hits-expected;
+  const sd=Math.sqrt(n*p*(1-p)),z=sd>0?(hits-expected)/sd:0;
+  const pv=normSf(z);
+  const rate=n?(hits/n*100).toFixed(1)+'%':'--';
+  range.textContent=`前瞻区间：${res.start} 至 ${res.end}`;
+  const card=(head,val,sub,extra='')=>`<div class="metric-card v-other"><div class="mc-head">${head}</div><div class="mc-stat"><span class="mc-val">${val}</span><span class="mc-label">${extra}</span></div><div class="mc-sub">${sub||''}</div></div>`;
+  m.innerHTML=
+    card('样本期数',n,`${res.start} ~ ${res.end}`,'期')+
+    `<div class="metric-card v-num"><div class="mc-head">7码命中率</div><div class="mc-stat"><span class="mc-val">${rate}</span><span class="mc-label">命中 ${hits}/${n}</span></div><div class="mc-bar"><div class="mc-fill" style="width:${n?Math.min(100,hits/n*100):0}%"></div></div><div class="mc-sub">随机 7 码基线 14.29%</div></div>`+
+    card('命中次数',hits,'特码落在当期 7 码内','次')+
+    card('随机基线','14.29%','7 / 49 固定覆盖率')+
+    card('随机期望命中',expected.toFixed(1),'样本 × 14.29%','次')+
+    card('超额命中',(excess>=0?'+':'')+excess.toFixed(1),'实际 − 随机期望','次')+
+    card('z-score',(z>=0?'+':'')+z.toFixed(2),`σ=${sd.toFixed(2)}`)+
+    card('单边 p 值',pv<1e-4?(pv===0?'≈0':pv.toExponential(2)):pv.toFixed(4),pv<0.05?'<0.05 统计显著':'不显著');
+  let verdict;
+  if(!n)verdict='没有可验证的期数（起算期之后还没有开奖数据）。';
+  else if(excess>0&&pv<0.05)verdict=`在 ${n} 期前瞻样本中命中 ${hits} 次（${rate}），高于随机期望 ${expected.toFixed(1)} 次约 ${excess.toFixed(1)} 次，z=${z.toFixed(2)}，单边 p=${pv<1e-4?pv.toExponential(2):pv.toFixed(4)} < 0.05 → 统计上显著高于随机基线。`;
+  else if(excess>0)verdict=`在 ${n} 期前瞻样本中命中 ${hits} 次（${rate}），虽高于随机期望 ${expected.toFixed(1)} 次，但 z=${z.toFixed(2)}、单边 p=${pv<1e-4?pv.toExponential(2):pv.toFixed(4)} ≥ 0.05 → 与随机基线差异不显著，可继续累积样本观察。`;
+  else verdict=`在 ${n} 期前瞻样本中命中 ${hits} 次（${rate}），不高于随机期望 ${expected.toFixed(1)} 次（超额 ${excess.toFixed(1)}）→ 前瞻表现未跑赢随机基线。`;
+  cEl.textContent='结论：'+verdict;
+  const mark=b=>b?'<span style="color:var(--green);font-weight:800">✓</span>':'<span style="color:#dc2626;font-weight:700">✗</span>';
+  body.innerHTML=rows.slice().reverse().map(r=>{
+    const balls=r.pred.map(nn=>{const w=wave(nn);const isHit=nn===r.actual;return `<span class="num${isHit?' special':''}" style="${isHit?`background:${w.color};border-color:${w.color}`:''}" title="${String(nn).padStart(2,'0')}${isHit?'（命中特码）':''}">${String(nn).padStart(2,'0')}</span>`;}).join('');
+    const aw=wave(r.actual);
+    const actualBall=`<span class="num special" style="background:${aw.color};border-color:${aw.color}" title="特码">${String(r.actual).padStart(2,'0')}</span>`;
+    return `<tr class="${r.hit?'row-num':'row-none'}"><td class="col-period">${escapeHtml(r.label)}</td><td class="col-balls"><div class="nums">${balls}</div></td><td>${actualBall}</td><td>${r.hit?badge('命中','hit'):badge('未中','miss')}</td><td>${mark(r.oddHit)}</td><td>${mark(r.bigHit)}</td><td>${mark(r.waveHit)}</td></tr>`;
+  }).join('');
+}
+let fwdBusy=false,fwdPending=false,fwdCache={key:'',res:null};
+function runForward(){
+  if(fwdBusy){fwdPending=true;return;}
+  const input=document.getElementById('fwdStart');
+  const start=normalLabel(input.value)||normalLabel(FROZEN_DEFAULT);
+  if(!start){renderForward({error:'起算期格式应为 YYYY-NNN，例如 2026-201'});return;}
+  const key=dataVersion+'|'+start;
+  if(fwdCache.key===key&&fwdCache.res){renderForward(fwdCache.res);return;}
+  fwdBusy=true;
+  document.getElementById('fwdBody').innerHTML='<tr><td colspan="7" style="color:var(--muted)">计算中…（逐期仅用此前数据回测）</td></tr>';
+  setTimeout(()=>{
+    let res;
+    try{res=computeForward(start);}catch(e){res={error:'计算失败：'+(e&&e.message||e)};}
+    fwdCache={key,res};fwdBusy=false;
+    renderForward(res);
+    if(fwdPending){fwdPending=false;runForward();}
+  },30);
+}
+function scheduleForward(delay){setTimeout(runForward,delay||80);}
+
+/* ---------- 事件绑定与初始化 ---------- */
+document.getElementById('syncBtn').addEventListener('click',syncNow);
+document.getElementById('syncCheck').addEventListener('click',async()=>{const btn=document.getElementById('syncCheck');btn.disabled=true;try{const plan=await checkOnly(false);if(plan){const lines=showPlanResult(plan,{ok:true,wrote:0},'仅检查');logTo('syncLog',[`[${new Date().toLocaleString('zh-CN',{hour12:false})}] 仅检查（未写入）`].concat(lines));}}finally{btn.disabled=false;}});
+document.getElementById('pastePreview').addEventListener('click',pastePreview);
+document.getElementById('pasteApply').addEventListener('click',pasteApply);
+document.getElementById('pasteClear').addEventListener('click',()=>{document.getElementById('pasteBox').value='';logTo('pasteLog','已清空。');});
+document.getElementById('fwdRun').addEventListener('click',runForward);
+['submitDraw','undoDraw','clearData'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',()=>scheduleForward(1500));});
+const importFile=document.getElementById('importFile');if(importFile)importFile.addEventListener('change',()=>scheduleForward(2500));
+setSS('ssLocal',lastLocalLabel(),'');
+window.addEventListener('load',()=>{scheduleForward(400);checkOnly(true);});
+
+/* ---------- 测试钩子（不影响页面行为） ---------- */
+window.__LOTTO_SYNC_TEST__={collectHeaders,numsFromBody,stripHtml,parseDrawText,planAppend,applyPlan,normalizeRecords,normalizeJsonRecord,computeForward,normSf,cmpLabel,lastLocalLabel,checkOnly};
+})();
+</script>
+</body></html>
