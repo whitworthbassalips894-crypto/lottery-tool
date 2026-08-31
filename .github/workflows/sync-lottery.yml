@@ -1,0 +1,43 @@
+name: Sync lottery data
+
+# 定时抓取 https://2026kj.zkclhb.com:2025/am.html → data/am-latest.json
+# 澳门六合彩约每天 21:30（UTC+8）开奖，两个时间点各试一次（UTC 13:40 / 15:10）
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '40 13 * * *'
+    - cron: '10 15 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-lottery-data
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch and build data/am-latest.json
+        id: sync
+        run: node scripts/sync-am.js
+        # 脚本退出码约定：0=成功(有无变化均算成功)  2=抓取失败(如403)  3=解析失败
+        # 失败时脚本保证不改动 data/am-latest.json，此步直接红叉并输出 ::error:: 说明
+
+      - name: Commit and push if changed
+        if: steps.sync.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/am-latest.json
+          git commit -m "chore(data): sync am-latest.json → $(cat data/am-latest.json | grep latestLabel | head -1 | sed 's/.*: "//;s/".*//')"
+          git push
