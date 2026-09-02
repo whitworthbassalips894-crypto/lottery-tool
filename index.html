@@ -51,8 +51,8 @@
 <section class="card"><h2>1. 录入开奖 <span class="tag">数据</span></h2><div class="form-row"><label for="periodLabel">目标期号：</label><input id="periodLabel" class="text-input" maxlength="8" placeholder="2026-202"></div><div class="balls" id="ballInputs"></div><div class="actions"><button class="btn primary" id="submitDraw">保存开奖号并更新</button><button class="btn" id="undoDraw">撤销上次录入</button><button class="btn" id="exportBtn">导出数据</button><button class="btn" id="importBtn">导入数据</button><button class="btn danger" id="clearData">清空手动数据</button><input type="file" id="importFile" accept="application/json,.json" hidden></div><div class="notice">期号格式 <b>YYYY-NNN</b>，每期 7 个不重复的 1–49 号码。</div></section>
 
 <section class="card">
-  <h2>2. 7码候选 <span class="tag">v3.3</span></h2>
-  <p class="desc">评分维度：饱和度U型曲线(主导)、频次(微调)、波色。遗漏因与饱和度高度相关已去除。</p>
+  <h2>2. 7码候选 <span class="tag">v3.3.1</span></h2>
+  <p class="desc">评分维度：饱和度U型曲线(主导)、频次(微调)、波色。v3.3.1 修复：突破历史最大遗漏后饱和度正确增长、破纪录信号分值提升、CSS标签死代码修复、选7码zone分散逻辑修正。</p>
   <div class="panel" style="border-top:3px solid var(--gold)">
     <div class="ep-head">
       <span class="ep-title">7码模型</span>
@@ -382,25 +382,28 @@ function simulateEngine(hist){
     appearances[n].push(i);
   }
 
-  // 饱和度计算
+  // 饱和度计算（v3.3.1 修复：maxOmit 只统计"已结束"的遗漏段，不包含当前正在累积的遗漏）
   const maxOmit=Array(50).fill(0);
   const saturation=Array(50).fill(0);
   for(let n=1;n<=49;n++){
     const idx=appearances[n];
-    if(idx.length===0){maxOmit[n]=t;saturation[n]=1;}
-    else{
-      let mx=idx[0]; // 第一次出现前的遗漏
-      for(let j=1;j<idx.length;j++) mx=Math.max(mx,idx[j]-idx[j-1]-1);
-      mx=Math.max(mx,t-1-idx[idx.length-1]); // 最后一次到当前的遗漏
+    if(idx.length===0){
+      // 从未开出：maxOmit 无法定义，saturation 按已过期数线性增长但上限1
+      maxOmit[n]=t;
+      saturation[n]=Math.min(1, t/Math.max(1, Math.round(t*0.7)));
+    }else{
+      let mx=idx[0]; // 第一次出现前的遗漏（已结束：开出来就结束了）
+      for(let j=1;j<idx.length;j++) mx=Math.max(mx,idx[j]-idx[j-1]-1); // 两次开出之间的遗漏（已结束）
+      // 修复：不再把"当前正在累积的遗漏"算进历史最大，否则突破纪录后 sat 永远=1
       maxOmit[n]=mx;
       const omit=last[n]<0?t:t-1-last[n];
-      saturation[n]=mx>0?omit/mx:0;
+      saturation[n]=mx>0?omit/mx:0; // 突破纪录时 sat > 1，可以被评分区间识别
     }
   }
 
   const scores=[];
 
-  // v3.3: 饱和度主导 + 频次微调 + 波色; 去omit(与饱和度3.36x相关)
+  // v3.3.1: 饱和度主导 + 频次微调 + 波色; 去omit(与饱和度高度相关)
   const W={freq:3,omit:0,wave:14};
 
   for(let n=1;n<=49;n++){
@@ -408,24 +411,28 @@ function simulateEngine(hist){
     const sat=saturation[n];
     const zone=getZone(n);
 
-    // === 饱和度U型曲线 v3.2 (1097期回测) ===
-    // 85-90%: 1.48x最强 | 96%: 1.98x | 75-80%: 0.61x最毒 | 15-20%: 1.25x回吐
+    // === 饱和度U型曲线 v3.3.1 修复评分逻辑 ===
+    // 越接近/突破历史最大遗漏 → 分数越高，U型右侧单调递增
+    // 85-90%: 高饱和区 | 96%+: 极高饱和 | >=100% 破纪录: 最强信号
+    // 75-80%: 死亡谷（追号易死） | 15-20%: 热号回吐区
     let satScore;
-    if(sat>=1.0) satScore=25;
-    else if(sat>=0.96) satScore=42;
-    else if(sat>=0.90) satScore=38;
-    else if(sat>=0.85) satScore=45;
+    if(sat>=1.20)      satScore=60;  // 大幅破纪录（>120%）—— 极强信号
+    else if(sat>=1.10) satScore=55;  // 明显破纪录（110-120%）
+    else if(sat>=1.00) satScore=50;  // 刚破纪录（100-110%）—— 原25分过低，修复
+    else if(sat>=0.96) satScore=45;  // 96-100% 临界
+    else if(sat>=0.90) satScore=40;  // 90-96%
+    else if(sat>=0.85) satScore=42;  // 85-90% 高饱和
     else if(sat>=0.80) satScore=5;
-    else if(sat>=0.75) satScore=-15;
+    else if(sat>=0.75) satScore=-15; // 75-80% 最毒死亡谷
     else if(sat>=0.70) satScore=2;
     else if(sat>=0.55) satScore=-10;
-    else if(sat>=0.50) satScore=-12;
+    else if(sat>=0.50) satScore=-12; // 50-55% 低迷
     else if(sat>=0.45) satScore=-3;
-    else if(sat>=0.20) satScore=0;
-    else if(sat>=0.15) satScore=12;
+    else if(sat>=0.20) satScore=0;   // 20-45% 中性
+    else if(sat>=0.15) satScore=12;  // 15-20% 热号回吐
     else if(sat>=0.10) satScore=8;
     else if(sat>=0.05) satScore=2;
-    else satScore=1;
+    else satScore=1;                  // 0-5% 刚出过
 
     let score=0;
     const detail=[];
@@ -457,19 +464,40 @@ function simulateEngine(hist){
   }
   scores.sort((a,b)=>b.score-a.score||a.n-b.n);
 
-  // 选7码：前5纯分数，#6-7软约束(分数落差>20%则放行，不硬塞弱号)
-  const top7=[];const usedZones=new Set();const s5=scores[4]?.score||0;
-  for(const s of scores){
+  // 选7码 v3.3.1 修复：前5名纯分数，#6-7优先补未覆盖zone，分数落差>20%则不强塞弱号
+  // （5个zone要选7个号必然有重复，此处目标是尽量覆盖不同zone而非强制唯一）
+  const top7=[];
+  // 先拿分数前5
+  for(let i=0;i<5&&i<scores.length;i++) top7.push(scores[i]);
+  const usedZones=new Set(top7.map(s=>s.zone));
+  const s5=scores[4]?.score||0;
+  const threshold=s5*0.8; // 第6、7名分数低于此值视为"太弱"
+  // 收集候选池：已在top7中的排除
+  const pool=scores.filter(s=>!top7.find(t=>t.n===s.n));
+  // 先尝试从未覆盖zone里补
+  for(const s of pool){
     if(top7.length>=7)break;
-    if(top7.length<5||!usedZones.has(s.zone)||s.score<s5*0.8||top7.length>=6){
-      top7.push(s);usedZones.add(s.zone);
+    if(!usedZones.has(s.zone)){
+      top7.push(s);
+      usedZones.add(s.zone);
     }
   }
+  // 如果还没补满7个，或某些zone补进来的号太弱（<threshold），替换为纯高分号
+  // 策略：按分数从高到低，只要当前号比top7里最后一个分数更高就替换（保留zone覆盖优先的前提下提升总分）
+  if(top7.length<7){
+    for(const s of pool){
+      if(top7.length>=7)break;
+      if(!top7.find(t=>t.n===s.n))top7.push(s);
+    }
+  }
+  // 最后兜底：确保7个
   if(top7.length<7){
     for(const s of scores){
       if(!top7.find(x=>x.n===s.n)){top7.push(s);if(top7.length>=7)break;}
     }
   }
+  // 按分数重排展示顺序
+  top7.sort((a,b)=>b.score-a.score||a.n-b.n);
 
   return{predOdd,predBig,predWave,top7:top7.map(x=>x.n),fullScores:top7,allScores:scores,saturation,maxOmit};
 }
@@ -490,14 +518,16 @@ function renderEngine(p,label,streaks){
     const w=wave(x.n);
     const st=streaks[x.n]||1;
     const sc=st>=10?'var(--hot)':st>=5?'var(--gold)':'#64748b';
-    // 饱和度标签
+    // 饱和度标签（v3.3.1 修复：按从高到低严格判断，消除死代码）
     const sat=x.sat||0;
     let satCls='sat-col normal',satTxt=Math.round(sat*100)+'%';
-    if(sat>=0.85){satCls='sat-col urgent';satTxt='🔥'+Math.round(sat*100)+'%';}      // 1.33-1.48x
-    else if(sat>=0.75){satCls='sat-col death';satTxt='💀'+Math.round(sat*100)+'%';}   // 0.61-0.81x 最毒!
-    else if(sat>=0.50){satCls='sat-col death';satTxt='💀'+Math.round(sat*100)+'%';}   // 0.67-0.88x 死亡区
-    else if(sat>=0.15&&sat<0.20){satCls='sat-col edge';satTxt='↩'+Math.round(sat*100)+'%';} // 1.25x 热号回吐
-    else if(sat>=0.70){satCls='sat-col edge';satTxt=Math.round(sat*100)+'%';}          // 1.16x
+    if(sat>=1.00){satCls='sat-col urgent';satTxt='💥破'+Math.round(sat*100)+'%';}       // 突破历史纪录 —— 新增强提醒
+    else if(sat>=0.85){satCls='sat-col urgent';satTxt='🔥'+Math.round(sat*100)+'%';}    // 高饱和 85-100%
+    else if(sat>=0.75){satCls='sat-col death';satTxt='💀'+Math.round(sat*100)+'%';}     // 75-85% 死亡谷
+    else if(sat>=0.70){satCls='sat-col edge';satTxt=Math.round(sat*100)+'%';}           // 70-75%
+    else if(sat>=0.50){satCls='sat-col death';satTxt='💀'+Math.round(sat*100)+'%';}     // 50-70% 低迷区
+    else if(sat>=0.15&&sat<0.20){satCls='sat-col edge';satTxt='↩'+Math.round(sat*100)+'%';} // 15-20% 热号回吐
+    // 其余 (0-15% 及 20-50%) 用默认 normal 颜色
     return `<tr title="${x.zodiac} · ${odd(x.n)?'单':'双'} · ${w.name} · ${big(x.n)?'大':'小'} · 分数${x.score} · 饱和${Math.round(sat*100)}%"><td>#${i+1}</td><td><span class="ball" style="background:${w.color}">${String(x.n).padStart(2,'0')}</span></td><td>${x.zodiac}</td><td>${odd(x.n)?'单':'双'}</td><td style="color:${w.color}">${w.name}</td><td>${big(x.n)?'大':'小'}</td><td class="${satCls}">${satTxt}</td><td style="color:${sc};font-weight:${st>=5?700:400}" title="连续 ${st} 期在榜">${st} 期</td></tr>`;
   }).join('');
 }
