@@ -8,11 +8,9 @@
 :root{--ink:#263548;--muted:#64748b;--paper:#f6f8fb;--card:#fff;--line:#dce4ee;--gold:#d4a72c;--hot:#e54b4b;--blue:#3b82f6;--green:#10a878;--purple:#8b5cf6;--shadow:0 8px 26px rgba(15,23,42,.055);font-family:"PingFang SC","Microsoft YaHei",sans-serif}
 *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);padding-bottom:48px}.page{max-width:1120px;margin:auto;padding:28px 20px}header{display:flex;align-items:end;justify-content:space-between;gap:16px;border-bottom:2px solid var(--gold);padding-bottom:18px;margin-bottom:22px}h1{font-size:28px;margin:0}.subtitle,.desc{font-size:13px;color:var(--muted);line-height:1.65}.count{text-align:right;color:var(--muted);font-size:12px}.count b{display:block;color:var(--hot);font:800 25px Consolas,monospace}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin-bottom:20px;box-shadow:var(--shadow)}h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--gold)}.tag{font:700 11px Consolas,monospace;color:#785705;background:#fff4c9;border-radius:4px;padding:2px 6px;margin-left:5px}.form-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.form-row label{font-size:14px;font-weight:700}.text-input,.form-row input{border:1px solid var(--line);border-radius:7px;padding:9px 10px;background:#fff;color:var(--ink);font:700 14px Consolas,monospace}.text-input{min-width:145px}.balls{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.balls input{width:48px;height:48px;border:1px solid var(--line);border-radius:50%;text-align:center;font:800 17px Consolas,monospace;outline:none}.balls input:focus{box-shadow:0 0 0 3px rgba(59,130,246,.18)}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.btn{border:1px solid var(--line);border-radius:7px;padding:9px 13px;background:#fff;color:var(--ink);font-weight:700;cursor:pointer}.btn:hover{border-color:#94a3b8}.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}.btn.danger{color:#c73737}.notice{background:#f8fafc;border:1px dashed var(--line);border-radius:8px;padding:10px 12px;margin-top:14px;font-size:12px;line-height:1.7;color:var(--muted)}
 
-.panel{border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}.attrs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:13px 0}.attr{background:#f8fafc;border:1px solid var(--line);border-radius:7px;padding:9px}.attr small{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}.attr b{font-size:14px}.prediction{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}.prediction th{color:var(--muted);font-size:11px;background:#f8fafc}.prediction th,.prediction td{padding:8px 4px;text-align:center;border-bottom:1px solid var(--line)}.ball{display:inline-flex;width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;color:#fff;font:800 12px Consolas,monospace}.heat{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}.heat-cell{border-radius:7px;min-height:48px;padding:6px;text-align:center;font:800 13px Consolas,monospace}.heat-cell small{display:block;font:11px "PingFang SC",sans-serif;margin-top:3px}.heat-cell{position:relative}.heat-delta{position:absolute;top:2px;right:3px;font:800 9px/1 Consolas,monospace;padding:2px 3px;border-radius:6px;color:#fff}.heat-delta.up{background:#dc2626}.heat-delta.down{background:#64748b}.heat-delta.flat{background:#7c3aed}.heat-bar{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:6px 12px;background:#f8fafc;border:1px solid var(--line);border-radius:99px;font-size:11.5px;line-height:1.7;color:var(--muted)}.heat-bar b{color:var(--ink);font-weight:800}.heat-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--muted)}.heat-legend span{display:inline-flex;align-items:center;gap:4px}.heat-legend i.lg{width:12px;height:12px;border-radius:3px;display:inline-block;font-style:normal}.heat-legend .heat-delta{position:static;padding:1px 3px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tab{border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 14px;color:var(--muted);font-weight:700;cursor:pointer}.tab.active{background:var(--ink);border-color:var(--ink);color:#fff}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}.scroll{max-height:580px;overflow:auto;border:1px solid var(--line);border-radius:9px}.badge{display:inline-block;padding:3px 6px;border-radius:4px;background:#eef2f7;color:var(--muted);font-size:11px;margin:1px}.badge.hit{background:var(--hot);color:#fff}.badge.miss{background:#fee2e2;color:#dc2626}.shake{animation:shake .3s ease;border-color:var(--hot)!important}@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.panel{border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}.prediction{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}.prediction th{color:var(--muted);font-size:11px;background:#f8fafc}.prediction th,.prediction td{padding:8px 4px;text-align:center;border-bottom:1px solid var(--line)}.ball{display:inline-flex;width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;color:#fff;font:800 12px Consolas,monospace}.heat{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}.heat-cell{border-radius:7px;min-height:48px;padding:6px;text-align:center;font:800 13px Consolas,monospace}.heat-cell small{display:block;font:11px "PingFang SC",sans-serif;margin-top:3px}.heat-cell{position:relative}.heat-delta{position:absolute;top:2px;right:3px;font:800 9px/1 Consolas,monospace;padding:2px 3px;border-radius:6px;color:#fff}.heat-delta.up{background:#dc2626}.heat-delta.down{background:#64748b}.heat-delta.flat{background:#7c3aed}.heat-bar{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:6px 12px;background:#f8fafc;border:1px solid var(--line);border-radius:99px;font-size:11.5px;line-height:1.7;color:var(--muted)}.heat-bar b{color:var(--ink);font-weight:800}.heat-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--muted)}.heat-legend span{display:inline-flex;align-items:center;gap:4px}.heat-legend i.lg{width:12px;height:12px;border-radius:3px;display:inline-block;font-style:normal}.heat-legend .heat-delta{position:static;padding:1px 3px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tab{border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 14px;color:var(--muted);font-weight:700;cursor:pointer}.tab.active{background:var(--ink);border-color:var(--ink);color:#fff}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}.scroll{max-height:580px;overflow:auto;border:1px solid var(--line);border-radius:9px}.badge{display:inline-block;padding:3px 6px;border-radius:4px;background:#eef2f7;color:var(--muted);font-size:11px;margin:1px}.badge.hit{background:var(--hot);color:#fff}.badge.miss{background:#fee2e2;color:#dc2626}.shake{animation:shake .3s ease;border-color:var(--hot)!important}@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 
 @media(max-width:780px){.page{padding:18px 12px}header{align-items:start;flex-direction:column}.metrics{grid-template-columns:1fr}.card{padding:18px 15px}.heat{grid-template-columns:repeat(7,1fr)}}
-
-.attr.hot{border-bottom:3px solid var(--hot)}.attr.gold{border-bottom:3px solid var(--gold)}.attr.wave{border-bottom:3px solid var(--green)}
 
 /* 历史回放 */
 .history{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;min-width:780px}.history th{position:sticky;top:0;background:#1e293b;color:#f1f5f9;z-index:2;padding:11px 8px;font-size:11px;font-weight:700;letter-spacing:.5px;text-align:center;border-bottom:2px solid #334155}.history th.col-period{text-align:left;padding-left:14px;border-radius:8px 0 0 0}.history th,.history td{padding:9px 6px;text-align:center;border-bottom:1px solid #e2e8f0;transition:background .15s}.history td.col-period{text-align:left;font:700 11px Consolas,monospace;padding-left:14px;color:#475569}.history td.col-balls{padding:6px}.history td,.history tr{transition:background .15s}.history tbody tr:hover{background:#f1f5f9}.history tbody tr.row-num{background:#fef9c3}.history tbody tr.row-num:hover{background:#fef08a}.history tbody tr.row-none{background:#fff}.history .nums{gap:5px}.history .num{width:34px;height:34px;font:700 13px Consolas,monospace;border:1px solid #e2e8f0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#f1f5f9;color:#334155}.history .num.special{width:38px;height:38px;font:900 14px Consolas,monospace;color:#fff;border-radius:50%;border-width:2px;box-shadow:0 0 0 2px rgba(0,0,0,.1),0 2px 6px rgba(0,0,0,.12)}.badge.hit{background:#dc2626;color:#fff;font-weight:800;min-width:26px}
@@ -58,7 +56,6 @@
       <span class="ep-title">7码模型</span>
       <span class="ep-meta">目标期 <b id="labelM">--</b> · 本期 <b id="countM">--</b> 码</span>
     </div>
-    <div class="attrs" id="attrsM"></div>
     <table class="prediction"><thead><tr><th>#</th><th>号码</th><th>生肖</th><th>单双</th><th>波色</th><th>大小</th><th>饱和</th><th>在榜🔥</th></tr></thead><tbody id="tbodyM"></tbody></table>
   </div>
 </section>
@@ -109,7 +106,7 @@
 <div class="form-row" style="margin-bottom:6px"><label for="fwdStart">起算期：</label><input id="fwdStart" class="text-input" value="2026-201" maxlength="8"><button class="btn primary" id="fwdRun">重新计算</button><span class="fwd-range" id="fwdRange"></span></div>
 <div id="fwdMetrics"></div>
 <div id="fwdConclusion"></div>
-<div class="scroll" style="max-height:480px"><table class="history"><thead><tr><th class="col-period">期号</th><th class="col-balls">当期预测 7 码</th><th>实际特码</th><th>7码命中</th><th>单双</th><th>大小</th><th>波色</th></tr></thead><tbody id="fwdBody"><tr><td colspan="7" style="color:var(--muted)">等待计算…</td></tr></tbody></table></div>
+<div class="scroll" style="max-height:480px"><table class="history"><thead><tr><th class="col-period">期号</th><th class="col-balls">当期预测 7 码</th><th>实际特码</th><th>7码命中</th></tr></thead><tbody id="fwdBody"><tr><td colspan="4" style="color:var(--muted)">等待计算…</td></tr></tbody></table></div>
 </section>
 
 </div>
@@ -489,7 +486,6 @@ function renderEngine(p,label,streaks){
   streaks=streaks||{};
   document.getElementById('labelM').textContent=label;
   document.getElementById('countM').textContent=p.merged.length;
-  renderAttrs('attrsM',p);
   const body=document.getElementById('tbodyM');
   body.innerHTML=p.merged.map((x,i)=>{
     const w=wave(x.n);
@@ -584,7 +580,6 @@ function renderHeat(draws){
   document.getElementById('heatSlide').innerHTML=
     `统计区间 <b>${escapeHtml(last[0]?._label||'--')} ~ ${escapeHtml(newest?._label||'--')}</b> · 共 <b>${last.length}</b> 期`;
 }
-function renderAttrs(id,p){const color=wave(p.predWave==='red'?1:p.predWave==='blue'?3:6).color,name=p.predWave==='red'?'红波':p.predWave==='blue'?'蓝波':'绿波';document.getElementById(id).innerHTML=`<div class="attr hot"><small>形态预判</small><b style="color:var(--hot)">${p.predOdd==='odd'?'单数':'双数'}</b></div><div class="attr gold"><small>量级预判</small><b style="color:var(--gold)">${p.predBig?'大号':'小号'}</b></div><div class="attr wave" style="border-bottom-color:${color}"><small>波色动能</small><b style="color:${color}">${name}</b></div>`}
 function boardStreaks(draws){const cur=longWaveEngine(draws,expectedLabel());if(!cur)return{};const res={},pend=new Set(cur.mergeNums);pend.forEach(n=>res[n]=1);for(let k=draws.length-1;k>=60&&pend.size;k--){const m=longWaveEngine(draws.slice(0,k),expectedLabel());if(!m)break;for(const n of [...pend]){if(m.mergeNums.includes(n))res[n]++;else pend.delete(n)}}return res}
 function refresh(){const {draws,labels}=allData();document.getElementById('totalCount').textContent=draws.length;if(!archiveCache||archiveCache.version!==dataVersion||archiveCache.builtUpTo!==draws.length)archiveCache=buildArchive(draws,labels);renderArchive();renderHeat(draws);const label=expectedLabel(),model=longWaveEngine(draws,label);if(model)renderEngine(model,label,boardStreaks(draws))}
 function scheduleRefresh(){document.getElementById('totalCount').textContent='计算中';requestAnimationFrame(()=>setTimeout(refresh,0))}
@@ -885,10 +880,7 @@ function computeForward(startLabel){
     if(!model)continue;
     const actual=draws[i][6];
     const hit=model.mergeNums.includes(actual);
-    rows.push({label:labels[i],pred:model.mergeNums.slice(),actual,hit,
-      oddHit:(odd(actual)?'odd':'even')===model.predOdd,
-      bigHit:(big(actual)?'big':'small')===(model.predBig?'big':'small'),
-      waveHit:wave(actual).type===model.predWave});
+    rows.push({label:labels[i],pred:model.mergeNums.slice(),actual,hit});
   }
   return{rows,start:rows.length?rows[0].label:startLabel,end:rows.length?rows[rows.length-1].label:'--'};
 }
@@ -896,7 +888,7 @@ function renderForward(res){
   const m=document.getElementById('fwdMetrics'),cEl=document.getElementById('fwdConclusion'),body=document.getElementById('fwdBody'),range=document.getElementById('fwdRange');
   if(res.error){
     m.innerHTML='';cEl.textContent='';range.textContent='';
-    body.innerHTML=`<tr><td colspan="7" style="color:var(--hot)">${escapeHtml(res.error)}</td></tr>`;
+    body.innerHTML=`<tr><td colspan="4" style="color:var(--hot)">${escapeHtml(res.error)}</td></tr>`;
     return;
   }
   const rows=res.rows,n=rows.length,hits=rows.filter(r=>r.hit).length;
@@ -921,12 +913,11 @@ function renderForward(res){
   else if(excess>0)verdict=`在 ${n} 期前瞻样本中命中 ${hits} 次（${rate}），虽高于随机期望 ${expected.toFixed(1)} 次，但 z=${z.toFixed(2)}、单边 p=${pv<1e-4?pv.toExponential(2):pv.toFixed(4)} ≥ 0.05 → 与随机基线差异不显著，可继续累积样本观察。`;
   else verdict=`在 ${n} 期前瞻样本中命中 ${hits} 次（${rate}），不高于随机期望 ${expected.toFixed(1)} 次（超额 ${excess.toFixed(1)}）→ 前瞻表现未跑赢随机基线。`;
   cEl.textContent='结论：'+verdict;
-  const mark=b=>b?'<span style="color:var(--green);font-weight:800">✓</span>':'<span style="color:#dc2626;font-weight:700">✗</span>';
   body.innerHTML=rows.slice().reverse().map(r=>{
     const balls=r.pred.map(nn=>{const w=wave(nn);const isHit=nn===r.actual;return `<span class="num${isHit?' special':''}" style="${isHit?`background:${w.color};border-color:${w.color}`:''}" title="${String(nn).padStart(2,'0')}${isHit?'（命中特码）':''}">${String(nn).padStart(2,'0')}</span>`;}).join('');
     const aw=wave(r.actual);
     const actualBall=`<span class="num special" style="background:${aw.color};border-color:${aw.color}" title="特码">${String(r.actual).padStart(2,'0')}</span>`;
-    return `<tr class="${r.hit?'row-num':'row-none'}"><td class="col-period">${escapeHtml(r.label)}</td><td class="col-balls"><div class="nums">${balls}</div></td><td>${actualBall}</td><td>${r.hit?badge('命中','hit'):badge('未中','miss')}</td><td>${mark(r.oddHit)}</td><td>${mark(r.bigHit)}</td><td>${mark(r.waveHit)}</td></tr>`;
+    return `<tr class="${r.hit?'row-num':'row-none'}"><td class="col-period">${escapeHtml(r.label)}</td><td class="col-balls"><div class="nums">${balls}</div></td><td>${actualBall}</td><td>${r.hit?badge('命中','hit'):badge('未中','miss')}</td></tr>`;
   }).join('');
 }
 let fwdBusy=false,fwdPending=false,fwdCache={key:'',res:null};
@@ -938,7 +929,7 @@ function runForward(){
   const key=dataVersion+'|'+start;
   if(fwdCache.key===key&&fwdCache.res){renderForward(fwdCache.res);return;}
   fwdBusy=true;
-  document.getElementById('fwdBody').innerHTML='<tr><td colspan="7" style="color:var(--muted)">计算中…（逐期仅用此前数据回测）</td></tr>';
+  document.getElementById('fwdBody').innerHTML='<tr><td colspan="4" style="color:var(--muted)">计算中…（逐期仅用此前数据回测）</td></tr>';
   setTimeout(()=>{
     let res;
     try{res=computeForward(start);}catch(e){res={error:'计算失败：'+(e&&e.message||e)};}
