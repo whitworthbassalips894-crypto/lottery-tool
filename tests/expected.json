@@ -1,0 +1,87 @@
+{
+  "note": "Pinned regression data for tests (generated from data/am-latest.json restricted to <= 2026-258).",
+  "dataUpTo": "2026-258",
+  "ranges": {
+    "orig": {
+      "full": {
+        "count": 1294,
+        "hits": 230
+      },
+      "y2026": {
+        "count": 258,
+        "hits": 53
+      },
+      "last58": {
+        "count": 58,
+        "hits": 13
+      }
+    },
+    "combo": {
+      "full": {
+        "count": 1294,
+        "hits": 217
+      },
+      "y2026": {
+        "count": 258,
+        "hits": 47
+      },
+      "last58": {
+        "count": 58,
+        "hits": 10
+      }
+    }
+  },
+  "origRowsSha256": "dbc0881fde9c5b15486601ed7a883b7c4fb3636feef333293dc7aee4155a786b",
+  "comboRowsSha256": "7ae2e4708d8494b304df97a187ce1fa97dbba4bcc387318968cee92ad9e7d2c8",
+  "spot": {
+    "orig": {
+      "2026-201": [
+        16,
+        28,
+        39,
+        21,
+        41,
+        5,
+        6
+      ],
+      "2026-210": [
+        16,
+        28,
+        21,
+        39,
+        1,
+        49,
+        24
+      ],
+      "2023-061": [
+        47,
+        18,
+        7,
+        35,
+        40,
+        24,
+        29
+      ]
+    },
+    "combo": {
+      "2026-201": [
+        16,
+        28,
+        39,
+        21,
+        41,
+        1,
+        14
+      ],
+      "2026-210": [
+        16,
+        28,
+        21,
+        39,
+        1,
+        24,
+        29
+      ]
+    }
+  }
+}
