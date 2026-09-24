@@ -123,7 +123,7 @@ test('起算期错误/超范围：明确报错，不静默回退默认起点',as
   assert.ok(page.el('fwdBody').innerHTML.includes('数据中没有'),'超出数据范围应报错');
 });
 
-test('前瞻缓存：同一数据/模型/区间不重算；任一变化即失效',async t=>{
+test('前瞻缓存：同一数据/区间不重算；任一变化即失效',async t=>{
   const page=newPage();
   const T=hooks(page);
   const input=page.el('fwdStart');
@@ -132,7 +132,7 @@ test('前瞻缓存：同一数据/模型/区间不重算；任一变化即失效
   await waitForForward(page);
   await page.waitFor(()=>T.fwdCache.res&&T.fwdCache.res.rows&&T.fwdCache.res.rows.length===58,15000);
   const first=T.fwdCache.res;
-  assert.match(T.fwdCache.key,/orig\|2026-201$/,'缓存键应包含模型与起算期');
+  assert.match(T.fwdCache.key,/2026-201$/,'缓存键应包含起算期');
   // 重复运行 → 命中同一缓存对象
   T.runForward();
   await sleep(300);
@@ -142,24 +142,12 @@ test('前瞻缓存：同一数据/模型/区间不重算；任一变化即失效
   T.runForward();
   await page.waitFor(()=>T.fwdCache.res!==first&&T.fwdCache.res.rows&&T.fwdCache.res.rows.length===258,15000);
   assert.match(T.fwdCache.key,/2026-001$/,'区间变化应重算并更新缓存键');
-  // 切换模型 → 缓存同步清空，随后按 combo 重算
-  input.value='2026-201';
-  page.el('comboToggle').checked=true;
-  page.el('comboToggle').dispatch('change');
-  assert.equal(T.fwdCache.key,'','模型切换必须立即清空前瞻缓存键');
-  assert.equal(T.fwdCache.res,null,'模型切换必须立即清空前瞻缓存结果');
-  await page.waitFor(()=>T.fwdCache.key&&T.fwdCache.key.includes('combo'),15000);
-  assert.ok(T.fwdCache.res&&T.fwdCache.res.rows.length===58,'combo 模式应重算 58 期');
-  const comboRows=T.fwdCache.res.rows.map(r=>[...r.pred].map(Number));
-  // 切回 orig → 结果与最初一致（确定性）
-  page.el('comboToggle').checked=false;
-  page.el('comboToggle').dispatch('change');
+  // 回到原起算期 → 复用与最初一致的确定性结果
   input.value='2026-201';
   T.runForward();
-  await page.waitFor(()=>T.fwdCache.key&&T.fwdCache.key.includes('orig')&&T.fwdCache.res&&T.fwdCache.res.rows&&T.fwdCache.res.rows.length===58,15000);
-  const origRows=T.fwdCache.res.rows.map(r=>[...r.pred].map(Number));
-  assert.deepEqual(origRows,first.rows.map(r=>[...r.pred].map(Number)),'切回原版后预测应复现');
-  assert.notDeepEqual(origRows,comboRows,'combo 与 orig 的预测应不同');
+  await page.waitFor(()=>T.fwdCache.key&&T.fwdCache.key.endsWith('2026-201')&&T.fwdCache.res&&T.fwdCache.res.rows&&T.fwdCache.res.rows.length===58,15000);
+  const againRows=T.fwdCache.res.rows.map(r=>[...r.pred].map(Number));
+  assert.deepEqual(againRows,first.rows.map(r=>[...r.pred].map(Number)),'同区间重复计算应复现相同预测');
 });
 
 test('数据变化（撤销/追加）使前瞻缓存与滑块边界失效',async t=>{
@@ -210,43 +198,27 @@ test('蒙特卡洛：确定性 PRNG、可完成、经验 p 与精确 p 一致在
   assert.ok(page.el('mcStatus').textContent.includes('无样本'));
 });
 
-test('蒙特卡洛：区间/模型/数据变化时取消旧任务并清空结果',async t=>{
+test('蒙特卡洛：新任务启动时取消旧任务并清空结果',async t=>{
   const page=newPage();
   const T=hooks(page);
   T.runMonteCarlo(258,53); // 大 N，运行较慢
   await sleep(20);
   assert.ok(T.mc.running||T.mc.token,'任务应已启动');
-  // 模型切换 → onModelChange 取消并清空
-  page.el('comboToggle').checked=true;
-  page.el('comboToggle').dispatch('change');
-  await sleep(30);
-  assert.ok(!T.mc.running,'旧任务应被取消');
-  assert.ok(page.el('mcStatus').textContent.includes('已取消'),'旧结果应被清空');
-  // 等待 combo 模式的前瞻重算完成，新对照自动运行（N=58,K=10）
-  await page.waitFor(()=>{
-    const s=page.el('mcStatus').textContent;
-    return s.includes('运行中')||s.includes('完成');
-  },30000);
-  await page.waitFor(()=>{
-    const s=page.el('mcStatus').textContent;
-    return s.includes('完成');
-  },60000);
-  assert.ok(page.el('mcBody').innerHTML.includes('超过 10 次'),'新对照应按新区间（combo 10 次命中）运行');
+  const oldToken=T.mc.token;
+  // 新对照任务（等价于区间/数据变化后的自动重算）→ 旧任务立即取消并清空
+  T.runMonteCarlo(58,10);
+  assert.ok(oldToken.cancelled,'旧任务应被立即标记取消');
+  assert.ok(T.mc.running,'新对照任务应已启动');
+  // 新对照完成：N=58, K=10
+  await page.waitFor(()=>page.el('mcStatus').textContent.includes('完成'),60000);
+  assert.ok(page.el('mcBody').innerHTML.includes('超过 10 次'),'新对照应按新参数（K=10）运行');
 });
 
-test('页面不显示模型版本号；组合约束开关默认关闭',async t=>{
+test('页面不显示模型版本号；规则名静态标注为"原评分＋原选码"',async t=>{
   const fs=require('fs');
   const path=require('path');
   const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8');
   assert.ok(!/v3\.\d/.test(html),'页面/内联代码不得出现模型版本号 v3.x');
-  assert.ok(html.includes('<span id="modelNameM">原评分＋原选码</span>'),'默认规则名应为"原评分＋原选码"（静态 HTML）');
-  const page=newPage();
-  assert.equal(page.el('comboToggle').checked,false);
-  // 开关状态与规则名联动（JS 更新 textContent）
-  page.el('comboToggle').checked=true;
-  page.el('comboToggle').dispatch('change');
-  assert.equal(page.el('modelNameM').textContent,'原评分＋组合约束（实验）');
-  page.el('comboToggle').checked=false;
-  page.el('comboToggle').dispatch('change');
-  assert.equal(page.el('modelNameM').textContent,'原评分＋原选码');
+  assert.ok(html.includes('<h2>2. 7码候选 <span class="tag">原评分＋原选码</span></h2>'),'规则名应为静态标注"原评分＋原选码"');
+  assert.ok(!html.includes('组合约束'),'页面不得再出现组合约束相关文案');
 });
