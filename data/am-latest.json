@@ -1,8 +1,8 @@
 {
   "source": "https://2026kj.zkclhb.com:2025/am.html",
-  "updatedAt": "2026-09-23T17:57:12.908Z",
+  "updatedAt": "2026-09-24T17:56:12.378Z",
   "year": 2026,
-  "latestLabel": "2026-266",
+  "latestLabel": "2026-267",
   "records": [
     {
       "label": "2023-001",
@@ -21795,6 +21795,22 @@
         8
       ],
       "special": 8
+    },
+    {
+      "label": "2026-267",
+      "year": 2026,
+      "period": 267,
+      "date": "2026-09-24",
+      "nums": [
+        16,
+        20,
+        25,
+        22,
+        9,
+        41,
+        40
+      ],
+      "special": 40
     }
   ]
 }
