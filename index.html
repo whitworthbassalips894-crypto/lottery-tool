@@ -8,7 +8,7 @@
 :root{--ink:#263548;--muted:#64748b;--paper:#f6f8fb;--card:#fff;--line:#dce4ee;--gold:#d4a72c;--hot:#e54b4b;--blue:#3b82f6;--green:#10a878;--purple:#8b5cf6;--shadow:0 8px 26px rgba(15,23,42,.055);font-family:"PingFang SC","Microsoft YaHei",sans-serif}
 *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);padding-bottom:48px}.page{max-width:1120px;margin:auto;padding:28px 20px}header{display:flex;align-items:end;justify-content:space-between;gap:16px;border-bottom:2px solid var(--gold);padding-bottom:18px;margin-bottom:22px}h1{font-size:28px;margin:0}.subtitle,.desc{font-size:13px;color:var(--muted);line-height:1.65}.count{text-align:right;color:var(--muted);font-size:12px}.count b{display:block;color:var(--hot);font:800 25px Consolas,monospace}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin-bottom:20px;box-shadow:var(--shadow)}h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--gold)}.tag{font:700 11px Consolas,monospace;color:#785705;background:#fff4c9;border-radius:4px;padding:2px 6px;margin-left:5px}.form-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.form-row label{font-size:14px;font-weight:700}.text-input,.form-row input{border:1px solid var(--line);border-radius:7px;padding:9px 10px;background:#fff;color:var(--ink);font:700 14px Consolas,monospace}.text-input{min-width:145px}.balls{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.balls input{width:48px;height:48px;border:1px solid var(--line);border-radius:50%;text-align:center;font:800 17px Consolas,monospace;outline:none}.balls input:focus{box-shadow:0 0 0 3px rgba(59,130,246,.18)}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.btn{border:1px solid var(--line);border-radius:7px;padding:9px 13px;background:#fff;color:var(--ink);font-weight:700;cursor:pointer}.btn:hover{border-color:#94a3b8}.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}.btn.danger{color:#c73737}.notice{background:#f8fafc;border:1px dashed var(--line);border-radius:8px;padding:10px 12px;margin-top:14px;font-size:12px;line-height:1.7;color:var(--muted)}
 
-.panel{border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}.prediction{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}.prediction th{color:var(--muted);font-size:11px;background:#f8fafc}.prediction th,.prediction td{padding:8px 4px;text-align:center;border-bottom:1px solid var(--line)}.ball{display:inline-flex;width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;color:#fff;font:800 12px Consolas,monospace}.heat{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}.heat-cell{border-radius:7px;min-height:48px;padding:6px;text-align:center;font:800 13px Consolas,monospace}.heat-cell small{display:block;font:11px "PingFang SC",sans-serif;margin-top:3px}.heat-cell{position:relative}.heat-delta{position:absolute;top:2px;right:3px;font:800 9px/1 Consolas,monospace;padding:2px 3px;border-radius:6px;color:#fff}.heat-delta.up{background:#dc2626}.heat-delta.down{background:#64748b}.heat-delta.flat{background:#7c3aed}.heat-bar{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:6px 12px;background:#f8fafc;border:1px solid var(--line);border-radius:99px;font-size:11.5px;line-height:1.7;color:var(--muted)}.heat-bar b{color:var(--ink);font-weight:800}.heat-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--muted)}.heat-legend span{display:inline-flex;align-items:center;gap:4px}.heat-legend i.lg{width:12px;height:12px;border-radius:3px;display:inline-block;font-style:normal}.heat-legend .heat-delta{position:static;padding:1px 3px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tab{border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 14px;color:var(--muted);font-weight:700;cursor:pointer}.tab.active{background:var(--ink);border-color:var(--ink);color:#fff}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}.scroll{max-height:580px;overflow:auto;border:1px solid var(--line);border-radius:9px}.badge{display:inline-block;padding:3px 6px;border-radius:4px;background:#eef2f7;color:var(--muted);font-size:11px;margin:1px}.badge.hit{background:var(--hot);color:#fff}.badge.miss{background:#fee2e2;color:#dc2626}.shake{animation:shake .3s ease;border-color:var(--hot)!important}@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.panel{border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}.ep-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}.ep-title{font:800 14px/1 "PingFang SC",sans-serif}.ep-meta{font-size:12px;color:var(--muted)}.ep-meta b{color:var(--ink)}.prediction{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}.prediction th{color:var(--muted);font-size:11px;background:#f8fafc}.prediction th,.prediction td{padding:8px 4px;text-align:center;border-bottom:1px solid var(--line)}.ball{display:inline-flex;width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;color:#fff;font:800 12px Consolas,monospace}.heat{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}.heat-cell{border-radius:7px;min-height:48px;padding:6px;text-align:center;font:800 13px Consolas,monospace}.heat-cell small{display:block;font:11px "PingFang SC",sans-serif;margin-top:3px}.heat-cell{position:relative}.heat-delta{position:absolute;top:2px;right:3px;font:800 9px/1 Consolas,monospace;padding:2px 3px;border-radius:6px;color:#fff}.heat-delta.up{background:#dc2626}.heat-delta.down{background:#64748b}.heat-delta.flat{background:#7c3aed}.heat-bar{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:6px 12px;background:#f8fafc;border:1px solid var(--line);border-radius:99px;font-size:11.5px;line-height:1.7;color:var(--muted)}.heat-bar b{color:var(--ink);font-weight:800}.heat-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--muted)}.heat-legend span{display:inline-flex;align-items:center;gap:4px}.heat-legend i.lg{width:12px;height:12px;border-radius:3px;display:inline-block;font-style:normal}.heat-legend .heat-delta{position:static;padding:1px 3px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tab{border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 14px;color:var(--muted);font-weight:700;cursor:pointer}.tab.active{background:var(--ink);border-color:var(--ink);color:#fff}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}.scroll{max-height:580px;overflow:auto;border:1px solid var(--line);border-radius:9px}.badge{display:inline-block;padding:3px 6px;border-radius:4px;background:#eef2f7;color:var(--muted);font-size:11px;margin:1px}.badge.hit{background:var(--hot);color:#fff}.badge.miss{background:#fee2e2;color:#dc2626}.shake{animation:shake .3s ease;border-color:var(--hot)!important}@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 
 @media(max-width:780px){.page{padding:18px 12px}header{align-items:start;flex-direction:column}.metrics{grid-template-columns:1fr}.card{padding:18px 15px}.heat{grid-template-columns:repeat(7,1fr)}}
 
@@ -38,26 +38,21 @@
 #fwdMetrics .metric-card{padding:12px 14px}
 #fwdMetrics .mc-val{font-size:24px}
 #fwdConclusion{font-size:12.5px;line-height:1.8;color:var(--muted);background:#f8fafc;border:1px dashed var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px}
-/* 组合约束开关 */
-.combo-toggle{display:inline-flex;align-items:center;gap:8px;margin:10px 0 0;font-size:13px;cursor:pointer;user-select:none}
-.combo-toggle input{width:17px;height:17px;accent-color:var(--purple);cursor:pointer}
-.combo-notice{border-left:3px solid var(--purple)}
-.combo-meta{margin-top:10px;font:700 12px Consolas,monospace;color:var(--purple);background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:8px 12px}
-/* 前瞻：警告框 / 滑块 / 蒙特卡洛 */
+/* 前瞻：警告框 / 滑块 / 蒙特卡洛（mc-* 限定在 .mc-panel 内，避免覆盖指标卡片同名样式） */
 .warn-box{background:#fff8e8;border:1px solid #f0c040;border-radius:8px;padding:10px 12px;margin:10px 0;font-size:12.5px;line-height:1.8;color:#7c5806}
 .fwd-slider{flex:1;min-width:140px;accent-color:var(--purple);height:26px}
 .fwd-slider-label{font:700 12px Consolas,monospace;color:var(--purple);min-width:64px;text-align:center}
 .mc-panel{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px;background:#fafbff}
-.mc-head{font-size:13px;font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.mc-sub{font-weight:600;font-size:11.5px;color:var(--muted)}
-.mc-sub.running{color:var(--purple)}.mc-sub.done{color:var(--green)}.mc-sub.cancelled{color:var(--hot)}
-.mc-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.mc-grid .ss-item{padding:8px 10px}
-.mc-grid .ss-item b{font-size:13px}
+.mc-panel .mc-head{font-size:13px;font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.mc-panel .mc-sub{font-weight:600;font-size:11.5px;color:var(--muted)}
+.mc-panel .mc-sub.running{color:var(--purple)}.mc-panel .mc-sub.done{color:var(--green)}.mc-panel .mc-sub.cancelled{color:var(--hot)}
+.mc-panel .mc-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.mc-panel .mc-grid .ss-item{padding:8px 10px}
+.mc-panel .mc-grid .ss-item b{font-size:13px}
 .mc-note{font-size:11.5px;color:var(--muted);line-height:1.7;margin-top:8px}
-.mc-bar{height:6px;border-radius:99px;background:#eef2ff;overflow:hidden;margin-top:8px}
-.mc-fill{height:100%;border-radius:99px;background:var(--purple);transition:width .2s}
-@media(max-width:780px){.sync-status{grid-template-columns:1fr 1fr}.ss-item.span2{grid-column:span 2}#fwdMetrics{grid-template-columns:1fr 1fr}.mc-grid{grid-template-columns:1fr 1fr}}
+.mc-panel .mc-bar{height:6px;border-radius:99px;background:#eef2ff;overflow:hidden;margin-top:8px}
+.mc-panel .mc-fill{height:100%;border-radius:99px;background:var(--purple);transition:width .2s}
+@media(max-width:780px){.sync-status{grid-template-columns:1fr 1fr}.ss-item.span2{grid-column:span 2}#fwdMetrics{grid-template-columns:1fr 1fr}.mc-panel .mc-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -65,14 +60,10 @@
 <header><div><h1>特码历史统计</h1>
 <div class="subtitle" style="color:var(--purple);font-weight:700;"></div><div class="subtitle">饱和度主导 / 频次微调 / 波色 · 固定7码</div></div><div class="count"><b id="totalCount">--</b>期数据</div></header>
 
-<section class="card"><h2>1. 录入开奖 <span class="tag">数据</span></h2><div class="form-row"><label for="periodLabel">目标期号：</label><input id="periodLabel" class="text-input" maxlength="8" placeholder="2026-202"></div><div class="balls" id="ballInputs"></div><div class="actions"><button class="btn primary" id="submitDraw">保存开奖号并更新</button><button class="btn" id="undoDraw">撤销上次录入</button><button class="btn" id="exportBtn">导出数据</button><button class="btn" id="importBtn">导入数据</button><button class="btn danger" id="clearData">清空手动数据</button><input type="file" id="importFile" accept="application/json,.json" hidden></div><div class="notice">期号格式 <b>YYYY-NNN</b>，每期 7 个不重复的 1–49 号码。</div></section>
+<section class="card"><h2>1. 录入开奖 <span class="tag">数据</span></h2><div class="form-row"><label for="periodLabel">目标期号：</label><input id="periodLabel" class="text-input" maxlength="8" placeholder="2026-201"></div><div class="balls" id="ballInputs"></div><div class="actions"><button class="btn primary" id="submitDraw">保存开奖号并更新</button><button class="btn" id="undoDraw">撤销上次录入</button><button class="btn" id="exportBtn">导出数据</button><button class="btn" id="importBtn">导入数据</button><button class="btn danger" id="clearData">清空手动数据</button><input type="file" id="importFile" accept="application/json,.json" hidden></div><div class="notice">期号格式 <b>YYYY-NNN</b>，每期 7 个不重复的 1–49 号码。</div></section>
 
 <section class="card">
-  <h2>2. 7码候选 <span class="tag">当前规则：<span id="modelNameM">原评分＋原选码</span></span></h2>
-<p class="desc">评分维度：饱和度 U 型曲线（主导）、频次（微调）、波色（辅助），取综合分前 7 码为固定候选。饱和度以历史最大遗漏为基准计分，突破历史纪录的号码以 💥 高亮。默认使用原版规则：原饱和度评分档位（85%–90% 档 45 分、破纪录档 25 分）、近 150 期频次 ×3、近 45 期最少波色加 14 分，以及原版分区软约束选 7 码（前 5 纯分数、#6–7 分区软约束、落差 &gt;20% 放行）。不做极冷码软化、熵正则化或评分平滑。</p>
-<label class="combo-toggle" for="comboToggle"><input type="checkbox" id="comboToggle"><span><b>启用组合约束</b>（实验开关，默认关闭）</span></label>
-<div class="notice combo-notice" id="comboNotice">开启后：按原评分排名取前 10 码，在其中挑选<b>原总分最高</b>的 7 码组合，且须满足——和值 140–210、单数 2–5 个、任一波色不超过 4 个；前 10 码无解时按排名逐个扩池（11、12、…），<b>不放宽约束</b>，恒输出 7 码。同分组合优先取排名更靠前的号码。组合约束是可选实验，<b>没有证据显示它优于原版</b>（截至 2026-258：1294 期原版 230 次 vs 组合约束 217 次）。</div>
-<div class="combo-meta" id="comboMeta" hidden></div>
+  <h2>2. 7码候选 <span class="tag">原评分＋原选码</span></h2>
   <div class="panel" style="border-top:3px solid var(--gold)">
     <div class="ep-head">
       <span class="ep-title">7码模型</span>
@@ -363,17 +354,6 @@ const ZODIACS=['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴'
 // 农历新年在公历年内的序号日；期号 YYYY-NNN 在本工具中按年内日序使用。
 const LUNAR_NEW_YEAR_DAY={2023:22,2024:41,2025:29,2026:48,2027:37,2028:26,2029:44,2030:34};
 let BASE_DRAWS=[],BASE_LABELS=[],addedDraws=[],addedLabels=[],selectedYear=null,dataVersion=0,archiveCache=null;
-/* 模型配置：'orig'=原评分＋原选码（默认）；'combo'=原评分＋组合约束（实验开关，默认关闭） */
-let modelMode='orig';
-function setModelMode(mode){
-  if(modelMode===mode)return false;
-  modelMode=mode;
-  archiveCache=null; // 历史回放按模型配置重算
-  scheduleRefresh(); // 候选号码重算
-  if(window.__LOTTO_FWD__&&typeof window.__LOTTO_FWD__.onModelChange==='function')window.__LOTTO_FWD__.onModelChange(); // 前瞻验证重算＋取消/清空随机对照
-  const name=document.getElementById('modelNameM');if(name)name.textContent=mode==='combo'?'原评分＋组合约束（实验）':'原评分＋原选码';
-  return true;
-}
 
 for(const row of COMPRESSED_DATA){const [year,period,...nums]=row;const label=`${year}-${String(period).padStart(3,'0')}`;nums._year=year;nums._label=label;BASE_DRAWS.push(nums);BASE_LABELS.push(label);}
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -395,7 +375,7 @@ function targetLabel(hist){return nextLabel(hist.at(-1)?._label||'2026-201')}
 
 function simulateEngine(hist){
   if(hist.length<60)return null;
-  const attr=45,window=150,target=targetLabel(hist);
+  const attr=45,win=150;
   const t=hist.length;
   let oddCount=0,bigCount=0,waveCounts={red:0,blue:0,green:0};
   for(let i=t-attr;i<t;i++){
@@ -404,43 +384,34 @@ function simulateEngine(hist){
   const predOdd=oddCount>=attr/2?'odd':'even',predBig=bigCount>=attr/2;
   const predWave=Object.keys(waveCounts).reduce((a,b)=>waveCounts[a]<waveCounts[b]?a:b);
 
-  // 频次 // 频次 & 遗漏 & 饱和度(核心新增) 遗漏 // 频次 & 遗漏 & 饱和度(核心新增) 饱和度
+  // 频次（近 win 期窗口）
   const freq=Array(50).fill(0),last=Array(50).fill(-1);
   // 记录每个号的出现位置，用于计算最长遗漏
   const appearances=Array.from({length:50},()=>[]);
   for(let i=0;i<t;i++){
     const n=hist[i][6];
-    if(i>=t-window)freq[n]++;
+    if(i>=t-win)freq[n]++;
     last[n]=i;
     appearances[n].push(i);
   }
 
   // 饱和度计算：maxOmit 只统计"已结束"的遗漏段，不包含当前正在累积的遗漏（否则突破纪录后 sat 永远=1）
-  const maxOmit=Array(50).fill(0);
   const saturation=Array(50).fill(0);
   for(let n=1;n<=49;n++){
     const idx=appearances[n];
     if(idx.length===0){
-      // 从未开出：maxOmit 无法定义，saturation 按已过期数线性增长但上限1
-      maxOmit[n]=t;
-      saturation[n]=Math.min(1, t/Math.max(1, Math.round(t*0.7)));
+      // 从未开出：当前遗漏=全程（已突破任何历史段），sat=1
+      saturation[n]=1;
     }else{
       let mx=idx[0]; // 第一次出现前的遗漏（已结束：开出来就结束了）
       for(let j=1;j<idx.length;j++) mx=Math.max(mx,idx[j]-idx[j-1]-1); // 两次开出之间的遗漏（已结束）
-      // 修复：不再把"当前正在累积的遗漏"算进历史最大，否则突破纪录后 sat 永远=1
-      maxOmit[n]=mx;
       const omit=last[n]<0?t:t-1-last[n];
       saturation[n]=mx>0?omit/mx:0; // 突破纪录时 sat > 1，可以被评分区间识别
     }
   }
 
   const scores=[];
-
-  // 权重（原版）：饱和度主导 + 近150期频次×3 + 近45期最少波色+14; 去omit(与饱和度高度相关)
-  const W={freq:3,omit:0,wave:14};
-
   for(let n=1;n<=49;n++){
-    const omit=last[n]<0?t:t-1-last[n];
     const sat=saturation[n];
     const zone=getZone(n);
 
@@ -465,53 +436,17 @@ function simulateEngine(hist){
     else if(sat>=0.05) satScore=2;
     else satScore=1;
 
-    let score=0;
-    const detail=[];
+    // 原版权重：饱和度档位直接加分 + 近150期频次×3 + 近45期最少波色+14
+    let score=satScore+freq[n]*3;
+    if(wave(n).type===predWave)score+=14;
 
-    // 饱和度(直接加)
-    score+=satScore;
-    if(satScore!==0) detail.push(`饱和${satScore>0?"+":""}${satScore}`);
-
-    // 频次
-    const freqScore=freq[n]*W.freq;
-    score+=freqScore;
-    detail.push(`频次+${freqScore}`);
-
-    // 遗漏(omit=0已禁用, 与饱和度高度相关)
-    let omitScore;
-    if(omit>=150) omitScore=40;
-    else if(omit>=100) omitScore=30;
-    else if(omit>=60) omitScore=20;
-    else if(omit>=30) omitScore=10;
-    else omitScore=Math.min(omit/200,1)*10;
-    omitScore*=W.omit;
-    score+=omitScore;
-    detail.push(`遗漏+${omitScore.toFixed(0)}`);
-
-    // 波色
-    if(wave(n).type===predWave){score+=W.wave;detail.push(`波色+${W.wave}`)}
-
-    scores.push({n,zodiac:zodiac(n,target),score,detail:detail.join('、'),sat,omit,maxOmit:maxOmit[n],zone});
+    scores.push({n,score,sat,zone});
   }
   scores.sort((a,b)=>b.score-a.score||a.n-b.n);
 
-  let top7,comboInfo=null;
-  if(modelMode==='combo'){
-    // 组合约束（实验开关）：原评分前10码起挑选原总分最高的7码组合，
-    // 和值140–210、单数2–5个、任一波色≤4；前10码无解时按排名逐个扩池，不放宽约束
-    const pick=comboSelect(scores);
-    if(pick){
-      const set=new Set(pick.nums);
-      top7=scores.filter(s=>set.has(s.n)); // 展示顺序：原评分排名
-      comboInfo={pool:pick.pool,total:pick.total,nums:pick.nums.slice()};
-    }else{
-      top7=scores.slice(0,7); // 理论上不会发生（49码全池必有解）
-    }
-  }else{
-    top7=origTop7(scores);
-  }
+  const top7=origTop7(scores);
 
-  return{predOdd,predBig,predWave,top7:top7.map(x=>x.n),fullScores:top7,allScores:scores,saturation,maxOmit,comboInfo};
+  return{predOdd,predBig,predWave,fullScores:top7,allScores:scores};
 }
 
 /* 原版选7码：前5纯分数，#6-7分区软约束(分数落差>20%则放行，不硬塞弱号) */
@@ -531,72 +466,16 @@ function origTop7(scores){
   return top7;
 }
 
-/* 组合约束选7码（分支限界，与全枚举等价，确定性结果）：
-   按原评分排名（分数降序、号码升序）取前P码（P从10起）；
-   在满足 和值[140,210]、单数2–5个、任一波色≤4 的组合中取原总分最高者；
-   同分组合优先取排名更靠前的号码（索引字典序最小）；
-   前10码无解则 P=11,12,… 逐个扩池，不放宽约束、不输出不足7码。 */
-const WAVE_IDX={red:0,blue:1,green:2};
-function comboSelect(scores){
-  let psize=10;
-  for(;;){
-    const pool=scores.slice(0,Math.min(psize,scores.length));
-    const best=comboBB(pool);
-    if(best)return{nums:best.nums,pool:psize,total:best.total};
-    if(pool.length>=scores.length)return null;
-    psize++;
-  }
-}
-function comboBB(pool){
-  const m=pool.length;
-  if(m<7)return null;
-  let best=null;
-  const pref=[0];
-  for(let i=0;i<m;i++)pref.push(pref[i]+pool[i].score);
-  const idxs=[];
-  (function rec(i,k,total,sum,oddC,w0,w1,w2){
-    if(k===7){
-      if(sum>=140&&sum<=210&&oddC>=2&&oddC<=5&&w0<=4&&w1<=4&&w2<=4){
-        if(!best||total>best.total)best={total,idxs:idxs.slice()}; // 严格改进才替换 → 同分保留先枚举者
-      }
-      return;
-    }
-    const need=7-k;
-    for(let j=i;j<=m-need;j++){
-      const s=pool[j];
-      const bound=total+s.score+(pref[j+need]-pref[j+1]);
-      if(best&&bound<=best.total)break; // 分数降序 → 界随 j 单调不增
-      idxs.push(j);
-      const wv=WAVE_IDX[wave(s.n).type];
-      if(wv===0)rec(j+1,k+1,total+s.score,sum+s.n,oddC+(odd(s.n)?1:0),w0+1,w1,w2);
-      else if(wv===1)rec(j+1,k+1,total+s.score,sum+s.n,oddC+(odd(s.n)?1:0),w0,w1+1,w2);
-      else rec(j+1,k+1,total+s.score,sum+s.n,oddC+(odd(s.n)?1:0),w0,w1,w2+1);
-      idxs.pop();
-    }
-  })(0,0,0,0,0,0,0,0);
-  return best?{total:best.total,nums:best.idxs.map(j=>pool[j].n).sort((a,b)=>a-b)}:null;
-}
-
 function longWaveEngine(hist,label){
   const L=simulateEngine(hist);if(!L)return null;
   const merged=L.fullScores.map(x=>({...x,src:1,zodiac:zodiac(x.n,label||targetLabel(hist))}));
-  return{predOdd:L.predOdd,predBig:L.predBig,predWave:L.predWave,merged,mergeNums:merged.map(x=>x.n),fullScores:L.fullScores,comboInfo:L.comboInfo||null};
+  return{predOdd:L.predOdd,predBig:L.predBig,predWave:L.predWave,merged,mergeNums:merged.map(x=>x.n),fullScores:L.fullScores};
 }
 
 function renderEngine(p,label,streaks){
   streaks=streaks||{};
   document.getElementById('labelM').textContent=label;
   document.getElementById('countM').textContent=p.merged.length;
-  const meta=document.getElementById('comboMeta');
-  if(meta){
-    if(p.comboInfo){
-      const c=p.comboInfo;
-      const wv={red:0,blue:0,green:0};let oc=0,sum=0;
-      for(const n of c.nums){wv[wave(n).type]++;if(odd(n))oc++;sum+=n;}
-      meta.hidden=false;
-      meta.innerHTML=`组合约束（实验）：池=原评分前 ${c.pool} 码 · 原总分 ${c.total} · 和值 ${sum} · 单数 ${oc} · 波色 红/蓝/绿 ${wv.red}/${wv.blue}/${wv.green}`;
-    }else{meta.hidden=true;meta.innerHTML='';}
-  }
   const body=document.getElementById('tbodyM');
   body.innerHTML=p.merged.map((x,i)=>{
     const w=wave(x.n);
@@ -930,7 +809,6 @@ async function syncNow(){
   try{
     const plan=await checkOnly(true);
     if(!plan){return;}
-    const parts=showPlanResult(plan,{ok:true,wrote:0},'一键同步');
     let result={ok:true,wrote:0};
     if(plan.append.length)result=applyPlan(plan);
     const lines=showPlanResult(plan,result,'一键同步');
@@ -1015,8 +893,6 @@ function fmtP(p){
   if(Number.isNaN(p))return'--';
   if(p===0)return'<1e-300';
   if(p<1e-4)return p.toExponential(2);
-  if(p<0.1)return p.toFixed(4);
-  if(p<1)return p.toFixed(4);
   return p.toFixed(4);
 }
 function computeForward(startLabel){
@@ -1051,12 +927,11 @@ function renderForward(res){
   const pv=n>0?binomRightTail(n,hits,p):NaN;
   const cls=classifyExactP(pv);
   const rate=n?(hits/n*100).toFixed(1)+'%':'--';
-  const modelTxt=modelMode==='combo'?'原评分＋组合约束（实验）':'原评分＋原选码';
   range.textContent=`前瞻区间：${res.start} 至 ${res.end}`;
   const card=(head,val,sub,extra='',extraCls='')=>`<div class="metric-card v-other"><div class="mc-head">${head}</div><div class="mc-stat"><span class="mc-val">${val}</span>${extra?`<span class="mc-label" style="${extraCls}">${extra}</span>`:''}</div><div class="mc-sub">${sub||''}</div></div>`;
   const pCls=cls.key==='sig'?'var(--green)':cls.key==='marginal'?'#d97706':'var(--muted)';
   m.innerHTML=
-    card('样本期数',n,`${res.start} ~ ${res.end} · ${modelTxt}`,'期')+
+    card('样本期数',n,`${res.start} ~ ${res.end} · 原评分＋原选码`,'期')+
     `<div class="metric-card v-num"><div class="mc-head">7码命中率</div><div class="mc-stat"><span class="mc-val">${rate}</span><span class="mc-label">命中 ${hits}/${n}</span></div><div class="mc-bar"><div class="mc-fill" style="width:${n?Math.min(100,hits/n*100):0}%"></div></div><div class="mc-sub">随机 7 码基线 14.29%</div></div>`+
     card('命中次数',hits,'特码落在当期 7 码内','次')+
     card('随机期望命中',n?expected.toFixed(1):'--','样本 × 14.29%','次')+
@@ -1081,7 +956,7 @@ function renderForward(res){
 /* ---------- 蒙特卡洛 10,000 次随机对照 ----------
    每个模拟模型每期独立抽 Bernoulli(1/7)（与"抽 7 个不同号码再查命中"同分布），
    统计命中次数 >= K 的比例作为经验 p；区间衡量模拟误差，不是模型胜率区间。
-   对照组不应用组合约束；显著性仍只由精确检验决定。 */
+   显著性仍只由精确检验决定。 */
 function mulberry32(seed){let a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 const MC_TOTAL=10000,MC_CHUNK=500;
 let mc={token:null,running:false};
@@ -1155,7 +1030,7 @@ function runForward(){
   }else{
     start=normalLabel(FROZEN_DEFAULT); // 留空 = 默认起算期
   }
-  const key=dataVersion+'|'+modelMode+'|'+start; // 数据 / 模型配置 / 区间任一变化 → 重算
+  const key=dataVersion+'|'+start; // 数据 / 区间任一变化 → 重算
   if(fwdCache.key===key&&fwdCache.res){renderForward(fwdCache.res);return;}
   fwdBusy=true;
   document.getElementById('fwdBody').innerHTML='<tr><td colspan="4" style="color:var(--muted)">计算中…（逐期仅用此前数据回测）</td></tr>';
@@ -1244,19 +1119,6 @@ document.getElementById('pasteClear').addEventListener('click',()=>{document.get
 document.getElementById('fwdRun').addEventListener('click',runForward);
 document.getElementById('fwdSlider').addEventListener('input',onSliderInput);
 document.getElementById('fwdStart').addEventListener('input',onFwdStartInput);
-// 组合约束实验开关（默认关闭）：切换 → 候选 / 历史回放 / 前瞻验证全部重算，取消并清空旧随机对照
-document.getElementById('comboToggle').addEventListener('change',()=>{
-  const on=document.getElementById('comboToggle').checked;
-  setModelMode(on?'combo':'orig');
-});
-// 供第一脚本块 setModelMode 调用：前瞻缓存失效 + 重算 + 取消/清空随机对照
-window.__LOTTO_FWD__={
-  onModelChange(){
-    fwdCache={key:'',res:null};
-    cancelMonteCarlo();renderMonteCarloIdle();
-    scheduleForward(120);
-  }
-};
 ['submitDraw','undoDraw','clearData'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',()=>{scheduleForward(1500);refreshSliderRange();});});
 const importFile=document.getElementById('importFile');if(importFile)importFile.addEventListener('change',()=>{scheduleForward(2500);refreshSliderRange();});
 setSS('ssLocal',lastLocalLabel(),'');
