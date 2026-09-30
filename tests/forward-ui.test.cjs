@@ -199,8 +199,14 @@ test('蒙特卡洛：确定性 PRNG、可完成、经验 p 与精确 p 一致在
 });
 
 test('蒙特卡洛：新任务启动时取消旧任务并清空结果',async t=>{
-  const page=newPage();
+  // 不用 newPage()（不触发 load）：load 事件会在 400ms 防抖后自动 runForward，
+  // 并按页面真实参数启动新的蒙特卡洛任务——慢机器上它会插进本用例中途，
+  // 取消/覆盖手动启动的对照任务，导致断言读到真实参数的结果（曾稳定失败）。
+  // 本用例只验证 runMonteCarlo 自身的取消语义；页面加载期的自动重算由其他用例覆盖。
+  const page=loadPage({preStorage:extraStorage(DATA_MAX)});
   const T=hooks(page);
+  // 注意：stub DOM 不含静态 HTML 初始文案，mcStatus 初始为空串；这里只断言没有自动任务
+  assert.ok(!T.mc.running&&!T.mc.token,'未触发 load 时不应有自动蒙特卡洛任务');
   T.runMonteCarlo(258,53); // 大 N，运行较慢
   await sleep(20);
   assert.ok(T.mc.running||T.mc.token,'任务应已启动');
@@ -209,7 +215,7 @@ test('蒙特卡洛：新任务启动时取消旧任务并清空结果',async t=>
   T.runMonteCarlo(58,10);
   assert.ok(oldToken.cancelled,'旧任务应被立即标记取消');
   assert.ok(T.mc.running,'新对照任务应已启动');
-  // 新对照完成：N=58, K=10
+  // 新对照完成：N=58, K=10（此时无 load 自动任务再来抢占）
   await page.waitFor(()=>page.el('mcStatus').textContent.includes('完成'),60000);
   assert.ok(page.el('mcBody').innerHTML.includes('超过 10 次'),'新对照应按新参数（K=10）运行');
 });
