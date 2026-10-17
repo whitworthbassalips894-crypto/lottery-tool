@@ -1,5 +1,5 @@
 {
-  "note": "Pinned regression data for tests (generated from data/am-latest.json restricted to <= 2026-258).",
+  "note": "Pinned regression data for tests (generated from data/am-latest.json restricted to <= 2026-258). 波色并列已修正（pickPredWave：按每组平均出现次数比较，并列取红→蓝→绿）。",
   "dataUpTo": "2026-258",
   "ranges": {
     "orig": {
@@ -9,15 +9,15 @@
       },
       "y2026": {
         "count": 258,
-        "hits": 53
+        "hits": 52
       },
       "last58": {
         "count": 58,
-        "hits": 13
+        "hits": 12
       }
     }
   },
-  "origRowsSha256": "dbc0881fde9c5b15486601ed7a883b7c4fb3636feef333293dc7aee4155a786b",
+  "origRowsSha256": "5be98c7f23d9c04e0dc651baf76949d4b95042519a2b85a5349b437450709933",
   "spot": {
     "orig": {
       "2026-201": [

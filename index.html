@@ -368,6 +368,18 @@ function loadManual(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw)re
 function allData(){const draws=BASE_DRAWS.concat(addedDraws),labels=BASE_LABELS.concat(addedLabels);draws.forEach((d,i)=>{d._label=labels[i];d._year=+labels[i].slice(0,4)});return{draws,labels}}
 function wave(n){const red=[1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46],blue=[3,4,9,10,14,15,20,25,26,31,36,37,41,42,47,48];if(red.includes(n))return{name:'红波',type:'red',color:'#e54b4b'};if(blue.includes(n))return{name:'蓝波',type:'blue',color:'#3b82f6'};return{name:'绿波',type:'green',color:'#10a878'}}
 function odd(n){return n%2!==0}function big(n){return n>=25}
+/* 波色组的号码个数：红 17、蓝 16、绿 16。45 期原始计数的期望分别是 15.6 / 14.7 / 14.7，
+   所以"最少波色"必须按 每组平均每个号码的出现次数 比较，不能直接比原始计数。 */
+const WAVE_GROUP={red:17,blue:16,green:16};
+const WAVE_ORDER=['red','blue','green'];
+/* 选出"近 45 期平均出现次数最少"的波色；并列时按 WAVE_ORDER（红→蓝→绿）取先者。
+   旧实现 `Object.keys(waveCounts).reduce((a,b)=>waveCounts[a]<waveCounts[b]?a:b)` 在并列时
+   返回后一个键（绿 > 蓝 > 红），等于把 +14 分系统性发给号码更少的一组，已修正。 */
+function pickPredWave(counts){
+  let best=WAVE_ORDER[0];
+  for(const c of WAVE_ORDER) if(counts[c]/WAVE_GROUP[c]<counts[best]/WAVE_GROUP[best]) best=c;
+  return best;
+}
 function getZone(n){return n<=10?'A':n<=20?'B':n<=30?'C':n<=40?'D':'E';}
 function lunarZodiacYear(label){const m=String(label??'').match(/^(\d{4})-(\d{3})$/);if(!m)return Number(label)||2026;const year=Number(m[1]),day=Number(m[2]),newYearDay=LUNAR_NEW_YEAR_DAY[year];return newYearDay&&day<newYearDay?year-1:year}
 function zodiac(n,label){const lunarYear=lunarZodiacYear(label);let offset=(2026-lunarYear)%12;if(offset<0)offset+=12;return ZODIACS[(n-1+offset)%12]}
@@ -382,7 +394,7 @@ function simulateEngine(hist){
     const n=hist[i][6];if(odd(n))oddCount++;if(big(n))bigCount++;waveCounts[wave(n).type]++;
   }
   const predOdd=oddCount>=attr/2?'odd':'even',predBig=bigCount>=attr/2;
-  const predWave=Object.keys(waveCounts).reduce((a,b)=>waveCounts[a]<waveCounts[b]?a:b);
+  const predWave=pickPredWave(waveCounts);
 
   // 频次（近 win 期窗口）
   const freq=Array(50).fill(0),last=Array(50).fill(-1);
@@ -1126,7 +1138,7 @@ syncSliderFromInput();
 window.addEventListener('load',()=>{scheduleForward(400);checkOnly(true);});
 
 /* ---------- 测试钩子（不影响页面行为） ---------- */
-window.__LOTTO_SYNC_TEST__={collectHeaders,numsFromBody,stripHtml,parseDrawText,planAppend,applyPlan,normalizeRecords,normalizeJsonRecord,computeForward,binomRightTail,logChoose,zContinuity,classifyExactP,fmtP,mulberry32,cmpLabel,lastLocalLabel,checkOnly,repairConflicts,runForward,scheduleForward,syncSliderFromInput,onSliderInput,onFwdStartInput,runMonteCarlo,cancelMonteCarlo,renderMonteCarloIdle,refreshSliderRange,get fwdCache(){return fwdCache},get mc(){return mc},get lastConflictFixes(){return lastConflictFixes}};
+window.__LOTTO_SYNC_TEST__={pickPredWave,WAVE_GROUP,WAVE_ORDER,collectHeaders,numsFromBody,stripHtml,parseDrawText,planAppend,applyPlan,normalizeRecords,normalizeJsonRecord,computeForward,binomRightTail,logChoose,zContinuity,classifyExactP,fmtP,mulberry32,cmpLabel,lastLocalLabel,checkOnly,repairConflicts,runForward,scheduleForward,syncSliderFromInput,onSliderInput,onFwdStartInput,runMonteCarlo,cancelMonteCarlo,renderMonteCarloIdle,refreshSliderRange,get fwdCache(){return fwdCache},get mc(){return mc},get lastConflictFixes(){return lastConflictFixes}};
 })();
 </script>
 </body></html>

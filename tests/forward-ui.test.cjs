@@ -29,7 +29,7 @@ test('前瞻明细表只有 4 列（期号/预测7码/实际特码/7码命中）
   assert.ok(!/前瞻.*单双|前瞻.*大小|前瞻.*波色命中/.test(html));
 });
 
-test('默认起算期 2026-201：58 期 13 次命中，精确 p=0.0630 → 边缘/不显著',async t=>{
+test('默认起算期 2026-201：58 期 12 次命中，精确 p=0.1166 → 不显著',async t=>{
   const page=newPage();
   const T=hooks(page);
   page.el('fwdStart').value='2026-201';
@@ -37,16 +37,16 @@ test('默认起算期 2026-201：58 期 13 次命中，精确 p=0.0630 → 边�
   await waitForForward(page);
   const body=page.el('fwdBody').innerHTML;
   assert.equal((body.match(/<tr class=/g)||[]).length,58,'明细应为 58 行');
-  assert.equal((body.match(/class="badge hit"/g)||[]).length,13,'命中行应为 13');
+  assert.equal((body.match(/class="badge hit"/g)||[]).length,12,'命中行应为 12');
   const metrics=page.el('fwdMetrics').innerHTML;
-  assert.ok(metrics.includes('0.0630'),`应显示精确 p=0.0630: ${metrics.slice(0,200)}`);
-  assert.ok(metrics.includes('边缘 / 不显著（可能为随机波动）'),'应判为边缘/不显著');
+  assert.ok(metrics.includes('0.1166'),`应显示精确 p=0.1166: ${metrics.slice(0,200)}`);
+  assert.ok(metrics.includes('不显著'),'应判为不显著');
   const concl=page.el('fwdConclusion').textContent;
-  assert.ok(concl.includes('边缘 / 不显著'),concl);
+  assert.ok(concl.includes('不显著'),concl);
   assert.ok(!concl.includes('统计上显著高于随机基线'),'不得宣称显著');
 });
 
-test('起算期 2026-001：258 期 53 次命中；2023-061：1294 期 230 次命中',async t=>{
+test('起算期 2026-001：258 期 52 次命中；2023-061：1294 期 230 次命中',async t=>{
   const page=newPage();
   const T=hooks(page);
   page.el('fwdStart').value='2026-001';
@@ -54,7 +54,7 @@ test('起算期 2026-001：258 期 53 次命中；2023-061：1294 期 230 次命
   await waitForForward(page);
   let body=page.el('fwdBody').innerHTML;
   assert.equal((body.match(/<tr class=/g)||[]).length,258);
-  assert.equal((body.match(/class="badge hit"/g)||[]).length,53);
+  assert.equal((body.match(/class="badge hit"/g)||[]).length,52);
   page.el('fwdStart').value='2023-061';
   T.runForward();
   await waitForForward(page);
@@ -173,24 +173,25 @@ test('数据变化（撤销/追加）使前瞻缓存与滑块边界失效',async
 });
 
 test('蒙特卡洛：确定性 PRNG、可完成、经验 p 与精确 p 一致在模拟误差内',async t=>{
-  const page=newPage();
+  // 不触发 load：否则页面 400ms 后的自动前瞻/对照任务会覆盖本次手动任务
+  const page=loadPage({preStorage:extraStorage(DATA_MAX)});
   const T=hooks(page);
   // PRNG 确定性
   const a=T.mulberry32(42),b=T.mulberry32(42);
   assert.deepEqual([a(),a(),a()],[b(),b(),b()]);
-  // 完整运行 10,000 次对照（N=58, K=13）
-  T.runMonteCarlo(58,13);
+  // 完整运行 10,000 次对照（2026-201..258 共 58 期，修正波色并列后命中 12 次）
+  T.runMonteCarlo(58,12);
   await page.waitFor(()=>!T.mc.running,30000);
   const body=page.el('mcBody').innerHTML;
   const status=page.el('mcStatus').textContent;
   assert.ok(status.includes('完成'),`应完成: ${status}`);
   assert.ok(body.includes('随机种子'),'应显示种子');
   assert.ok(body.includes('Wilson'),'应显示模拟误差区间');
-  const m=body.match(/超过 13 次的模拟\s*<\/small>\s*<b[^>]*>(\d+)/);
+  const m=body.match(/超过 12 次的模拟\s*<\/small>\s*<b[^>]*>(\d+)/);
   assert.ok(m,'应显示超过次数');
   const geq=+m[1];
   const pe=geq/10000;
-  const exact=T.binomRightTail(58,13);
+  const exact=T.binomRightTail(58,12);
   const sigma=Math.sqrt(exact*(1-exact)/10000);
   assert.ok(Math.abs(pe-exact)<=5*sigma,`经验 p=${pe} 应落在精确 p=${exact} 的 5σ 模拟误差内`);
   // 无样本 → 不运行
