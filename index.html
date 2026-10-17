@@ -52,7 +52,39 @@
 .mc-note{font-size:11.5px;color:var(--muted);line-height:1.7;margin-top:8px}
 .mc-panel .mc-bar{height:6px;border-radius:99px;background:#eef2ff;overflow:hidden;margin-top:8px}
 .mc-panel .mc-fill{height:100%;border-radius:99px;background:var(--purple);transition:width .2s}
-@media(max-width:780px){.sync-status{grid-template-columns:1fr 1fr}.ss-item.span2{grid-column:span 2}#fwdMetrics{grid-template-columns:1fr 1fr}.mc-panel .mc-grid{grid-template-columns:1fr 1fr}}
+/* 亏损平滑法 · 预算与分档面板 */
+.sm-panel{margin-top:16px;border-top:1px dashed var(--line);padding-top:16px}
+.sm-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.sm-title{font:800 14px/1.3 "PingFang SC",sans-serif;color:var(--ink);display:flex;align-items:center;gap:6px}
+.sm-ctrls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.sm-ctrls label{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--ink)}
+.sm-ctrls input[type="number"]{width:88px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;font:800 13px Consolas,monospace;color:var(--ink)}
+.sm-ctrls select{padding:5px 8px;border:1px solid var(--line);border-radius:6px;font:700 12px "PingFang SC",sans-serif;color:var(--ink);background:#fff}
+.sm-chk{cursor:pointer;user-select:none;background:#fff8e8;border:1px solid #f0c040;border-radius:6px;padding:4px 8px;color:#7c5806!important}
+.sm-banner{display:grid;grid-template-columns:1.35fr 1fr;gap:12px;border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid var(--line);background:#f8fafc}
+.sm-banner.tier-l1{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-color:#6ee7b7}
+.sm-banner.tier-l2{background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fcd34d}
+.sm-banner.tier-l3{background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#93c5fd}
+.sm-b-main .sm-b-kicker{font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:4px}
+.sm-b-main .sm-b-big{font:900 20px/1.3 Consolas,"PingFang SC",sans-serif;color:var(--ink)}
+.sm-b-main .sm-b-sub{font-size:12px;color:#475569;margin-top:6px;line-height:1.6}
+.sm-b-side{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;align-content:center}
+.sm-kv{background:rgba(255,255,255,.78);border:1px solid rgba(15,23,42,.08);border-radius:8px;padding:8px 10px}
+.sm-kv small{display:block;font-size:10.5px;color:var(--muted);margin-bottom:2px}
+.sm-kv b{font:800 14px Consolas,monospace;color:var(--ink)}
+.sm-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.sm-table th{background:#f1f5f9;color:#475569;font-size:11px;padding:8px 8px;text-align:center;border-bottom:1px solid var(--line)}
+.sm-table td{padding:8px 8px;text-align:center;border-bottom:1px solid var(--line)}
+.sm-table tr.active-row{background:#fef9c3;font-weight:700}
+.sm-pill{display:inline-block;padding:2px 7px;border-radius:99px;font:800 11px Consolas,monospace}
+.sm-pill.l1{background:#d1fae5;color:#065f46}.sm-pill.l2{background:#fef3c7;color:#92400e}.sm-pill.l3{background:#dbeafe;color:#1e40af}
+.sm-foot{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:11.5px}
+.sm-foot-card{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.65;color:#475569}
+.sm-foot-card b{color:var(--ink)}
+.sm-trail{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.sm-dot{display:inline-flex;flex-direction:column;align-items:center;padding:3px 5px;border-radius:5px;font:700 10px/1.2 Consolas,monospace;border:1px solid var(--line);background:#fff}
+.sm-dot.hit{border-color:#dc2626;background:#fef2f2;color:#dc2626}
+@media(max-width:780px){.sync-status{grid-template-columns:1fr 1fr}.ss-item.span2{grid-column:span 2}#fwdMetrics{grid-template-columns:1fr 1fr}.mc-panel .mc-grid{grid-template-columns:1fr 1fr}.sm-banner{grid-template-columns:1fr}.sm-foot{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -69,7 +101,28 @@
       <span class="ep-title">7码模型</span>
       <span class="ep-meta">目标期 <b id="labelM">--</b> · 本期 <b id="countM">--</b> 码</span>
     </div>
-    <table class="prediction"><thead><tr><th>#</th><th>号码</th><th>生肖</th><th>单双</th><th>波色</th><th>大小</th><th>饱和</th><th>在榜🔥</th></tr></thead><tbody id="tbodyM"></tbody></table>
+    <table class="prediction"><thead><tr><th>#</th><th>号码</th><th>生肖</th><th>单双</th><th>波色</th><th>大小</th><th>饱和</th><th>在榜🔥</th><th>平滑分配</th></tr></thead><tbody id="tbodyM"></tbody></table>
+    <div class="sm-panel" id="smPanel">
+      <div class="sm-head">
+        <div class="sm-title">🛡️ 亏损平滑法 · 预算与分档分配器 <span class="tag">连空自动降档 / 命中回满</span></div>
+        <div class="sm-ctrls">
+          <label for="smBudget">总预算(元)：<input id="smBudget" type="number" min="70" max="1000000" step="10" value="1000"></label>
+          <label for="smOdds">单码赔率(倍)：<input id="smOdds" type="number" min="35" max="49" step="0.5" value="47" style="width:66px"></label>
+          <label for="smMode">分档方案：<select id="smMode">
+            <option value="std">稳健整元档（推荐：1000元配 56/28/14 元，每码 8/4/2 元）</option>
+            <option value="safe">长续航养生档（1000元配 28/14/7 元，每码 4/2/1 元）</option>
+            <option value="exact">精确比例档（L1=总预算5.6%，按实数折算）</option>
+          </select></label>
+          <label class="sm-chk" for="smBrokenCap"><input id="smBrokenCap" type="checkbox" checked> 含 💥破100% 极冷号时最高锁在 L2 (0.5x)</label>
+        </div>
+      </div>
+      <div class="sm-banner tier-l1" id="smBanner"></div>
+      <table class="sm-table">
+        <thead><tr><th>档位</th><th>触发条件（按近期连空）</th><th>单码金额</th><th>单期 7 码总额</th><th>总预算建议分仓（三层资金池）</th><th>当前状态</th></tr></thead>
+        <tbody id="smTableBody"></tbody>
+      </table>
+      <div class="sm-foot" id="smFoot"></div>
+    </div>
   </div>
 </section>
 
@@ -484,8 +537,222 @@ function longWaveEngine(hist,label){
   return{predOdd:L.predOdd,predBig:L.predBig,predWave:L.predWave,merged,mergeNums:merged.map(x=>x.n),fullScores:L.fullScores};
 }
 
+const SM_CFG_KEY='lotto_smooth_cfg_1';
+let lastEngineState=null;
+function loadSmoothCfg(){
+  try{
+    const raw=localStorage.getItem(SM_CFG_KEY);
+    if(!raw)return{budget:1000,odds:47,mode:'std',brokenCap:true};
+    const x=JSON.parse(raw);
+    const budget=Math.max(70,Math.min(1000000,Number(x.budget)||1000));
+    const odds=Math.max(30,Math.min(60,Number(x.odds)||47));
+    const mode=['std','safe','exact'].includes(x.mode)?x.mode:'std';
+    const brokenCap=x.brokenCap!==false;
+    return{budget,odds,mode,brokenCap};
+  }catch(e){return{budget:1000,odds:47,mode:'std',brokenCap:true};}
+}
+function saveSmoothCfg(cfg){
+  try{localStorage.setItem(SM_CFG_KEY,JSON.stringify(cfg));}catch(e){}
+}
+function fmtMoney(v){
+  const n=Number(v)||0;
+  return Number.isInteger(n)?String(n):n.toFixed(2).replace(/\.?0+$/,'');
+}
+function calcSmoothPlan(p,label){
+  const bEl=document.getElementById('smBudget'),oEl=document.getElementById('smOdds'),mEl=document.getElementById('smMode'),cEl=document.getElementById('smBrokenCap');
+  const budget=Math.max(70,Math.min(1000000,Number(bEl&&bEl.value)||1000));
+  const odds=Math.max(30,Math.min(60,Number(oEl&&oEl.value)||47));
+  const mode=(mEl&&mEl.value)||'std';
+  const brokenCap=cEl?Boolean(cEl.checked):true;
+
+  let perL1,perL2,perL3,totL1,totL2,totL3;
+  if(mode==='std'){
+    perL3=Math.max(1,Math.round(budget/500));
+    perL2=perL3*2;perL1=perL3*4;
+    totL3=perL3*7;totL2=perL2*7;totL1=perL1*7;
+  }else if(mode==='safe'){
+    perL3=Math.max(1,Math.round(budget/1000));
+    perL2=perL3*2;perL1=perL3*4;
+    totL3=perL3*7;totL2=perL2*7;totL1=perL1*7;
+  }else{
+    totL1=+(budget*0.056).toFixed(2);
+    totL2=+(totL1*0.5).toFixed(2);
+    totL3=+(totL1*0.25).toFixed(2);
+    perL1=+(totL1/7).toFixed(2);
+    perL2=+(totL2/7).toFixed(2);
+    perL3=+(totL3/7).toFixed(2);
+  }
+
+  const flat=(archiveCache&&archiveCache.flat)||[];
+  let missStreak=0,lastHit=null;
+  for(let i=flat.length-1;i>=0;i--){
+    if(flat[i].num){lastHit=flat[i];break;}
+    missStreak++;
+  }
+  let maxMiss=0,curMiss=0;
+  for(let i=0;i<flat.length;i++){
+    if(flat[i].num)curMiss=0;
+    else{curMiss++;if(curMiss>maxMiss)maxMiss=curMiss;}
+  }
+  if(!maxMiss)maxMiss=23;
+
+  const brokenList=(p&&p.merged)?p.merged.filter(x=>(x.sat||0)>=1.0):[];
+  const rawTier=missStreak>=4?'L3':missStreak>=2?'L2':'L1';
+  let activeTier=rawTier,cappedByBroken=false;
+  if(rawTier==='L1'&&brokenCap&&brokenList.length>0){
+    activeTier='L2';
+    cappedByBroken=true;
+  }
+
+  const perNow=activeTier==='L1'?perL1:activeTier==='L2'?perL2:perL3;
+  const totNow=activeTier==='L1'?totL1:activeTier==='L2'?totL2:totL3;
+  const tierCls=activeTier==='L1'?'l1':activeTier==='L2'?'l2':'l3';
+  const tierName=activeTier==='L1'?'🟢 L1 满注档 (1.0x)':activeTier==='L2'?(cappedByBroken?'🟡 L2 防雷限高档 (0.5x)':'🟡 L2 缓冲档 (0.5x)'):'🔵 L3 养生档 (0.25x)';
+
+  // 三层资金池拆解（以 6 期 L1 + 10 期 L2 + 剩余全部归 L3 护甲池）
+  const p1=Math.min(budget,+(totL1*6).toFixed(2));
+  const p2=Math.min(Math.max(0,budget-p1),+(totL2*10).toFixed(2));
+  const p3=Math.max(0,+(budget-p1-p2).toFixed(2));
+  const p1Cnt=totL1>0?Math.floor(p1/totL1):0;
+  const p2Cnt=totL2>0?Math.floor(p2/totL2):0;
+  const p3Cnt=totL3>0?Math.floor(p3/totL3):0;
+
+  // 预算极端连空续航期数（假设从第1期起全程不中）
+  let rem=budget,survivePeriods=0;
+  while(rem>0&&survivePeriods<2000){
+    const cost=survivePeriods<2?totL1:survivePeriods<4?totL2:totL3;
+    if(rem+1e-9<cost)break;
+    rem-=cost;survivePeriods++;
+  }
+  const worstCost=+(2*totL1+2*totL2+Math.max(0,maxMiss-4)*totL3).toFixed(2);
+
+  // 最近 30 期实盘回放对比
+  const winLen=Math.min(30,flat.length);
+  const startIdx=flat.length-winLen;
+  let mBefore=0;
+  for(let i=startIdx-1;i>=0;i--){if(flat[i].num)break;mBefore++;}
+  let flatSpend=0,smoothSpend=0,winHits=0;
+  const trail=[];
+  for(let i=startIdx;i<flat.length;i++){
+    const r=flat[i];
+    let t=mBefore>=4?'L3':mBefore>=2?'L2':'L1';
+    if(t==='L1'&&brokenCap&&r.hasBroken)t='L2';
+    const spend=t==='L1'?totL1:t==='L2'?totL2:totL3;
+    flatSpend+=totL1;
+    smoothSpend+=spend;
+    if(r.num)winHits++;
+    trail.push({label:r.label,tier:t,spend,hit:r.num,actual:r.actual});
+    mBefore=r.num?0:mBefore+1;
+  }
+  const saved=+(flatSpend-smoothSpend).toFixed(2);
+  const savedPct=flatSpend>0?((saved/flatSpend)*100).toFixed(1):'0.0';
+
+  // 2026-201 至最新期（前瞻默认区间）实盘收益账本
+  let fwdIdx=flat.findIndex(r=>r.label>='2026-201');
+  if(fwdIdx<0)fwdIdx=Math.max(0,flat.length-30);
+  let fwdMiss=0;
+  for(let i=fwdIdx-1;i>=0;i--){if(flat[i].num)break;fwdMiss++;}
+  let fwdCost=0,fwdRet=0,fwdBal=budget,fwdPeak=budget,fwdMaxDD=0,fwdMinBal=budget,fwdMaxBal=budget,fwdHits=0;
+  const fwdTierCnt={L1:0,L2:0,L3:0},fwdTierHit={L1:0,L2:0,L3:0};
+  for(let i=fwdIdx;i<flat.length;i++){
+    const r=flat[i];
+    let t=fwdMiss>=4?'L3':fwdMiss>=2?'L2':'L1';
+    if(t==='L1'&&brokenCap&&r.hasBroken)t='L2';
+    const per=t==='L1'?perL1:t==='L2'?perL2:perL3;
+    const cost=t==='L1'?totL1:t==='L2'?totL2:totL3;
+    const pay=r.num?+(per*odds).toFixed(2):0;
+    fwdCost+=cost;fwdRet+=pay;
+    fwdBal=+(fwdBal+pay-cost).toFixed(2);
+    if(fwdBal>fwdPeak)fwdPeak=fwdBal;
+    if(fwdPeak-fwdBal>fwdMaxDD)fwdMaxDD=+(fwdPeak-fwdBal).toFixed(2);
+    if(fwdBal<fwdMinBal)fwdMinBal=fwdBal;
+    if(fwdBal>fwdMaxBal)fwdMaxBal=fwdBal;
+    fwdTierCnt[t]++;
+    if(r.num){fwdHits++;fwdTierHit[t]++;}
+    fwdMiss=r.num?0:fwdMiss+1;
+  }
+  const fwdLen=Math.max(0,flat.length-fwdIdx);
+  const fwdStartLbl=fwdLen?flat[fwdIdx].label:'2026-201';
+  const fwdEndLbl=fwdLen?flat[flat.length-1].label:'--';
+  const fwdNet=+(fwdRet-fwdCost).toFixed(2);
+  const fwdRoi=fwdCost>0?((fwdNet/fwdCost)*100).toFixed(2):'0.00';
+
+  return{
+    budget,odds,mode,brokenCap,
+    perL1,perL2,perL3,totL1,totL2,totL3,
+    missStreak,lastHit,maxMiss,brokenList,
+    rawTier,activeTier,cappedByBroken,perNow,totNow,tierCls,tierName,
+    perNowTxt:fmtMoney(perNow)+'元/码',
+    p1,p2,p3,p1Cnt,p2Cnt,p3Cnt,
+    survivePeriods,worstCost,
+    winLen,flatSpend:+flatSpend.toFixed(2),smoothSpend:+smoothSpend.toFixed(2),saved,savedPct,winHits,
+    trail:trail.slice(-12),
+    fwdLen,fwdStartLbl,fwdEndLbl,fwdCost:+fwdCost.toFixed(2),fwdRet:+fwdRet.toFixed(2),fwdNet,fwdRoi,fwdBal,fwdMaxDD,fwdMinBal,fwdMaxBal,fwdHits,fwdTierCnt,fwdTierHit
+  };
+}
+
+function renderSmoothPanel(plan,label){
+  const banner=document.getElementById('smBanner'),tBody=document.getElementById('smTableBody'),foot=document.getElementById('smFoot');
+  if(!banner||!tBody||!foot)return;
+  banner.className='sm-banner tier-'+plan.tierCls;
+  const brokenTxt=plan.brokenList.length
+    ?`⚠️ 含 ${plan.brokenList.length} 个破纪录号（${plan.brokenList.map(x=>String(x.n).padStart(2,'0')+'号 💥'+Math.round((x.sat||0)*100)+'%').join('、')}）`
+    :'✅ 本期无破纪录极冷号';
+  const lastHitTxt=plan.lastHit?`上次命中：${plan.lastHit.label}（特码 ${String(plan.lastHit.actual).padStart(2,'0')}）`:'尚无历史命中记录';
+  const nextIfHit=(plan.brokenCap&&plan.brokenList.length)?`下期回升至 L2（${fmtMoney(plan.totL2)}元，若破纪录号退榜则回满 L1 ${fmtMoney(plan.totL1)}元）`:`下期立刻回满 L1（${fmtMoney(plan.totL1)}元 / 每码${fmtMoney(plan.perL1)}元）`;
+  const nextIfMiss=(plan.missStreak+1>=4)?`下期连空满 ${plan.missStreak+1} 期 → 保持 L3 养生档（${fmtMoney(plan.totL3)}元）`:(plan.missStreak+1>=2)?`下期连空满 ${plan.missStreak+1} 期 → 降入 L2 缓冲档（${fmtMoney(plan.totL2)}元）`:`下期连空 1 期 → 仍保持当前档位`;
+
+  banner.innerHTML=
+    `<div class="sm-b-main">`+
+      `<div class="sm-b-kicker">目标期 ${escapeHtml(label)} · 实时执行指令${plan.cappedByBroken?'（已触发 💥破纪录防雷限高）':''}</div>`+
+      `<div class="sm-b-big">${plan.tierName} → 本期共投 <span style="color:var(--hot)">${fmtMoney(plan.totNow)} 元</span>（7码 × 每码 <u>${fmtMoney(plan.perNow)} 元</u>）</div>`+
+      `<div class="sm-b-sub">▶ <b>若本期命中</b>：${nextIfHit}<br>▶ <b>若本期未中</b>：${nextIfMiss}</div>`+
+    `</div>`+
+    `<div class="sm-b-side">`+
+      `<div class="sm-kv"><small>当前连空期数</small><b style="color:${plan.missStreak>=4?'var(--blue)':plan.missStreak>=2?'#d97706':'var(--green)'}">连空 ${plan.missStreak} 期</b></div>`+
+      `<div class="sm-kv"><small>本期占总预算</small><b>${(plan.totNow/plan.budget*100).toFixed(2)}%（${fmtMoney(plan.totNow)}/${fmtMoney(plan.budget)}元）</b></div>`+
+      `<div class="sm-kv"><small>上次命中追溯</small><b style="font-size:12px">${escapeHtml(lastHitTxt)}</b></div>`+
+      `<div class="sm-kv"><small>破纪录号监测</small><b style="font-size:12px;color:${plan.brokenList.length?'var(--hot)':'var(--green)'}">${escapeHtml(brokenTxt)}</b></div>`+
+    `</div>`;
+
+  const rows=[
+    {id:'L1',cls:'l1',name:'🟢 L1 满注档 (1.00x)',cond:'连空 0 ~ 1 期（刚中或隔1期）',per:plan.perL1,tot:plan.totL1,pool:`进攻池 ${fmtMoney(plan.p1)} 元（约 ${plan.p1Cnt} 期满注）`,note:'顺风期抓连中 / 热号回吐'},
+    {id:'L2',cls:'l2',name:'🟡 L2 缓冲档 (0.50x)',cond:'连空 2 ~ 3 期（或含💥破纪录号限高）',per:plan.perL2,tot:plan.totL2,pool:`缓冲池 ${fmtMoney(plan.p2)} 元（约 ${plan.p2Cnt} 期半注）`,note:'中期降温减速，消耗直接砍半'},
+    {id:'L3',cls:'l3',name:'🔵 L3 养生档 (0.25x)',cond:'连空 ≥ 4 期（进入粘滞冷区）',per:plan.perL3,tot:plan.totL3,pool:`护甲池 ${fmtMoney(plan.p3)} 元（约 ${plan.p3Cnt} 期地板注）`,note:'深水区冬眠护甲，防长连挂崩盘'}
+  ];
+  tBody.innerHTML=rows.map(r=>{
+    const isAct=plan.activeTier===r.id;
+    return `<tr class="${isAct?'active-row':''}">`+
+      `<td><span class="sm-pill ${r.cls}">${r.name}</span></td>`+
+      `<td>${r.cond}</td>`+
+      `<td><b>${fmtMoney(r.per)} 元</b> / 码</td>`+
+      `<td><b>${fmtMoney(r.tot)} 元</b> / 期 <small style="color:var(--muted)">(${(r.tot/plan.budget*100).toFixed(1)}%)</small></td>`+
+      `<td>${r.pool}</td>`+
+      `<td>${isAct?`<span class="badge hit">👈 本期执行</span>`:`<span style="color:var(--muted)">${r.note}</span>`}</td>`+
+    `</tr>`;
+  }).join('');
+
+  const trailHtml=plan.trail.map(t=>{
+    const shortLbl=t.label.slice(-3);
+    return `<span class="sm-dot ${t.hit?'hit':''}" title="${t.label}：${t.tier}档 投${fmtMoney(t.spend)}元 · 特码${String(t.actual).padStart(2,'0')} ${t.hit?'✅命中':'未中'}"><span>${shortLbl}</span><span>${t.tier}${t.hit?'✅':''}</span></span>`;
+  }).join('');
+
+  foot.innerHTML=
+    `<div class="sm-foot-card"><b>📈 ${escapeHtml(plan.fwdStartLbl)} ~ ${escapeHtml(plan.fwdEndLbl)}（${plan.fwdLen}期）实盘收益回测</b><br>`+
+      `累计投入 <b>${fmtMoney(plan.fwdCost)} 元</b> · 命中 <b>${plan.fwdHits} 次</b>（L1:${plan.fwdTierHit.L1}/${plan.fwdTierCnt.L1} · L2:${plan.fwdTierHit.L2}/${plan.fwdTierCnt.L2} · L3:${plan.fwdTierHit.L3}/${plan.fwdTierCnt.L3}）· 累计派彩 <b>${fmtMoney(plan.fwdRet)} 元</b>（按 ${plan.odds}倍）<br>`+
+      `净收益 <b style="color:${plan.fwdNet>=0?'var(--green)':'var(--hot)'}">${plan.fwdNet>=0?'+':''}${fmtMoney(plan.fwdNet)} 元（ROI ${plan.fwdRoi}%）</b> · 期末余额 <b>${fmtMoney(plan.fwdBal)} 元</b>（最高 ${fmtMoney(plan.fwdMaxBal)} / 最低 ${fmtMoney(plan.fwdMinBal)} / 最大回撤 ${fmtMoney(plan.fwdMaxDD)} 元）</div>`+
+    `<div class="sm-foot-card"><b>🛡️ ${fmtMoney(plan.budget)} 元极端抗风险能力</b><br>`+
+      `即便从第 1 期起<b>全程 1 次不中</b>，本金可连续支撑 <b>${plan.survivePeriods} 期</b> 不断粮；而本工具全历史最长连空为 <b>${plan.maxMiss} 期</b>，按平滑法走完仅耗资 <b>${fmtMoney(plan.worstCost)} 元</b>（仅占总预算 ${(plan.worstCost/plan.budget*100).toFixed(1)}%，还剩 ${fmtMoney(Math.max(0,plan.budget-plan.worstCost))} 元）。</div>`+
+    `<div class="sm-foot-card"><b>📉 近 ${plan.winLen} 期实盘省钱账单</b><br>`+
+      `若每期平注 ${fmtMoney(plan.totL1)} 元需花 <b>${fmtMoney(plan.flatSpend)} 元</b>；采用本平滑方案实际仅投 <b>${fmtMoney(plan.smoothSpend)} 元</b>（期间命中 ${plan.winHits} 次），直接为您少亏/省下 <b style="color:var(--green)">${fmtMoney(plan.saved)} 元（-${plan.savedPct}%）</b>。</div>`+
+    `<div class="sm-foot-card"><b>🧭 最近 ${plan.trail.length} 期实际档位轨迹</b>`+
+      `<div class="sm-trail">${trailHtml}</div></div>`;
+}
+
 function renderEngine(p,label,streaks){
   streaks=streaks||{};
+  lastEngineState={p,label,streaks};
+  const plan=calcSmoothPlan(p,label);
   document.getElementById('labelM').textContent=label;
   document.getElementById('countM').textContent=p.merged.length;
   const body=document.getElementById('tbodyM');
@@ -503,17 +770,19 @@ function renderEngine(p,label,streaks){
     else if(sat>=0.50){satCls='sat-col death';satTxt='💀'+Math.round(sat*100)+'%';}     // 50-70% 低迷区
     else if(sat>=0.15&&sat<0.20){satCls='sat-col edge';satTxt='↩'+Math.round(sat*100)+'%';} // 15-20% 热号回吐
     // 其余 (0-15% 及 20-50%) 用默认 normal 颜色
-    return `<tr title="${x.zodiac} · ${odd(x.n)?'单':'双'} · ${w.name} · ${big(x.n)?'大':'小'} · 分数${x.score} · 饱和${Math.round(sat*100)}%"><td>#${i+1}</td><td><span class="ball" style="background:${w.color}">${String(x.n).padStart(2,'0')}</span></td><td>${x.zodiac}</td><td>${odd(x.n)?'单':'双'}</td><td style="color:${w.color}">${w.name}</td><td>${big(x.n)?'大':'小'}</td><td class="${satCls}">${satTxt}</td><td style="color:${sc};font-weight:${st>=5?700:400}" title="连续 ${st} 期在榜">${st} 期</td></tr>`;
+    return `<tr title="${x.zodiac} · ${odd(x.n)?'单':'双'} · ${w.name} · ${big(x.n)?'大':'小'} · 分数${x.score} · 饱和${Math.round(sat*100)}%"><td>#${i+1}</td><td><span class="ball" style="background:${w.color}">${String(x.n).padStart(2,'0')}</span></td><td>${x.zodiac}</td><td>${odd(x.n)?'单':'双'}</td><td style="color:${w.color}">${w.name}</td><td>${big(x.n)?'大':'小'}</td><td class="${satCls}">${satTxt}</td><td style="color:${sc};font-weight:${st>=5?700:400}" title="连续 ${st} 期在榜">${st} 期</td><td><span class="sm-pill ${plan.tierCls}" title="当前 ${plan.tierName}：每码投 ${fmtMoney(plan.perNow)} 元">${plan.perNowTxt}</span></td></tr>`;
   }).join('');
+  renderSmoothPanel(plan,label);
 }
 
 function emptyMetrics(){return{total:0,num:0,units:0,base:0,odd:0,wave:0,big:0}}
 function buildArchive(draws,labels){
-    const rows={},metrics={},numHits=[];
+    const rows={},metrics={},numHits=[],flat=[];
     for(let i=60;i<draws.length;i++){
         const hist=draws.slice(0,i),label=labels[i],year=label.slice(0,4),actual=draws[i][6],merged=longWaveEngine(hist,label);
         if(!merged)continue;
         const numHit=merged.mergeNums.includes(actual);
+        const hasBroken=merged.merged.some(x=>(x.sat||0)>=1.0);
         const m=metrics[year]||(metrics[year]=emptyMetrics());
         m.total++;
         m.num+=numHit?1:0;
@@ -522,10 +791,12 @@ function buildArchive(draws,labels){
         m.odd+=(odd(actual)?'odd':'even')===merged.predOdd?1:0;
         m.big+=(big(actual)?'big':'small')===(merged.predBig?'big':'small')?1:0;
         m.wave+=wave(actual).type===merged.predWave?1:0;
-        (rows[year]||(rows[year]=[])).push({label,nums:draws[i].slice(),actual,num:numHit});
+        const item={label,nums:draws[i].slice(),actual,num:numHit,hasBroken};
+        (rows[year]||(rows[year]=[])).push(item);
         numHits.push(numHit);
+        flat.push(item);
     }
-    return{version:dataVersion,rows,metrics,hits:numHits,builtUpTo:draws.length}
+    return{version:dataVersion,rows,metrics,hits:numHits,flat,builtUpTo:draws.length}
 }
 
 function badge(text,kind=''){return `<span class="badge ${kind}">${text}</span>`}
@@ -588,7 +859,29 @@ function scheduleRefresh(){document.getElementById('totalCount').textContent='�
 function download(name,text,type){const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),0)}
 function setupInputs(){const wrap=document.getElementById('ballInputs');for(let i=0;i<7;i++){const input=document.createElement('input');input.type='number';input.min='1';input.max='49';input.placeholder='--';input.inputMode='numeric';input.setAttribute('aria-label',`第${i+1}个开奖号`);input.addEventListener('input',()=>{if(input.value.length>2)input.value=input.value.slice(0,2);const n=+input.value;if(n>=1&&n<=49){const w=wave(n);input.style.background=w.color;input.style.borderColor=w.color;input.style.color='#fff'}else{input.style=''}if(input.value.length===2&&i<6&&n>=1&&n<=49)wrap.children[i+1].focus()});input.addEventListener('keydown',e=>{if(e.key==='Backspace'&&!input.value&&i>0)wrap.children[i-1].focus();if(e.key==='Enter'){if(i<6)wrap.children[i+1].focus();else document.getElementById('submitDraw').click()}});wrap.append(input)}}
 
-function init(){({draws:addedDraws,labels:addedLabels}=loadManual());setupInputs();
+function setupSmoothInputs(){
+  const cfg=loadSmoothCfg();
+  const bEl=document.getElementById('smBudget'),oEl=document.getElementById('smOdds'),mEl=document.getElementById('smMode'),cEl=document.getElementById('smBrokenCap');
+  if(bEl)bEl.value=String(cfg.budget);
+  if(oEl)oEl.value=String(cfg.odds||47);
+  if(mEl)mEl.value=cfg.mode;
+  if(cEl)cEl.checked=cfg.brokenCap;
+  const onChange=()=>{
+    const nextCfg={
+      budget:Math.max(70,Math.min(1000000,Number(bEl&&bEl.value)||1000)),
+      odds:Math.max(30,Math.min(60,Number(oEl&&oEl.value)||47)),
+      mode:(mEl&&mEl.value)||'std',
+      brokenCap:cEl?Boolean(cEl.checked):true
+    };
+    saveSmoothCfg(nextCfg);
+    if(lastEngineState)renderEngine(lastEngineState.p,lastEngineState.label,lastEngineState.streaks);
+  };
+  if(bEl)bEl.addEventListener('input',onChange);
+  if(oEl)oEl.addEventListener('input',onChange);
+  if(mEl)mEl.addEventListener('change',onChange);
+  if(cEl)cEl.addEventListener('change',onChange);
+}
+function init(){({draws:addedDraws,labels:addedLabels}=loadManual());setupInputs();setupSmoothInputs();
   const period=document.getElementById('periodLabel');period.value=expectedLabel();document.getElementById('submitDraw').addEventListener('click',()=>{const inputs=[...document.querySelectorAll('#ballInputs input')],nums=inputs.map(x=>+x.value);if(!validDraw(nums)){inputs.forEach(x=>{const n=+x.value;if(!Number.isInteger(n)||n<1||n>49||nums.filter(v=>v===n).length>1){x.classList.add('shake');setTimeout(()=>x.classList.remove('shake'),300)}});return}const label=normalLabel(period.value),expected=expectedLabel();if(label!==expected)return alert(`为保证历史回放正确，只能追加下一期：${expected}`);addedDraws.push(nums);addedLabels.push(label);if(!saveManual()){addedDraws.pop();addedLabels.pop();return}dataVersion++;archiveCache=null;inputs.forEach(x=>{x.value='';x.style=''});inputs[0].focus();period.value=expectedLabel();scheduleRefresh()});document.getElementById('undoDraw').addEventListener('click',()=>{if(!addedDraws.length)return alert('没有可撤销的手动记录。');if(!confirm('撤销最后一条手动记录？'))return;const bkD=[...addedDraws],bkL=[...addedLabels];addedDraws.pop();addedLabels.pop();if(!saveManual()){addedDraws=bkD;addedLabels=bkL;return}dataVersion++;archiveCache=null;period.value=expectedLabel();scheduleRefresh()});document.getElementById('clearData').addEventListener('click',()=>{if(confirm('确认清空所有手动开奖数据？')){addedDraws=[];addedLabels=[];saveManual();dataVersion++;archiveCache=null;period.value=expectedLabel();scheduleRefresh()}});document.getElementById('exportBtn').addEventListener('click',()=>download('lottery_backup.json',JSON.stringify({schemaVersion:1,exportedAt:new Date().toISOString(),draws:addedDraws,labels:addedLabels},null,2),'application/json'));const file=document.getElementById('importFile');document.getElementById('importBtn').addEventListener('click',()=>{file.value='';file.click()});file.addEventListener('change',()=>{const selected=file.files&&file.files[0];if(!selected)return;if(selected.size>MAX_IMPORT_BYTES)return alert('文件超过 2MB，已拒绝导入。');const reader=new FileReader();reader.onload=()=>{try{const x=JSON.parse(String(reader.result||'')),clean=validateManual(x.draws||x.manualData?.draws,x.labels||x.manualData?.labels);if(!confirm(`将替换为 ${clean.draws.length} 期手动数据，是否继续？`))return;addedDraws=clean.draws;addedLabels=clean.labels;if(!saveManual())return;dataVersion++;archiveCache=null;period.value=expectedLabel();scheduleRefresh();alert('导入成功。')}catch(e){alert(`导入失败：${e.message||'JSON 或数据格式无效。'}`)}};reader.readAsText(selected,'utf-8')});scheduleRefresh()}
 init();
 </script>
