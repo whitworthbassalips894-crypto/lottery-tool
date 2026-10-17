@@ -229,3 +229,43 @@ test('页面不显示模型版本号；规则名静态标注为"原评分＋原�
   assert.ok(html.includes('<h2>2. 7码候选 <span class="tag">原评分＋原选码</span></h2>'),'规则名应为静态标注"原评分＋原选码"');
   assert.ok(!html.includes('组合约束'),'页面不得再出现组合约束相关文案');
 });
+
+test('自动降档省钱助手：大白话表头、动态下拉框、横幅、三档表格与底部问答卡',async t=>{
+  const fs=require('fs');
+  const path=require('path');
+  const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8');
+  assert.ok(html.includes('<th>本期买多少</th>'),'第9列表头应为「本期买多少」');
+  assert.ok(html.includes('🛡️ 自动降档省钱助手（连不中自动减半 · 一中立刻恢复）'),'面板标题应为大白话版');
+  assert.ok(html.includes('准备本金(元)'),'应包含准备本金(元)');
+  assert.ok(html.includes('中奖赔率(倍)'),'应包含中奖赔率(倍)');
+  assert.ok(html.includes('防雷保护：有“💥破纪录冷号”时不买满注（自动减半）'),'勾选框应为大白话版');
+
+  const page=loadPage({preStorage:extraStorage(DATA_MAX),expose:'refresh();'});
+  const banner=page.el('smBanner').innerHTML.replace(/<[^>]+>/g,'');
+  assert.ok(banner.includes('📌 本期（2026-259）直接照着买：每个号买 2 元 × 7个号 = 今天共花 14 元'),banner);
+  assert.ok(banner.includes('① 为什么买这档')&&banner.includes('② 如果今天中了')&&banner.includes('③ 如果今天没中'),banner);
+  for(const k of['今天所用档位','今天若中净赚','当前连续未中','极冷钉子户监测']){
+    assert.ok(banner.includes(k),`横幅右侧应包含「${k}」`);
+  }
+
+  const tBody=page.el('smTableBody').innerHTML;
+  for(const tier of['🟢 满注档（全额）','🟡 半注档（减半）','🔵 底注档（最省）']){
+    assert.ok(tBody.includes(tier),`表格应包含「${tier}」`);
+  }
+  assert.ok(tBody.includes('👈 今天买这档')&&tBody.includes('待命'),'状态列应显示今天买这档/待命');
+
+  const foot=page.el('smFoot').innerHTML;
+  const footTxt=foot.replace(/<[^>]+>/g,'');
+  assert.equal((foot.match(/class="sm-foot-card"/g)||[]).length,2,'底部应精简为 2 张问答卡');
+  assert.ok(footTxt.includes('📊 从 2026-201 到现在（共 58 期）如果一直按上面买，战绩如何？'),footTxt);
+  assert.ok(footTxt.includes('🛡️ 你的 1000 元本金有多安全？会不会亏光？'),footTxt);
+  assert.ok(footTxt.includes('历史最长连空 23 期'),footTxt);
+  assert.ok(!foot.includes('ROI')&&!foot.includes('sm-dot'),'底部不应再有 ROI 缩写或轨迹小方块');
+
+  // 动态更新下注节奏下拉框文字
+  const bEl=page.el('smBudget');
+  bEl.value='2000';
+  bEl.dispatch('input');
+  assert.equal(page.el('smOptStd').textContent,'标准稳健档（每码 16/8/4 元）');
+  assert.equal(page.el('smOptSafe').textContent,'养生慢玩档（每码 8/4/2 元，最耐玩）');
+});
