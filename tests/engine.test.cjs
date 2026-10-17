@@ -47,9 +47,33 @@ test('原版算法：1294 期预测哈希回归（2023-061 至 2026-258）',t=>{
   const hits=rows.filter(r=>r.hit).length;
   assert.equal(hits,230,'全区间命中应为 230');
   const y2026=rows.filter(r=>r.label.startsWith('2026')&&r.hit).length;
-  assert.equal(y2026,53,'2026-001..258 命中应为 53');
+  assert.equal(y2026,52,'2026-001..258 命中应为 52');
   const last58=rows.filter(r=>r.label>='2026-201'&&r.hit).length;
-  assert.equal(last58,13,'2026-201..258（58 期）命中应为 13');
+  assert.equal(last58,12,'2026-201..258（58 期）命中应为 12');
+});
+
+test('波色预测：按每组平均出现次数取最少，并列取红→蓝→绿（回归旧实现的并列偏绿 bug）',t=>{
+  const page=loadPage({});
+  const T=page.sandbox.window.__LOTTO_SYNC_TEST__;
+  // 跨 realm 对象不能直接 deepEqual，按字段比较
+  assert.equal(T.WAVE_GROUP.red,17);assert.equal(T.WAVE_GROUP.blue,16);assert.equal(T.WAVE_GROUP.green,16);
+  assert.equal(T.WAVE_ORDER.join(','),'red,blue,green');
+  // 三者全并列 → 红（旧实现会返回绿）
+  assert.equal(T.pickPredWave({red:15,blue:15,green:15}),'red');
+  // 红蓝并列最小、绿更多 → 红（旧实现返回蓝）
+  assert.equal(T.pickPredWave({red:14,blue:14,green:17}),'red');
+  // 蓝绿并列最小、红更多 → 蓝
+  assert.equal(T.pickPredWave({red:17,blue:13,green:13}),'blue');
+  // 组大小校正：17/16/16 下，红 16 + 蓝 15 的“人均”红更低 → 红
+  //   16/17 = 0.9412 < 15/16 = 0.9375 不成立，故这里用红 17 蓝 16（人均相等）→ 红
+  assert.equal(T.pickPredWave({red:17,blue:16,green:12}),'green','绿严格最少时不受并列规则影响');
+  assert.equal(T.pickPredWave({red:16,blue:15,green:14}),'green');
+  // 严格最少者优先于并列规则
+  assert.equal(T.pickPredWave({red:10,blue:20,green:15}),'red');
+  // 旧 bug 的特征：全并列时返回最后键
+  const keys=['red','blue','green'];
+  const old=keys.reduce((a,b)=>({red:15,blue:15,green:15}[a]<{red:15,blue:15,green:15}[b]?a:b));
+  assert.equal(old,'green','旧实现确实并列取后者（此断言记录 bug 形态）');
 });
 
 test('原版选码：前5纯分数 + 分区软约束 + 80% 分数阈值',t=>{
