@@ -52,39 +52,29 @@
 .mc-note{font-size:11.5px;color:var(--muted);line-height:1.7;margin-top:8px}
 .mc-panel .mc-bar{height:6px;border-radius:99px;background:#eef2ff;overflow:hidden;margin-top:8px}
 .mc-panel .mc-fill{height:100%;border-radius:99px;background:var(--purple);transition:width .2s}
-/* 亏损平滑法 · 预算与分档面板 */
-.sm-panel{margin-top:16px;border-top:1px dashed var(--line);padding-top:16px}
-.sm-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+/* 自动降档省钱助手（极简版） */
+.sm-panel{margin-top:14px;border-top:1px dashed var(--line);padding-top:14px}
+.sm-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .sm-title{font:800 14px/1.3 "PingFang SC",sans-serif;color:var(--ink);display:flex;align-items:center;gap:6px}
 .sm-ctrls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
 .sm-ctrls label{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--ink)}
-.sm-ctrls input[type="number"]{width:88px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;font:800 13px Consolas,monospace;color:var(--ink)}
-.sm-ctrls select{padding:5px 8px;border:1px solid var(--line);border-radius:6px;font:700 12px "PingFang SC",sans-serif;color:var(--ink);background:#fff}
-.sm-chk{cursor:pointer;user-select:none;background:#fff8e8;border:1px solid #f0c040;border-radius:6px;padding:4px 8px;color:#7c5806!important}
-.sm-banner{display:grid;grid-template-columns:1.35fr 1fr;gap:12px;border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid var(--line);background:#f8fafc}
+.sm-ctrls input[type="number"]{width:84px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font:800 13px Consolas,monospace;color:var(--ink)}
+.sm-banner{display:flex;align-items:center;justify-content:space-between;gap:8px 14px;flex-wrap:wrap;border-radius:10px;padding:12px 15px;margin-bottom:10px;border:1px solid var(--line);background:#f8fafc}
 .sm-banner.tier-l1{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-color:#6ee7b7}
 .sm-banner.tier-l2{background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fcd34d}
 .sm-banner.tier-l3{background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#93c5fd}
-.sm-b-main .sm-b-kicker{font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:4px}
-.sm-b-main .sm-b-big{font:900 20px/1.3 Consolas,"PingFang SC",sans-serif;color:var(--ink)}
-.sm-b-main .sm-b-sub{font-size:12px;color:#475569;margin-top:6px;line-height:1.6}
-.sm-b-side{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;align-content:center}
-.sm-kv{background:rgba(255,255,255,.78);border:1px solid rgba(15,23,42,.08);border-radius:8px;padding:8px 10px}
-.sm-kv small{display:block;font-size:10.5px;color:var(--muted);margin-bottom:2px}
-.sm-kv b{font:800 14px Consolas,monospace;color:var(--ink)}
-.sm-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.sm-table th{background:#f1f5f9;color:#475569;font-size:11px;padding:8px 8px;text-align:center;border-bottom:1px solid var(--line)}
-.sm-table td{padding:8px 8px;text-align:center;border-bottom:1px solid var(--line)}
-.sm-table tr.active-row{background:#fef9c3;font-weight:700}
+.sm-b-big{font:900 19px/1.3 Consolas,"PingFang SC",sans-serif;color:var(--ink)}
+.sm-b-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#475569}
+.sm-table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;margin-bottom:10px;border:1px solid var(--line);border-radius:8px;overflow:hidden;table-layout:fixed}
+.sm-table td{padding:8px 10px;text-align:center;background:#fff;border-right:1px solid var(--line);line-height:1.45;vertical-align:middle}
+.sm-table td:last-child{border-right:0}
+.sm-table td small{display:block;font-size:11px;color:var(--muted);margin-top:2px;font-weight:400}
+.sm-table td.active-cell{background:#fef9c3;font-weight:700}
 .sm-pill{display:inline-block;padding:2px 7px;border-radius:99px;font:800 11px Consolas,monospace}
 .sm-pill.l1{background:#d1fae5;color:#065f46}.sm-pill.l2{background:#fef3c7;color:#92400e}.sm-pill.l3{background:#dbeafe;color:#1e40af}
-.sm-foot{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:11.5px}
-.sm-foot-card{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.65;color:#475569}
-.sm-foot-card b{color:var(--ink)}
-.sm-trail{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
-.sm-dot{display:inline-flex;flex-direction:column;align-items:center;padding:3px 5px;border-radius:5px;font:700 10px/1.2 Consolas,monospace;border:1px solid var(--line);background:#fff}
-.sm-dot.hit{border-color:#dc2626;background:#fef2f2;color:#dc2626}
-@media(max-width:780px){.sync-status{grid-template-columns:1fr 1fr}.ss-item.span2{grid-column:span 2}#fwdMetrics{grid-template-columns:1fr 1fr}.mc-panel .mc-grid{grid-template-columns:1fr 1fr}.sm-banner{grid-template-columns:1fr}.sm-foot{grid-template-columns:1fr}}
+.sm-foot{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:12px;line-height:1.65;color:#475569}
+.sm-foot b{color:var(--ink)}
+@media(max-width:780px){.sync-status{grid-template-columns:1fr 1fr}.ss-item.span2{grid-column:span 2}#fwdMetrics{grid-template-columns:1fr 1fr}.mc-panel .mc-grid{grid-template-columns:1fr 1fr}.sm-table tr{display:grid;grid-template-columns:1fr}.sm-table td{border-right:0;border-bottom:1px solid var(--line)}.sm-table td:last-child{border-bottom:0}}
 </style>
 </head>
 <body>
@@ -104,22 +94,14 @@
     <table class="prediction"><thead><tr><th>#</th><th>号码</th><th>生肖</th><th>单双</th><th>波色</th><th>大小</th><th>饱和</th><th>在榜🔥</th><th>本期买多少</th></tr></thead><tbody id="tbodyM"></tbody></table>
     <div class="sm-panel" id="smPanel">
       <div class="sm-head">
-        <div class="sm-title">🛡️ 自动降档省钱助手（连不中自动减半 · 一中立刻恢复）</div>
+        <div class="sm-title">🛡️ 自动降档省钱助手</div>
         <div class="sm-ctrls">
           <label for="smBudget">准备本金(元)：<input id="smBudget" type="number" min="70" max="1000000" step="10" value="1000"></label>
           <label for="smOdds">中奖赔率(倍)：<input id="smOdds" type="number" min="35" max="49" step="0.5" value="47" style="width:66px"></label>
-          <label for="smMode">下注节奏：<select id="smMode">
-            <option value="std" id="smOptStd">标准稳健档（每码 8/4/2 元）</option>
-            <option value="safe" id="smOptSafe">养生慢玩档（每码 4/2/1 元，最耐玩）</option>
-          </select></label>
-          <label class="sm-chk" for="smBrokenCap"><input id="smBrokenCap" type="checkbox" checked> 防雷保护：有“💥破纪录冷号”时不买满注（自动减半）</label>
         </div>
       </div>
       <div class="sm-banner tier-l1" id="smBanner"></div>
-      <table class="sm-table">
-        <thead><tr><th>档位</th><th>什么时候用这档？</th><th>每个号买多少</th><th>一期 7 个号共花</th><th>若中奖拿回（净赚）</th><th>今天用哪档</th></tr></thead>
-        <tbody id="smTableBody"></tbody>
-      </table>
+      <table class="sm-table"><tbody id="smTableBody"></tbody></table>
       <div class="sm-foot" id="smFoot"></div>
     </div>
   </div>
@@ -541,14 +523,12 @@ let lastEngineState=null;
 function loadSmoothCfg(){
   try{
     const raw=localStorage.getItem(SM_CFG_KEY);
-    if(!raw)return{budget:1000,odds:47,mode:'std',brokenCap:true};
+    if(!raw)return{budget:1000,odds:47};
     const x=JSON.parse(raw);
     const budget=Math.max(70,Math.min(1000000,Number(x.budget)||1000));
     const odds=Math.max(30,Math.min(60,Number(x.odds)||47));
-    const mode=['std','safe'].includes(x.mode)?x.mode:'std';
-    const brokenCap=x.brokenCap!==false;
-    return{budget,odds,mode,brokenCap};
-  }catch(e){return{budget:1000,odds:47,mode:'std',brokenCap:true};}
+    return{budget,odds};
+  }catch(e){return{budget:1000,odds:47};}
 }
 function saveSmoothCfg(cfg){
   try{localStorage.setItem(SM_CFG_KEY,JSON.stringify(cfg));}catch(e){}
@@ -557,102 +537,53 @@ function fmtMoney(v){
   const n=Number(v)||0;
   return Number.isInteger(n)?String(n):n.toFixed(2).replace(/\.?0+$/,'');
 }
-function updateSmoothModeOptions(budget){
-  const b=Math.max(70,Math.min(1000000,Number(budget)||1000));
-  const std3=Math.max(1,Math.round(b/500)),std2=std3*2,std1=std3*4;
-  const safe3=Math.max(1,Math.round(b/1000)),safe2=safe3*2,safe1=safe3*4;
-  const stdTxt=`标准稳健档（每码 ${std1}/${std2}/${std3} 元）`;
-  const safeTxt=`养生慢玩档（每码 ${safe1}/${safe2}/${safe3} 元，最耐玩）`;
-  const optStd=document.getElementById('smOptStd'),optSafe=document.getElementById('smOptSafe'),mEl=document.getElementById('smMode');
-  if(optStd)optStd.textContent=stdTxt;
-  if(optSafe)optSafe.textContent=safeTxt;
-  if(mEl&&mEl.options&&mEl.options.length>=2){
-    mEl.options[0].textContent=stdTxt;
-    mEl.options[1].textContent=safeTxt;
-  }else if(mEl){
-    const cur=mEl.value||'std';
-    mEl.innerHTML=`<option value="std" id="smOptStd">${stdTxt}</option><option value="safe" id="smOptSafe">${safeTxt}</option>`;
-    mEl.value=cur;
-  }
-}
-function calcSmoothPlan(p,label){
-  const bEl=document.getElementById('smBudget'),oEl=document.getElementById('smOdds'),mEl=document.getElementById('smMode'),cEl=document.getElementById('smBrokenCap');
+function calcSmoothPlan(p){
+  const bEl=document.getElementById('smBudget'),oEl=document.getElementById('smOdds');
   const budget=Math.max(70,Math.min(1000000,Number(bEl&&bEl.value)||1000));
   const odds=Math.max(30,Math.min(60,Number(oEl&&oEl.value)||47));
-  const mode=(mEl&&mEl.value)==='safe'?'safe':'std';
-  const brokenCap=cEl?Boolean(cEl.checked):true;
-  updateSmoothModeOptions(budget);
 
-  let perL1,perL2,perL3,totL1,totL2,totL3;
-  if(mode==='safe'){
-    perL3=Math.max(1,Math.round(budget/1000));
-    perL2=perL3*2;perL1=perL3*4;
-    totL3=perL3*7;totL2=perL2*7;totL1=perL1*7;
-  }else{
-    perL3=Math.max(1,Math.round(budget/500));
-    perL2=perL3*2;perL1=perL3*4;
-    totL3=perL3*7;totL2=perL2*7;totL1=perL1*7;
-  }
+  // 内置最优策略：按本金自动拆三档（8/4/2 比例）+ 含破限冷号自动降档
+  const perL3=Math.max(1,Math.round(budget/500)),perL2=perL3*2,perL1=perL3*4;
+  const totL3=perL3*7,totL2=perL2*7,totL1=perL1*7;
   const payL1=+(perL1*odds).toFixed(2),netL1=+(payL1-totL1).toFixed(2);
   const payL2=+(perL2*odds).toFixed(2),netL2=+(payL2-totL2).toFixed(2);
   const payL3=+(perL3*odds).toFixed(2),netL3=+(payL3-totL3).toFixed(2);
 
   const flat=(archiveCache&&archiveCache.flat)||[];
-  let missStreak=0,lastHit=null;
+  let missStreak=0;
   for(let i=flat.length-1;i>=0;i--){
-    if(flat[i].num){lastHit=flat[i];break;}
+    if(flat[i].num)break;
     missStreak++;
   }
-  let maxMiss=0,curMiss=0;
-  for(let i=0;i<flat.length;i++){
-    if(flat[i].num)curMiss=0;
-    else{curMiss++;if(curMiss>maxMiss)maxMiss=curMiss;}
-  }
-  if(!maxMiss)maxMiss=23;
 
   const brokenList=(p&&p.merged)?p.merged.filter(x=>(x.sat||0)>=1.0):[];
   const rawTier=missStreak>=4?'L3':missStreak>=2?'L2':'L1';
-  let activeTier=rawTier,cappedByBroken=false;
-  if(rawTier==='L1'&&brokenCap&&brokenList.length>0){
-    activeTier='L2';
-    cappedByBroken=true;
-  }
+  const cappedByBroken=rawTier==='L1'&&brokenList.length>0;
+  const activeTier=cappedByBroken?'L2':rawTier;
 
   const perNow=activeTier==='L1'?perL1:activeTier==='L2'?perL2:perL3;
   const totNow=activeTier==='L1'?totL1:activeTier==='L2'?totL2:totL3;
   const winPayNow=+(perNow*odds).toFixed(2),winNetNow=+(winPayNow-totNow).toFixed(2);
   const tierCls=activeTier==='L1'?'l1':activeTier==='L2'?'l2':'l3';
-  const tierName=activeTier==='L1'?'🟢 满注档（全额）':activeTier==='L2'?'🟡 半注档（减半）':'🔵 底注档（最省）';
+  const tierName=activeTier==='L1'?'🟢 满注档':activeTier==='L2'?'🟡 半注档':'🔵 底注档';
 
-  // 预算极端连空续航期数（假设从今天起全程不中）
-  let rem=budget,survivePeriods=0;
-  while(rem>0&&survivePeriods<2000){
-    const cost=survivePeriods<2?totL1:survivePeriods<4?totL2:totL3;
-    if(rem+1e-9<cost)break;
-    rem-=cost;survivePeriods++;
-  }
-  const worstCost=+(2*totL1+2*totL2+Math.max(0,maxMiss-4)*totL3).toFixed(2);
-  const worstRem=Math.max(0,+(budget-worstCost).toFixed(2));
-
-  // 最近 30 期实盘回放对比
+  // 最近 30 期实盘省钱对比
   const winLen=Math.min(30,flat.length);
   const startIdx=flat.length-winLen;
   let mBefore=0;
   for(let i=startIdx-1;i>=0;i--){if(flat[i].num)break;mBefore++;}
-  let flatSpend=0,smoothSpend=0,winHits=0;
+  let flatSpend=0,smoothSpend=0;
   for(let i=startIdx;i<flat.length;i++){
     const r=flat[i];
     let t=mBefore>=4?'L3':mBefore>=2?'L2':'L1';
-    if(t==='L1'&&brokenCap&&r.hasBroken)t='L2';
-    const spend=t==='L1'?totL1:t==='L2'?totL2:totL3;
+    if(t==='L1'&&r.hasBroken)t='L2';
     flatSpend+=totL1;
-    smoothSpend+=spend;
-    if(r.num)winHits++;
+    smoothSpend+=t==='L1'?totL1:t==='L2'?totL2:totL3;
     mBefore=r.num?0:mBefore+1;
   }
   const saved=+(flatSpend-smoothSpend).toFixed(2);
 
-  // 2026-201 至最新期（前瞻默认区间）实盘收益账本
+  // 2026-201 至最新期实盘收益账本
   let fwdIdx=flat.findIndex(r=>r.label>='2026-201');
   if(fwdIdx<0)fwdIdx=Math.max(0,flat.length-30);
   let fwdMiss=0;
@@ -661,7 +592,7 @@ function calcSmoothPlan(p,label){
   for(let i=fwdIdx;i<flat.length;i++){
     const r=flat[i];
     let t=fwdMiss>=4?'L3':fwdMiss>=2?'L2':'L1';
-    if(t==='L1'&&brokenCap&&r.hasBroken)t='L2';
+    if(t==='L1'&&r.hasBroken)t='L2';
     const per=t==='L1'?perL1:t==='L2'?perL2:perL3;
     const cost=t==='L1'?totL1:t==='L2'?totL2:totL3;
     const pay=r.num?+(per*odds).toFixed(2):0;
@@ -676,89 +607,55 @@ function calcSmoothPlan(p,label){
   const fwdNet=+(fwdRet-fwdCost).toFixed(2);
 
   return{
-    budget,odds,mode,brokenCap,
+    budget,odds,
     perL1,perL2,perL3,totL1,totL2,totL3,
     payL1,netL1,payL2,netL2,payL3,netL3,
-    missStreak,lastHit,maxMiss,brokenList,
+    missStreak,brokenList,
     rawTier,activeTier,cappedByBroken,perNow,totNow,winPayNow,winNetNow,tierCls,tierName,
     perNowTxt:`买 ${fmtMoney(perNow)} 元`,
-    survivePeriods,worstCost,worstRem,
-    winLen,flatSpend:+flatSpend.toFixed(2),smoothSpend:+smoothSpend.toFixed(2),saved,winHits,
+    winLen,saved,
     fwdLen,fwdStartLbl,fwdEndLbl,fwdCost:+fwdCost.toFixed(2),fwdRet:+fwdRet.toFixed(2),fwdNet,fwdBal,fwdHits
   };
 }
 
-function renderSmoothPanel(plan,label){
+function renderSmoothPanel(plan){
   const banner=document.getElementById('smBanner'),tBody=document.getElementById('smTableBody'),foot=document.getElementById('smFoot');
   if(!banner||!tBody||!foot)return;
   banner.className='sm-banner tier-'+plan.tierCls;
-  const brokenTxt=plan.brokenList.length
-    ?`⚠️ 有 ${plan.brokenList.length} 个破纪录冷号（${plan.brokenList.map(x=>String(x.n).padStart(2,'0')+'号 💥'+Math.round((x.sat||0)*100)+'%').join('、')}）`
-    :'✅ 无破纪录冷号（安心买）';
-  let whyLine;
-  if(plan.cappedByBroken){
-    whyLine=`目前已连续 ${plan.missStreak} 期没中，但本期含“💥破纪录冷号”（${plan.brokenList.map(x=>String(x.n).padStart(2,'0')+'号').join('、')}），触发防雷减半，所以用 ${plan.tierName}`;
-  }else if(plan.activeTier==='L1'){
-    whyLine=`目前已连续 ${plan.missStreak} 期没中（${plan.missStreak===0?'上期刚中奖':'不到 2 期不减半'}，且无💥破纪录冷号），正常用 ${plan.tierName}`;
-  }else if(plan.activeTier==='L2'){
-    whyLine=`已连续 ${plan.missStreak} 期没中（连不中满 2 期自动减半），所以用 ${plan.tierName} 省一半本金`;
-  }else{
-    whyLine=`已连续 ${plan.missStreak} 期没中（连不中满 4 期自动降到底注），所以用 ${plan.tierName} 把花费压到最低`;
-  }
-  const nextIfHit=`拿回 <b>${fmtMoney(plan.winPayNow)} 元</b>，扣除今天花的 ${fmtMoney(plan.totNow)} 元<b>净赚 <span style="color:var(--green)">+${fmtMoney(plan.winNetNow)} 元</span></b>；下期立刻恢复🟢满注档，每个号买 <b>${fmtMoney(plan.perL1)} 元</b>（共 ${fmtMoney(plan.totL1)} 元${plan.brokenCap?'，若下期有💥破纪录冷号则防雷减半买 '+fmtMoney(plan.totL2)+' 元':''}）`;
-  const nextMissCnt=plan.missStreak+1;
-  const nextIfMiss=nextMissCnt>=4
-    ?`今天只亏 <b>${fmtMoney(plan.totNow)} 元</b>；下期累计连续 ${nextMissCnt} 期没中，下期买🔵底注档（每个号买 <b>${fmtMoney(plan.perL3)} 元</b>，共花 ${fmtMoney(plan.totL3)} 元）`
-    :nextMissCnt>=2
-    ?`今天只亏 <b>${fmtMoney(plan.totNow)} 元</b>；下期累计连续 ${nextMissCnt} 期没中，自动减半买🟡半注档（每个号买 <b>${fmtMoney(plan.perL2)} 元</b>，共花 ${fmtMoney(plan.totL2)} 元）`
-    :`今天只亏 <b>${fmtMoney(plan.totNow)} 元</b>；下期仅连续 1 期没中，下期继续买🟢满注档（每个号买 <b>${fmtMoney(plan.perL1)} 元</b>，共花 ${fmtMoney(plan.totL1)} 元${plan.brokenCap?'；若有💥破纪录冷号则防雷减半买 '+fmtMoney(plan.totL2)+' 元':''}）`;
-
+  const reasonTag=plan.cappedByBroken
+    ?`💥含破限冷号(${plan.brokenList.map(x=>String(x.n).padStart(2,'0')).join('/')})自动降半注`
+    :`连不中 ${plan.missStreak} 期`;
   banner.innerHTML=
-    `<div class="sm-b-main">`+
-      `<div class="sm-b-big">📌 本期（${escapeHtml(label)}）直接照着买：每个号买 ${fmtMoney(plan.perNow)} 元 × 7个号 = 今天共花 <span style="color:var(--hot)">${fmtMoney(plan.totNow)} 元</span></div>`+
-      `<div class="sm-b-sub">`+
-        `① <b>为什么买这档</b>：${whyLine}。<br>`+
-        `② <b>如果今天中了</b>：${nextIfHit}。<br>`+
-        `③ <b>如果今天没中</b>：${nextIfMiss}。`+
-      `</div>`+
-    `</div>`+
-    `<div class="sm-b-side">`+
-      `<div class="sm-kv"><small>今天所用档位</small><b>${plan.tierName}${plan.cappedByBroken?'（防雷减半）':''}</b></div>`+
-      `<div class="sm-kv"><small>今天若中净赚</small><b style="color:var(--green)">+${fmtMoney(plan.winNetNow)} 元（拿回 ${fmtMoney(plan.winPayNow)} 元）</b></div>`+
-      `<div class="sm-kv"><small>当前连续未中</small><b style="color:${plan.missStreak>=4?'var(--blue)':plan.missStreak>=2?'#d97706':'var(--green)'}">连续 ${plan.missStreak} 期未中${plan.lastHit?`（上次中 ${plan.lastHit.label}）`:''}</b></div>`+
-      `<div class="sm-kv"><small>极冷钉子户监测</small><b style="font-size:12px;color:${plan.brokenList.length?'var(--hot)':'var(--green)'}">${escapeHtml(brokenTxt)}</b></div>`+
-    `</div>`;
+    `<div class="sm-b-big">📌 本期每个号买 <b>${fmtMoney(plan.perNow)}</b> 元（共花 <span style="color:var(--hot)">${fmtMoney(plan.totNow)}</span> 元）</div>`+
+    `<div class="sm-b-meta"><span class="sm-pill ${plan.tierCls}">${plan.tierName}</span><span>${escapeHtml(reasonTag)}</span><span>若中拿回 <b>${fmtMoney(plan.winPayNow)} 元</b>（净赚 <b style="color:var(--green)">+${fmtMoney(plan.winNetNow)} 元</b>）</span></div>`;
 
   const rows=[
-    {id:'L1',cls:'l1',name:'🟢 满注档（全额）',cond:'刚中奖，或只连续 1 期没中（且无💥破纪录冷号）',per:plan.perL1,tot:plan.totL1,pay:plan.payL1,net:plan.netL1},
-    {id:'L2',cls:'l2',name:'🟡 半注档（减半）',cond:'连续 2～3 期没中，或有“💥破纪录冷号”防雷自动减半',per:plan.perL2,tot:plan.totL2,pay:plan.payL2,net:plan.netL2},
-    {id:'L3',cls:'l3',name:'🔵 底注档（最省）',cond:'连续 4 期及以上没中（遇到长冷期，自动缩到最小保本金）',per:plan.perL3,tot:plan.totL3,pay:plan.payL3,net:plan.netL3}
+    {id:'L1',cls:'l1',name:'🟢 满注档',cond:'连不中 0–1 期且无破限冷号',per:plan.perL1,tot:plan.totL1,net:plan.netL1},
+    {id:'L2',cls:'l2',name:'🟡 半注档',cond:'连不中 2–3 期 / 含💥破限冷号自动降档',per:plan.perL2,tot:plan.totL2,net:plan.netL2},
+    {id:'L3',cls:'l3',name:'🔵 底注档',cond:'连不中 ≥4 期自动缩底',per:plan.perL3,tot:plan.totL3,net:plan.netL3}
   ];
-  tBody.innerHTML=rows.map(r=>{
+  tBody.innerHTML=`<tr>`+rows.map(r=>{
     const isAct=plan.activeTier===r.id;
-    return `<tr class="${isAct?'active-row':''}">`+
-      `<td><span class="sm-pill ${r.cls}">${r.name}</span></td>`+
-      `<td>${r.cond}</td>`+
-      `<td><b>${fmtMoney(r.per)} 元</b></td>`+
-      `<td><b>${fmtMoney(r.tot)} 元</b></td>`+
-      `<td>拿回 <b>${fmtMoney(r.pay)} 元</b>（<span style="color:var(--green);font-weight:700">净赚 +${fmtMoney(r.net)} 元</span>）</td>`+
-      `<td>${isAct?`<span class="badge hit">👈 今天买这档</span>`:`<span style="color:var(--muted)">待命</span>`}</td>`+
-    `</tr>`;
-  }).join('');
+    return `<td class="${isAct?'active-cell':''}">`+
+      `<span class="sm-pill ${r.cls}">${r.name}</span> `+
+      `<b>${fmtMoney(r.per)} 元/码</b>（共 ${fmtMoney(r.tot)} 元 · 净+${fmtMoney(r.net)}）`+
+      `${isAct?' <span class="badge hit">当前</span>':''}`+
+      `<small>${r.cond}</small>`+
+    `</td>`;
+  }).join('')+`</tr>`;
 
+  const netTxt=plan.fwdNet>=0
+    ?`净赚 <b style="color:var(--green)">+${fmtMoney(plan.fwdNet)} 元</b>`
+    :`净亏 <b style="color:var(--hot)">${fmtMoney(Math.abs(plan.fwdNet))} 元</b>`;
   foot.innerHTML=
-    `<div class="sm-foot-card"><b>📊 从 2026-201 到现在（共 ${plan.fwdLen} 期）如果一直按上面买，战绩如何？</b><br>`+
-      `一共中奖 <b>${plan.fwdHits} 次</b>，累计花 <b>${fmtMoney(plan.fwdCost)} 元</b>，拿回 <b>${fmtMoney(plan.fwdRet)} 元</b>（按 ${plan.odds} 倍赔率），到手净赚 <b style="color:${plan.fwdNet>=0?'var(--green)':'var(--hot)'}">${plan.fwdNet>=0?'+':''}${fmtMoney(plan.fwdNet)} 元</b>，${fmtMoney(plan.budget)} 元本金变成 <b>${fmtMoney(plan.fwdBal)} 元</b>。<br>`+
-      `其中最近 ${plan.winLen} 期如果死磕满注要花 ${fmtMoney(plan.flatSpend)} 元，按本助手自动减半只花了 ${fmtMoney(plan.smoothSpend)} 元，<b>最近 ${plan.winLen} 期比死磕满注少亏省下 <span style="color:var(--green)">${fmtMoney(plan.saved)} 元</span></b>。</div>`+
-    `<div class="sm-foot-card"><b>🛡️ 你的 ${fmtMoney(plan.budget)} 元本金有多安全？会不会亏光？</b><br>`+
-      `就算从今天起连续 <b>${plan.survivePeriods} 期</b>不中才会把 ${fmtMoney(plan.budget)} 元本金花光。<br>`+
-      `对比历史最长连空 <b>${plan.maxMiss} 期</b>，按自动减半买法走完这 ${plan.maxMiss} 期仅花 <b>${fmtMoney(plan.worstCost)} 元</b>、还剩 <b style="color:var(--green)">${fmtMoney(plan.worstRem)} 元</b>，本金非常安全、不会亏光。</div>`;
+    `📊 <b>实盘战绩</b>（${escapeHtml(plan.fwdStartLbl)} ~ ${escapeHtml(plan.fwdEndLbl)} 共 <b>${plan.fwdLen} 期</b>）：`+
+    `命中 <b>${plan.fwdHits} 次</b>，共花 <b>${fmtMoney(plan.fwdCost)} 元</b>、拿回 <b>${fmtMoney(plan.fwdRet)} 元</b>，${netTxt}（${fmtMoney(plan.budget)} 元本金变 <b>${fmtMoney(plan.fwdBal)} 元</b>，近 ${plan.winLen} 期比死磕满注省 <b style="color:var(--green)">${fmtMoney(plan.saved)} 元</b>）。`;
 }
 
 function renderEngine(p,label,streaks){
   streaks=streaks||{};
   lastEngineState={p,label,streaks};
-  const plan=calcSmoothPlan(p,label);
+  const plan=calcSmoothPlan(p);
   document.getElementById('labelM').textContent=label;
   document.getElementById('countM').textContent=p.merged.length;
   const body=document.getElementById('tbodyM');
@@ -778,7 +675,7 @@ function renderEngine(p,label,streaks){
     // 其余 (0-15% 及 20-50%) 用默认 normal 颜色
     return `<tr title="${x.zodiac} · ${odd(x.n)?'单':'双'} · ${w.name} · ${big(x.n)?'大':'小'} · 分数${x.score} · 饱和${Math.round(sat*100)}%"><td>#${i+1}</td><td><span class="ball" style="background:${w.color}">${String(x.n).padStart(2,'0')}</span></td><td>${x.zodiac}</td><td>${odd(x.n)?'单':'双'}</td><td style="color:${w.color}">${w.name}</td><td>${big(x.n)?'大':'小'}</td><td class="${satCls}">${satTxt}</td><td style="color:${sc};font-weight:${st>=5?700:400}" title="连续 ${st} 期在榜">${st} 期</td><td><span class="sm-pill ${plan.tierCls}" title="当前 ${plan.tierName}：每个号买 ${fmtMoney(plan.perNow)} 元">${plan.perNowTxt}</span></td></tr>`;
   }).join('');
-  renderSmoothPanel(plan,label);
+  renderSmoothPanel(plan);
 }
 
 function emptyMetrics(){return{total:0,num:0,units:0,base:0,odd:0,wave:0,big:0}}
@@ -867,27 +764,19 @@ function setupInputs(){const wrap=document.getElementById('ballInputs');for(let 
 
 function setupSmoothInputs(){
   const cfg=loadSmoothCfg();
-  const bEl=document.getElementById('smBudget'),oEl=document.getElementById('smOdds'),mEl=document.getElementById('smMode'),cEl=document.getElementById('smBrokenCap');
+  const bEl=document.getElementById('smBudget'),oEl=document.getElementById('smOdds');
   if(bEl)bEl.value=String(cfg.budget);
   if(oEl)oEl.value=String(cfg.odds||47);
-  updateSmoothModeOptions(cfg.budget);
-  if(mEl)mEl.value=cfg.mode;
-  if(cEl)cEl.checked=cfg.brokenCap;
   const onChange=()=>{
     const nextCfg={
       budget:Math.max(70,Math.min(1000000,Number(bEl&&bEl.value)||1000)),
-      odds:Math.max(30,Math.min(60,Number(oEl&&oEl.value)||47)),
-      mode:(mEl&&mEl.value)==='safe'?'safe':'std',
-      brokenCap:cEl?Boolean(cEl.checked):true
+      odds:Math.max(30,Math.min(60,Number(oEl&&oEl.value)||47))
     };
-    updateSmoothModeOptions(nextCfg.budget);
     saveSmoothCfg(nextCfg);
     if(lastEngineState)renderEngine(lastEngineState.p,lastEngineState.label,lastEngineState.streaks);
   };
   if(bEl)bEl.addEventListener('input',onChange);
   if(oEl)oEl.addEventListener('input',onChange);
-  if(mEl)mEl.addEventListener('change',onChange);
-  if(cEl)cEl.addEventListener('change',onChange);
 }
 function init(){({draws:addedDraws,labels:addedLabels}=loadManual());setupInputs();setupSmoothInputs();
   const period=document.getElementById('periodLabel');period.value=expectedLabel();document.getElementById('submitDraw').addEventListener('click',()=>{const inputs=[...document.querySelectorAll('#ballInputs input')],nums=inputs.map(x=>+x.value);if(!validDraw(nums)){inputs.forEach(x=>{const n=+x.value;if(!Number.isInteger(n)||n<1||n>49||nums.filter(v=>v===n).length>1){x.classList.add('shake');setTimeout(()=>x.classList.remove('shake'),300)}});return}const label=normalLabel(period.value),expected=expectedLabel();if(label!==expected)return alert(`为保证历史回放正确，只能追加下一期：${expected}`);addedDraws.push(nums);addedLabels.push(label);if(!saveManual()){addedDraws.pop();addedLabels.pop();return}dataVersion++;archiveCache=null;inputs.forEach(x=>{x.value='';x.style=''});inputs[0].focus();period.value=expectedLabel();scheduleRefresh()});document.getElementById('undoDraw').addEventListener('click',()=>{if(!addedDraws.length)return alert('没有可撤销的手动记录。');if(!confirm('撤销最后一条手动记录？'))return;const bkD=[...addedDraws],bkL=[...addedLabels];addedDraws.pop();addedLabels.pop();if(!saveManual()){addedDraws=bkD;addedLabels=bkL;return}dataVersion++;archiveCache=null;period.value=expectedLabel();scheduleRefresh()});document.getElementById('clearData').addEventListener('click',()=>{if(confirm('确认清空所有手动开奖数据？')){addedDraws=[];addedLabels=[];saveManual();dataVersion++;archiveCache=null;period.value=expectedLabel();scheduleRefresh()}});document.getElementById('exportBtn').addEventListener('click',()=>download('lottery_backup.json',JSON.stringify({schemaVersion:1,exportedAt:new Date().toISOString(),draws:addedDraws,labels:addedLabels},null,2),'application/json'));const file=document.getElementById('importFile');document.getElementById('importBtn').addEventListener('click',()=>{file.value='';file.click()});file.addEventListener('change',()=>{const selected=file.files&&file.files[0];if(!selected)return;if(selected.size>MAX_IMPORT_BYTES)return alert('文件超过 2MB，已拒绝导入。');const reader=new FileReader();reader.onload=()=>{try{const x=JSON.parse(String(reader.result||'')),clean=validateManual(x.draws||x.manualData?.draws,x.labels||x.manualData?.labels);if(!confirm(`将替换为 ${clean.draws.length} 期手动数据，是否继续？`))return;addedDraws=clean.draws;addedLabels=clean.labels;if(!saveManual())return;dataVersion++;archiveCache=null;period.value=expectedLabel();scheduleRefresh();alert('导入成功。')}catch(e){alert(`导入失败：${e.message||'JSON 或数据格式无效。'}`)}};reader.readAsText(selected,'utf-8')});scheduleRefresh()}
