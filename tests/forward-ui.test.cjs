@@ -230,42 +230,52 @@ test('页面不显示模型版本号；规则名静态标注为"原评分＋原�
   assert.ok(!html.includes('组合约束'),'页面不得再出现组合约束相关文案');
 });
 
-test('自动降档省钱助手：大白话表头、动态下拉框、横幅、三档表格与底部问答卡',async t=>{
+test('自动降档省钱助手（极简版）：移除下拉框与勾选框、内置破限降档最优策略、核心大字、三档一行简表与一句话战绩汇总',async t=>{
   const fs=require('fs');
   const path=require('path');
   const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8');
   assert.ok(html.includes('<th>本期买多少</th>'),'第9列表头应为「本期买多少」');
-  assert.ok(html.includes('🛡️ 自动降档省钱助手（连不中自动减半 · 一中立刻恢复）'),'面板标题应为大白话版');
-  assert.ok(html.includes('准备本金(元)'),'应包含准备本金(元)');
-  assert.ok(html.includes('中奖赔率(倍)'),'应包含中奖赔率(倍)');
-  assert.ok(html.includes('防雷保护：有“💥破纪录冷号”时不买满注（自动减半）'),'勾选框应为大白话版');
+  assert.ok(html.includes('🛡️ 自动降档省钱助手'),'面板标题应保留自动降档省钱助手');
+  assert.ok(html.includes('准备本金(元)'),'应保留准备本金(元)');
+  assert.ok(html.includes('中奖赔率(倍)'),'应保留中奖赔率(倍)');
+  for(const gone of['smMode','smOptStd','smOptSafe','smBrokenCap','updateSmoothModeOptions','sm-foot-card','sm-dot']){
+    assert.ok(!html.includes(gone),`应彻底移除已废弃控件/代码：${gone}`);
+  }
 
+  // 1) 2026-258（连不中 5 期 → L3 底注档）
   const page=loadPage({preStorage:extraStorage(DATA_MAX),expose:'refresh();'});
   const banner=page.el('smBanner').innerHTML.replace(/<[^>]+>/g,'');
-  assert.ok(banner.includes('📌 本期（2026-259）直接照着买：每个号买 2 元 × 7个号 = 今天共花 14 元'),banner);
-  assert.ok(banner.includes('① 为什么买这档')&&banner.includes('② 如果今天中了')&&banner.includes('③ 如果今天没中'),banner);
-  for(const k of['今天所用档位','今天若中净赚','当前连续未中','极冷钉子户监测']){
-    assert.ok(banner.includes(k),`横幅右侧应包含「${k}」`);
-  }
+  assert.ok(banner.includes('本期每个号买 2 元（共花 14 元）'),`横幅应显示核心大字: ${banner}`);
+  assert.ok(!/[①②③]/.test(banner),`横幅不应再有 ①②③ 长段说明: ${banner}`);
 
   const tBody=page.el('smTableBody').innerHTML;
-  for(const tier of['🟢 满注档（全额）','🟡 半注档（减半）','🔵 底注档（最省）']){
-    assert.ok(tBody.includes(tier),`表格应包含「${tier}」`);
+  assert.equal((tBody.match(/<tr\b/g)||[]).length,1,'三档简表应压缩为一行 <tr>');
+  assert.equal((tBody.match(/<td\b/g)||[]).length,3,'一行内应并排展示三档 <td>');
+  for(const tier of['🟢 满注档','🟡 半注档','🔵 底注档']){
+    assert.ok(tBody.includes(tier),`简表应包含「${tier}」`);
   }
-  assert.ok(tBody.includes('👈 今天买这档')&&tBody.includes('待命'),'状态列应显示今天买这档/待命');
+  assert.equal((tBody.match(/active-cell/g)||[]).length,1,'应高亮唯一当前档位');
 
   const foot=page.el('smFoot').innerHTML;
   const footTxt=foot.replace(/<[^>]+>/g,'');
-  assert.equal((foot.match(/class="sm-foot-card"/g)||[]).length,2,'底部应精简为 2 张问答卡');
-  assert.ok(footTxt.includes('📊 从 2026-201 到现在（共 58 期）如果一直按上面买，战绩如何？'),footTxt);
-  assert.ok(footTxt.includes('🛡️ 你的 1000 元本金有多安全？会不会亏光？'),footTxt);
-  assert.ok(footTxt.includes('历史最长连空 23 期'),footTxt);
-  assert.ok(!foot.includes('ROI')&&!foot.includes('sm-dot'),'底部不应再有 ROI 缩写或轨迹小方块');
+  assert.ok(!foot.includes('<br>')&&!foot.includes('sm-foot-card'),'底部应为单行一句话汇总');
+  for(const expectTxt of['2026-201 ~ 2026-258 共 58 期','命中 12 次','共花 1932 元','拿回 2538 元','净赚 +606 元','1000 元本金变 1606 元','省 714 元']){
+    assert.ok(footTxt.includes(expectTxt),`底部战绩应包含「${expectTxt}」，实际：${footTxt}`);
+  }
 
-  // 动态更新下注节奏下拉框文字
+  // 2) 内置破限冷号自动降档验证：2026-234 后目标期 2026-235 仅连空 1 期（原应满注 L1），因候选含破限冷号 46 自动降为 L2 半注（4 元/共 28 元）
+  const pageCap=loadPage({preStorage:extraStorage('2026-234'),expose:'refresh();globalThis.__PLAN=calcSmoothPlan(lastEngineState.p);'});
+  const capPlan=pageCap.sandbox.__PLAN;
+  assert.equal(capPlan.rawTier,'L1');
+  assert.equal(capPlan.cappedByBroken,true,'含破限冷号时应自动触发降档');
+  assert.equal(capPlan.activeTier,'L2');
+  assert.ok(pageCap.el('smBanner').innerHTML.replace(/<[^>]+>/g,'').includes('本期每个号买 4 元（共花 28 元）'));
+
+  // 3) 修改本金/赔率实时联动更新核心大字、三档简表与底部战绩
   const bEl=page.el('smBudget');
   bEl.value='2000';
   bEl.dispatch('input');
-  assert.equal(page.el('smOptStd').textContent,'标准稳健档（每码 16/8/4 元）');
-  assert.equal(page.el('smOptSafe').textContent,'养生慢玩档（每码 8/4/2 元，最耐玩）');
+  assert.ok(page.el('smBanner').innerHTML.replace(/<[^>]+>/g,'').includes('本期每个号买 4 元（共花 28 元）'));
+  assert.ok(page.el('smTableBody').innerHTML.replace(/<[^>]+>/g,'').includes('16 元/码'));
+  assert.ok(page.el('smFoot').innerHTML.replace(/<[^>]+>/g,'').includes('净赚 +1212 元'));
 });
