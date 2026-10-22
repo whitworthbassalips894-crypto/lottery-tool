@@ -86,8 +86,8 @@ test('真实数据：2026-221 连空 8 期破冰狙击；2026-254 破限冷号�
   assert.equal(icePlan.iceBreak,true);
   assert.equal(icePlan.signalName,'破冰狙击');
   const iceBanner=ice.el('smBanner').innerHTML.replace(/<[^>]+>/g,'');
-  assert.ok(iceBanner.includes('破冰狙击'));
-  assert.ok(iceBanner.includes('本期每个号买 4 元（共花 28 元）'));
+  assert.ok(iceBanner.includes('破冰窗狙击'));
+  assert.ok(iceBanner.includes('主力码买 4 元 / 陪跑码买 2 元（7个号共花 26 元）'));
 
   const broken=loadPage({preStorage:extraStorage('2026-254'),expose:'refresh();globalThis.__PLAN=calcSmoothPlan(lastEngineState.p);'});
   const brokenPlan=broken.sandbox.__PLAN;
@@ -106,9 +106,48 @@ test('真实数据：最新一期 2026-294 已连空 18 期 → 触发 18–19 �
   assert.equal(plan.activeTier,'L2');
   assert.equal(plan.totNow,28);
   const banner=page.el('smBanner').innerHTML.replace(/<[^>]+>/g,'');
-  assert.ok(banner.includes('破冰狙击')&&banner.includes('本期每个号买 4 元（共花 28 元）'));
+  assert.ok(banner.includes('破冰窗狙击')&&banner.includes('主力码买 4 元 / 陪跑码买 2 元（7个号共花 28 元）'));
   const foot=page.el('smFoot').innerHTML.replace(/<[^>]+>/g,'');
   assert.ok(foot.includes('2026-201 ~ 2026-294 共 94 期'));
-  assert.ok(foot.includes('安全垫 +390 元'));
-  assert.ok(foot.includes('省 1036 元'));
+  assert.ok(foot.includes('安全垫 +457 元'));
+  assert.ok(foot.includes('省 2937 元'));
+});
+
+test('单码角色边界、#6 弱号优先级与最低1元，不修改候选输入',()=>{
+  const page=loadPage();
+  const role=page.sandbox.smRole;
+  for(const sat of [.2,.45,.85,.96,1.05,1.199])assert.equal(role({sat},0),'🚀高爆主力');
+  for(const sat of [0,.049,1,1.049])assert.equal(role({sat},0),'⚠️弱势减半');
+  for(const sat of [.05,.199,.451,.849,.961,.999])assert.equal(role({sat},0),'🟢常规候选');
+  assert.equal(role({sat:.19},5),'⚠️弱势减半');
+  assert.equal(role({sat:.2},5),'🚀高爆主力');
+  assert.equal(role({sat:1.2},0),'🚨年度钉子户');
+  const xs=[{n:1,sat:0},{n:2,sat:.3}],before=JSON.stringify(xs);
+  assert.equal(page.sandbox.smAllocate(xs,1)[0].amount,1);
+  assert.equal(page.sandbox.smAllocate(xs,5)[0].amount,2.5);
+  assert.equal(JSON.stringify(xs),before);
+});
+
+test('账单独立逐期复核：只用开奖前候选与状态，按实际命中号码注额返奖',()=>{
+  const page=loadPage({preStorage:extraStorage('2026-294'),expose:'refresh();globalThis.audit={flat:archiveCache.flat,plan:calcSmoothPlan(lastEngineState.p)};'});
+  const {flat,plan}=page.sandbox.audit;
+  let miss=0,hit=0,cost=0,ret=0;
+  flat.forEach((r,i)=>{
+    const hot=hit>=3||flat.slice(Math.max(0,i-10),i).filter(x=>x.num).length>=4;
+    let tier=miss>=4?2:miss>=2?1:0;
+    if(tier===0&&r.candidates.some(x=>x.sat>=1))tier=1;
+    if(hot)tier=Math.min(2,tier+1);
+    if([8,9,12,13,18,19].includes(miss)&&tier===2)tier=1;
+    const per=[8,4,2][tier];
+    if(r.label>='2026-201')r.candidates.forEach((x,j)=>{
+      const weak=x.sat<.05||(x.sat>=1&&x.sat<1.05)||(j===5&&x.sat<.2);
+      const amount=weak?Math.max(1,per/2):per;
+      cost+=amount;
+      if(x.n===r.actual)ret+=amount*48;
+    });
+    if(r.num){hit++;miss=0;}else{miss++;hit=0;}
+  });
+  assert.equal(plan.fwdCost,cost);assert.equal(plan.fwdRet,ret);
+  assert.equal(plan.fwdNet,ret-cost);
+  assert.equal(plan.fwdSaved,94*56-cost);
 });

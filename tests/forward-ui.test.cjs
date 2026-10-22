@@ -230,70 +230,36 @@ test('页面不显示模型版本号；规则名静态标注为"原评分＋原�
   assert.ok(!html.includes('组合约束'),'页面不得再出现组合约束相关文案');
 });
 
-test('自动降档省钱助手（极简版）：仅两个输入框、信号窗口大字、三档一行简表与一句话战绩/安全垫',async t=>{
-  const fs=require('fs');
-  const path=require('path');
-  const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8');
-  assert.ok(html.includes('<th>本期买多少</th>'),'第9列表头应为「本期买多少」');
-  assert.ok(html.includes('🛡️ 自动降档省钱助手'),'面板标题应保留自动降档省钱助手');
-
-  // 顶部只留「本金」「赔率」两个输入框，其余控件全部消失
-  const panel=html.match(/<div class="sm-panel" id="smPanel">[\s\S]*?<table class="sm-table">/);
-  assert.ok(panel,'未找到 #smPanel');
-  assert.equal((panel[0].match(/<input\b/g)||[]).length,2,'面板内应只有 2 个输入框');
-  assert.ok(panel[0].includes('id="smBudget"')&&panel[0].includes('id="smOdds"'));
-  assert.ok(panel[0].includes('本金(元)')&&panel[0].includes('赔率(倍)'));
-  assert.ok(!/<select|type="checkbox"/.test(panel[0]),'不得再保留下拉框或勾选框');
-  for(const gone of['smMode','smOptStd','smOptSafe','smBrokenCap','updateSmoothModeOptions','sm-foot-card','sm-dot']){
-    assert.ok(!html.includes(gone),`应彻底移除已废弃控件/代码：${gone}`);
-  }
-
-  // 1) 2026-258：连空 5 期 → 底注防守，每码 2 元
-  const page=loadPage({preStorage:extraStorage(DATA_MAX),expose:'refresh();'});
-  const banner=page.el('smBanner').innerHTML.replace(/<[^>]+>/g,'');
-  assert.ok(banner.includes('本期每个号买 2 元（共花 14 元）'),`横幅应显示核心大字: ${banner}`);
-  assert.ok(banner.includes('底注防守'),`横幅应显示信号窗口「底注防守」: ${banner}`);
-  assert.ok(!/[①②③]/.test(banner),`横幅不应再有 ①②③ 长段说明: ${banner}`);
-
-  const tBody=page.el('smTableBody').innerHTML;
-  assert.equal((tBody.match(/<tr\b/g)||[]).length,1,'三档简表应压缩为一行 <tr>');
-  assert.equal((tBody.match(/<td\b/g)||[]).length,3,'一行内应并排展示三档 <td>');
-  for(const tier of['🟢 满注档','🟡 半注档','🔵 底注档']){
-    assert.ok(tBody.includes(tier),`简表应包含「${tier}」`);
-  }
-  assert.equal((tBody.match(/active-cell/g)||[]).length,1,'应高亮唯一当前档位');
-
-  const foot=page.el('smFoot').innerHTML;
-  const footTxt=foot.replace(/<[^>]+>/g,'');
-  assert.ok(!foot.includes('<br>')&&!foot.includes('sm-foot-card'),'底部应为单行一句话汇总');
-  for(const expectTxt of['2026-201 ~ 2026-258 共 58 期','命中 12 次','共花 1820 元','拿回 2632 元','净赚 +812 元','1000 元本金变 1812 元','安全垫 +812 元','还能扛 129 期','省 784 元']){
-    assert.ok(footTxt.includes(expectTxt),`底部战绩应包含「${expectTxt}」，实际：${footTxt}`);
-  }
-
-  // 2) 破限冷号单独降档：2026-234 后目标期 2026-235 连空仅 1 期（原应满注 L1），候选含破限冷号 46 → L2
-  const pageBroken=loadPage({preStorage:extraStorage('2026-254'),expose:'refresh();globalThis.__PLAN=calcSmoothPlan(lastEngineState.p);'});
-  const brokenPlan=pageBroken.sandbox.__PLAN;
-  assert.equal(brokenPlan.rawTier,'L1');
-  assert.equal(brokenPlan.cappedByBroken,true,'含破限冷号时应自动触发降档');
-  assert.equal(brokenPlan.hotAvoid,false,'该期未过热，不应叠加过热避险');
-  assert.equal(brokenPlan.activeTier,'L2');
-  assert.ok(pageBroken.el('smBanner').innerHTML.replace(/<[^>]+>/g,'').includes('本期每个号买 4 元（共花 28 元）'));
-
-  // 3) 破限冷号 + 过热失衡同时触发：2026-234 后目标期 2026-235 近 10 期命中 4 次 → 再降一档到 L3
-  const pageHot=loadPage({preStorage:extraStorage('2026-234'),expose:'refresh();globalThis.__PLAN=calcSmoothPlan(lastEngineState.p);'});
-  const hotPlan=pageHot.sandbox.__PLAN;
-  assert.equal(hotPlan.rawTier,'L1');
-  assert.equal(hotPlan.cappedByBroken,true);
-  assert.equal(hotPlan.hotAvoid,true,'近 10 期命中 4 次应触发过热避险');
-  assert.equal(hotPlan.activeTier,'L3');
-  const hotBanner=pageHot.el('smBanner').innerHTML.replace(/<[^>]+>/g,'');
-  assert.ok(hotBanner.includes('过热避险')&&hotBanner.includes('本期每个号买 2 元（共花 14 元）'));
-
-  // 4) 修改本金/赔率实时联动更新核心大字、三档简表与底部战绩
-  const bEl=page.el('smBudget');
-  bEl.value='2000';
-  bEl.dispatch('input');
-  assert.ok(page.el('smBanner').innerHTML.replace(/<[^>]+>/g,'').includes('本期每个号买 4 元（共花 28 元）'));
-  assert.ok(page.el('smTableBody').innerHTML.replace(/<[^>]+>/g,'').includes('16 元/码'));
-  assert.ok(page.el('smFoot').innerHTML.replace(/<[^>]+>/g,'').includes('净赚 +1624 元'));
+test('自动降档省钱助手：两个输入、四格信号、双摘要与逐码配注同步',async t=>{
+  const html=require('fs').readFileSync(require('path').resolve(__dirname,'..','index.html'),'utf8');
+  const panel=html.match(/<div class="sm-panel" id="smPanel">[\s\S]*?<div class="sm-foot" id="smFoot"><\/div>/)[0];
+  assert.equal((panel.match(/<input\b/g)||[]).length,2);
+  assert.ok(!/<select|type="checkbox"/.test(panel));
+  assert.ok(!html.includes('smTableBody'));
+  for(const gone of['smMode','smBrokenCap','updateSmoothModeOptions'])assert.ok(!html.includes(gone));
+  assert.ok(panel.includes('准备本金(元)')&&panel.includes('中奖赔率(倍)'));
+  const page=loadPage({preStorage:extraStorage(DATA_MAX),expose:'refresh();globalThis.getPlan=()=>calcSmoothPlan(lastEngineState.p);'});
+  const text=id=>page.el(id).innerHTML.replace(/<[^>]+>/g,'');
+  assert.ok(text('smBanner').includes('主力码买 2 元 / 陪跑码买 1 元（7个号共花 11 元）'));
+  assert.ok(text('smBanner').includes('底注防守'));
+  assert.equal((page.el('smBanner').innerHTML.match(/<div><small>/g)||[]).length,4);
+  assert.equal((page.el('smFoot').innerHTML.match(/class="sm-summary"/g)||[]).length,2);
+  for(const value of['共 58 期','总投入 1597 元','总拿回 2400 元','净赚金额 +803 元','省 1651 元','可抗 163 期'])assert.ok(text('smFoot').includes(value),value);
+  const assertAmounts=()=>{
+    const plan=page.sandbox.getPlan();
+    const amounts=[...page.el('tbodyM').innerHTML.matchAll(/>买 ([\d.]+) 元<\/span>/g)].map(x=>Number(x[1]));
+    assert.equal(amounts.length,7);
+    assert.equal(amounts.reduce((a,b)=>a+b,0),plan.totNow);
+    assert.ok(text('smBanner').includes(`7个号共花 ${plan.totNow} 元`));
+    for(const x of plan.allocations)assert.ok(page.el('tbodyM').innerHTML.includes(x.role));
+  };
+  assertAmounts();
+  page.el('smBudget').value='5000';page.el('smBudget').dispatch('input');
+  let plan=page.sandbox.getPlan();
+  assert.equal(plan.perL1,20);assert.equal(plan.perL2,10);assert.equal(plan.perL3,5);
+  assertAmounts();
+  const cost=plan.fwdCost;
+  page.el('smOdds').value='50';page.el('smOdds').dispatch('input');
+  plan=page.sandbox.getPlan();assert.equal(plan.odds,50);assert.equal(plan.fwdCost,cost);
+  assertAmounts();
 });
