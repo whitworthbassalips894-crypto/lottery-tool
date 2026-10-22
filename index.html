@@ -59,12 +59,18 @@
 .sm-ctrls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
 .sm-ctrls label{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--ink)}
 .sm-ctrls input[type="number"]{width:84px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font:800 13px Consolas,monospace;color:var(--ink)}
-.sm-banner{display:flex;align-items:center;justify-content:space-between;gap:8px 14px;flex-wrap:wrap;border-radius:10px;padding:12px 15px;margin-bottom:10px;border:1px solid var(--line);background:#f8fafc}
+.sm-banner{display:flex;flex-direction:column;align-items:stretch;gap:6px;border-radius:10px;padding:12px 15px;margin-bottom:10px;border:1px solid var(--line);background:#f8fafc}
 .sm-banner.tier-l1{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-color:#6ee7b7}
 .sm-banner.tier-l2{background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fcd34d}
 .sm-banner.tier-l3{background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#93c5fd}
+.sm-b-main{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
 .sm-b-big{font:900 19px/1.3 Consolas,"PingFang SC",sans-serif;color:var(--ink)}
 .sm-b-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#475569}
+.sm-sig{display:inline-block;padding:4px 11px;border-radius:99px;border:1px solid transparent;font:800 12.5px/1.2 "PingFang SC",sans-serif;white-space:nowrap}
+.sm-sig.normal{background:#e2e8f0;color:#334155}
+.sm-sig.hot{background:#fee2e2;color:#b91c1c;border-color:#fca5a5}
+.sm-sig.ice{background:#dbeafe;color:#1d4ed8;border-color:#93c5fd}
+.sm-sig.def{background:#f1f5f9;color:#475569;border-color:#cbd5e1}
 .sm-table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;margin-bottom:10px;border:1px solid var(--line);border-radius:8px;overflow:hidden;table-layout:fixed}
 .sm-table td{padding:8px 10px;text-align:center;background:#fff;border-right:1px solid var(--line);line-height:1.45;vertical-align:middle}
 .sm-table td:last-child{border-right:0}
@@ -96,11 +102,11 @@
       <div class="sm-head">
         <div class="sm-title">🛡️ 自动降档省钱助手</div>
         <div class="sm-ctrls">
-          <label for="smBudget">准备本金(元)：<input id="smBudget" type="number" min="70" max="1000000" step="10" value="1000"></label>
-          <label for="smOdds">中奖赔率(倍)：<input id="smOdds" type="number" min="35" max="49" step="0.5" value="47" style="width:66px"></label>
+          <label for="smBudget">本金(元)：<input id="smBudget" type="number" min="70" max="1000000" step="10" value="1000"></label>
+          <label for="smOdds">赔率(倍)：<input id="smOdds" type="number" min="35" max="49" step="0.5" value="47" style="width:66px"></label>
         </div>
       </div>
-      <div class="sm-banner tier-l1" id="smBanner"></div>
+      <div class="sm-banner tier-l3" id="smBanner"></div>
       <table class="sm-table"><tbody id="smTableBody"></tbody></table>
       <div class="sm-foot" id="smFoot"></div>
     </div>
@@ -537,12 +543,52 @@ function fmtMoney(v){
   const n=Number(v)||0;
   return Number.isInteger(n)?String(n):n.toFixed(2).replace(/\.?0+$/,'');
 }
+const SM_ICE_WINDOWS=[[8,9],[12,13],[18,19]];
+function smIceWindow(miss){
+  for(const [a,b] of SM_ICE_WINDOWS)if(miss>=a&&miss<=b)return `${a}–${b}`;
+  return '';
+}
+// 单期信号（均值回归 + 亏损平滑终极版）：
+// 1) 亏损平滑基础档：连空 0–1 满注 / 2–3 半注 / ≥4 底注
+// 2) 破纪录冷号避险：满注档候选含「破限冷号」自动降一档
+// 3) 过热失衡避险：连中≥3 期或近 10 期命中≥4 次，自动降一档
+// 4) 三大黄金破冰窗：连空恰为 8–9 / 12–13 / 18–19 期，底注升半注狙击
+function smSignalFor(state,hasBroken){
+  const missStreak=Math.max(0,Number(state&&state.missStreak)||0);
+  const hitStreak=Math.max(0,Number(state&&state.hitStreak)||0);
+  const hitsLast10=Math.max(0,Number(state&&state.hitsLast10)||0);
+  const baseTier=missStreak>=4?'L3':missStreak>=2?'L2':'L1';
+  const cappedByBroken=baseTier==='L1'&&!!hasBroken;
+  let tier=cappedByBroken?'L2':baseTier;
+  const hotAvoid=hitStreak>=3||hitsLast10>=4;
+  if(hotAvoid)tier=tier==='L1'?'L2':'L3';
+  const iceWindow=smIceWindow(missStreak);
+  const iceBreak=!!iceWindow&&tier==='L3';
+  if(iceBreak)tier='L2';
+  const signalKey=iceBreak?'ice':hotAvoid?'hot':tier==='L3'?'def':'normal';
+  const signalName=iceBreak?'破冰狙击':hotAvoid?'过热避险':tier==='L3'?'底注防守':'正常';
+  return{baseTier,tier,missStreak,hitStreak,hitsLast10,cappedByBroken,hotAvoid,iceBreak,iceWindow,signalKey,signalName};
+}
+// 逐期状态：第 i 项 = 第 i 期开奖之前（即预测第 i 期时）的连空 / 连中 / 近 10 期命中数
+function smStatesBefore(flat){
+  const out=[];
+  let missStreak=0,hitStreak=0;
+  for(let i=0;i<=flat.length;i++){
+    let hitsLast10=0;
+    for(let k=Math.max(0,i-10);k<i;k++)if(flat[k]&&flat[k].num)hitsLast10++;
+    out.push({missStreak,hitStreak,hitsLast10});
+    const row=flat[i];
+    if(!row)break;
+    if(row.num){hitStreak++;missStreak=0;}else{missStreak++;hitStreak=0;}
+  }
+  return out;
+}
 function calcSmoothPlan(p){
   const bEl=document.getElementById('smBudget'),oEl=document.getElementById('smOdds');
   const budget=Math.max(70,Math.min(1000000,Number(bEl&&bEl.value)||1000));
   const odds=Math.max(30,Math.min(60,Number(oEl&&oEl.value)||47));
 
-  // 内置最优策略：按本金自动拆三档（8/4/2 比例）+ 含破限冷号自动降档
+  // 内置最优策略：按本金自动拆三档（8/4/2 比例）
   const perL3=Math.max(1,Math.round(budget/500)),perL2=perL3*2,perL1=perL3*4;
   const totL3=perL3*7,totL2=perL2*7,totL1=perL1*7;
   const payL1=+(perL1*odds).toFixed(2),netL1=+(payL1-totL1).toFixed(2);
@@ -550,16 +596,10 @@ function calcSmoothPlan(p){
   const payL3=+(perL3*odds).toFixed(2),netL3=+(payL3-totL3).toFixed(2);
 
   const flat=(archiveCache&&archiveCache.flat)||[];
-  let missStreak=0;
-  for(let i=flat.length-1;i>=0;i--){
-    if(flat[i].num)break;
-    missStreak++;
-  }
-
+  const states=smStatesBefore(flat);
   const brokenList=(p&&p.merged)?p.merged.filter(x=>(x.sat||0)>=1.0):[];
-  const rawTier=missStreak>=4?'L3':missStreak>=2?'L2':'L1';
-  const cappedByBroken=rawTier==='L1'&&brokenList.length>0;
-  const activeTier=cappedByBroken?'L2':rawTier;
+  const sig=smSignalFor(states[flat.length],brokenList.length>0);
+  const activeTier=sig.tier;
 
   const perNow=activeTier==='L1'?perL1:activeTier==='L2'?perL2:perL3;
   const totNow=activeTier==='L1'?totL1:activeTier==='L2'?totL2:totL3;
@@ -567,54 +607,50 @@ function calcSmoothPlan(p){
   const tierCls=activeTier==='L1'?'l1':activeTier==='L2'?'l2':'l3';
   const tierName=activeTier==='L1'?'🟢 满注档':activeTier==='L2'?'🟡 半注档':'🔵 底注档';
 
-  // 最近 30 期实盘省钱对比
+  // 最近 30 期实盘省钱对比（同一套信号规则逐期回放）
   const winLen=Math.min(30,flat.length);
   const startIdx=flat.length-winLen;
-  let mBefore=0;
-  for(let i=startIdx-1;i>=0;i--){if(flat[i].num)break;mBefore++;}
   let flatSpend=0,smoothSpend=0;
   for(let i=startIdx;i<flat.length;i++){
-    const r=flat[i];
-    let t=mBefore>=4?'L3':mBefore>=2?'L2':'L1';
-    if(t==='L1'&&r.hasBroken)t='L2';
+    const t=smSignalFor(states[i],flat[i].hasBroken).tier;
     flatSpend+=totL1;
     smoothSpend+=t==='L1'?totL1:t==='L2'?totL2:totL3;
-    mBefore=r.num?0:mBefore+1;
   }
   const saved=+(flatSpend-smoothSpend).toFixed(2);
 
-  // 2026-201 至最新期实盘收益账本
+  // 2026-201 至最新期实盘收益账本（逐期只用当时已知信息）
   let fwdIdx=flat.findIndex(r=>r.label>='2026-201');
   if(fwdIdx<0)fwdIdx=Math.max(0,flat.length-30);
-  let fwdMiss=0;
-  for(let i=fwdIdx-1;i>=0;i--){if(flat[i].num)break;fwdMiss++;}
   let fwdCost=0,fwdRet=0,fwdBal=budget,fwdHits=0;
   for(let i=fwdIdx;i<flat.length;i++){
-    const r=flat[i];
-    let t=fwdMiss>=4?'L3':fwdMiss>=2?'L2':'L1';
-    if(t==='L1'&&r.hasBroken)t='L2';
-    const per=t==='L1'?perL1:t==='L2'?perL2:perL3;
-    const cost=t==='L1'?totL1:t==='L2'?totL2:totL3;
-    const pay=r.num?+(per*odds).toFixed(2):0;
+    const s=smSignalFor(states[i],flat[i].hasBroken);
+    const cost=s.tier==='L1'?totL1:s.tier==='L2'?totL2:totL3;
+    const pay=flat[i].num?+(s.tier==='L1'?perL1:s.tier==='L2'?perL2:perL3)*odds:0;
     fwdCost+=cost;fwdRet+=pay;
     fwdBal=+(fwdBal+pay-cost).toFixed(2);
-    if(r.num)fwdHits++;
-    fwdMiss=r.num?0:fwdMiss+1;
+    if(flat[i].num)fwdHits++;
   }
   const fwdLen=Math.max(0,flat.length-fwdIdx);
   const fwdStartLbl=fwdLen?flat[fwdIdx].label:'2026-201';
   const fwdEndLbl=fwdLen?flat[flat.length-1].label:'--';
   const fwdNet=+(fwdRet-fwdCost).toFixed(2);
+  const fwdBalNow=+fwdBal.toFixed(2);
+  const safetyPad=+(fwdBalNow-budget).toFixed(2);
+  const remainPeriods=totNow>0?Math.max(0,Math.floor(Math.max(0,fwdBalNow)/totNow)):0;
 
   return{
     budget,odds,
     perL1,perL2,perL3,totL1,totL2,totL3,
     payL1,netL1,payL2,netL2,payL3,netL3,
-    missStreak,brokenList,
-    rawTier,activeTier,cappedByBroken,perNow,totNow,winPayNow,winNetNow,tierCls,tierName,
+    missStreak:sig.missStreak,hitStreak:sig.hitStreak,hitsLast10:sig.hitsLast10,brokenList,
+    rawTier:sig.baseTier,activeTier,cappedByBroken:sig.cappedByBroken,
+    hotAvoid:sig.hotAvoid,iceBreak:sig.iceBreak,iceWindow:sig.iceWindow,
+    signalKey:sig.signalKey,signalName:sig.signalName,
+    perNow,totNow,winPayNow,winNetNow,tierCls,tierName,
     perNowTxt:`买 ${fmtMoney(perNow)} 元`,
     winLen,saved,
-    fwdLen,fwdStartLbl,fwdEndLbl,fwdCost:+fwdCost.toFixed(2),fwdRet:+fwdRet.toFixed(2),fwdNet,fwdBal,fwdHits
+    fwdLen,fwdStartLbl,fwdEndLbl,fwdCost:+fwdCost.toFixed(2),fwdRet:+fwdRet.toFixed(2),fwdNet,fwdBal:fwdBalNow,safetyPad,remainPeriods,
+    fwdHits
   };
 }
 
@@ -622,17 +658,22 @@ function renderSmoothPanel(plan){
   const banner=document.getElementById('smBanner'),tBody=document.getElementById('smTableBody'),foot=document.getElementById('smFoot');
   if(!banner||!tBody||!foot)return;
   banner.className='sm-banner tier-'+plan.tierCls;
-  const reasonTag=plan.cappedByBroken
-    ?`💥含破限冷号(${plan.brokenList.map(x=>String(x.n).padStart(2,'0')).join('/')})自动降半注`
-    :`连不中 ${plan.missStreak} 期`;
+  const sigEmoji={normal:'⚪',hot:'🔥',ice:'🧊',def:'🛡️'}[plan.signalKey]||'';
+  const reasons=[];
+  if(plan.iceBreak)reasons.push(`连空 ${plan.missStreak} 期 · 黄金破冰窗 ${plan.iceWindow} 底注升半注`);
+  if(plan.hotAvoid)reasons.push(plan.hitStreak>=3?`连中 ${plan.hitStreak} 期 · 过热失衡降一档`:`近 10 期命中 ${plan.hitsLast10} 次 · 过热失衡降一档`);
+  if(plan.cappedByBroken)reasons.push(`💥破限冷号 ${plan.brokenList.map(x=>String(x.n).padStart(2,'0')).join('/')} 降一档`);
+  if(!reasons.length)reasons.push(plan.activeTier==='L3'?`连空 ${plan.missStreak} 期 · 底注防守`:`连空 ${plan.missStreak} 期 · 正常节奏`);
+  const winNetTxt=plan.winNetNow>=0?`+${fmtMoney(plan.winNetNow)}`:`${fmtMoney(plan.winNetNow)}`;
   banner.innerHTML=
-    `<div class="sm-b-big">📌 本期每个号买 <b>${fmtMoney(plan.perNow)}</b> 元（共花 <span style="color:var(--hot)">${fmtMoney(plan.totNow)}</span> 元）</div>`+
-    `<div class="sm-b-meta"><span class="sm-pill ${plan.tierCls}">${plan.tierName}</span><span>${escapeHtml(reasonTag)}</span><span>若中拿回 <b>${fmtMoney(plan.winPayNow)} 元</b>（净赚 <b style="color:var(--green)">+${fmtMoney(plan.winNetNow)} 元</b>）</span></div>`;
+    `<div class="sm-b-main"><span class="sm-sig ${plan.signalKey}">${sigEmoji} ${plan.signalName}</span>`+
+    `<div class="sm-b-big">📌 本期每个号买 <b>${fmtMoney(plan.perNow)}</b> 元（共花 <span style="color:var(--hot)">${fmtMoney(plan.totNow)}</span> 元）</div></div>`+
+    `<div class="sm-b-meta"><span class="sm-pill ${plan.tierCls}">${plan.tierName}</span><span>${escapeHtml(reasons.join('；'))}</span><span>中奖拿回 <b>${fmtMoney(plan.winPayNow)} 元</b>（净赚 <b style="color:var(--green)">${winNetTxt} 元</b>）</span></div>`;
 
   const rows=[
-    {id:'L1',cls:'l1',name:'🟢 满注档',cond:'连不中 0–1 期且无破限冷号',per:plan.perL1,tot:plan.totL1,net:plan.netL1},
-    {id:'L2',cls:'l2',name:'🟡 半注档',cond:'连不中 2–3 期 / 含💥破限冷号自动降档',per:plan.perL2,tot:plan.totL2,net:plan.netL2},
-    {id:'L3',cls:'l3',name:'🔵 底注档',cond:'连不中 ≥4 期自动缩底',per:plan.perL3,tot:plan.totL3,net:plan.netL3}
+    {id:'L1',cls:'l1',name:'🟢 满注档',cond:'连空 0–1 且无破限冷号 · 未过热',per:plan.perL1,tot:plan.totL1,net:plan.netL1},
+    {id:'L2',cls:'l2',name:'🟡 半注档',cond:'连空 2–3 / 破限冷号 / 破冰窗 8–9·12–13·18–19',per:plan.perL2,tot:plan.totL2,net:plan.netL2},
+    {id:'L3',cls:'l3',name:'🔵 底注档',cond:'连空 ≥4 期或过热失衡自动缩底',per:plan.perL3,tot:plan.totL3,net:plan.netL3}
   ];
   tBody.innerHTML=`<tr>`+rows.map(r=>{
     const isAct=plan.activeTier===r.id;
@@ -647,9 +688,13 @@ function renderSmoothPanel(plan){
   const netTxt=plan.fwdNet>=0
     ?`净赚 <b style="color:var(--green)">+${fmtMoney(plan.fwdNet)} 元</b>`
     :`净亏 <b style="color:var(--hot)">${fmtMoney(Math.abs(plan.fwdNet))} 元</b>`;
+  const padTxt=plan.safetyPad>=0
+    ?`安全垫 <b style="color:var(--green)">+${fmtMoney(plan.safetyPad)} 元</b>`
+    :`安全垫 <b style="color:var(--hot)">${fmtMoney(plan.safetyPad)} 元</b>`;
   foot.innerHTML=
     `📊 <b>实盘战绩</b>（${escapeHtml(plan.fwdStartLbl)} ~ ${escapeHtml(plan.fwdEndLbl)} 共 <b>${plan.fwdLen} 期</b>）：`+
-    `命中 <b>${plan.fwdHits} 次</b>，共花 <b>${fmtMoney(plan.fwdCost)} 元</b>、拿回 <b>${fmtMoney(plan.fwdRet)} 元</b>，${netTxt}（${fmtMoney(plan.budget)} 元本金变 <b>${fmtMoney(plan.fwdBal)} 元</b>，近 ${plan.winLen} 期比死磕满注省 <b style="color:var(--green)">${fmtMoney(plan.saved)} 元</b>）。`;
+    `命中 <b>${plan.fwdHits} 次</b>，共花 <b>${fmtMoney(plan.fwdCost)} 元</b>、拿回 <b>${fmtMoney(plan.fwdRet)} 元</b>，${netTxt}（${fmtMoney(plan.budget)} 元本金变 <b>${fmtMoney(plan.fwdBal)} 元</b>）；`+
+    `${padTxt}，按当前${plan.tierName} <b>${fmtMoney(plan.totNow)} 元/期</b>还能扛 <b>${plan.remainPeriods} 期</b>，近 ${plan.winLen} 期比死磕满注省 <b style="color:var(--green)">${fmtMoney(plan.saved)} 元</b>。`;
 }
 
 function renderEngine(p,label,streaks){
@@ -1328,7 +1373,7 @@ syncSliderFromInput();
 window.addEventListener('load',()=>{scheduleForward(400);checkOnly(true);});
 
 /* ---------- 测试钩子（不影响页面行为） ---------- */
-window.__LOTTO_SYNC_TEST__={pickPredWave,WAVE_GROUP,WAVE_ORDER,collectHeaders,numsFromBody,stripHtml,parseDrawText,planAppend,applyPlan,normalizeRecords,normalizeJsonRecord,computeForward,binomRightTail,logChoose,zContinuity,classifyExactP,fmtP,mulberry32,cmpLabel,lastLocalLabel,checkOnly,repairConflicts,runForward,scheduleForward,syncSliderFromInput,onSliderInput,onFwdStartInput,runMonteCarlo,cancelMonteCarlo,renderMonteCarloIdle,refreshSliderRange,get fwdCache(){return fwdCache},get mc(){return mc},get lastConflictFixes(){return lastConflictFixes}};
+window.__LOTTO_SYNC_TEST__={smSignalFor,smIceWindow,smStatesBefore,calcSmoothPlan,pickPredWave,WAVE_GROUP,WAVE_ORDER,collectHeaders,numsFromBody,stripHtml,parseDrawText,planAppend,applyPlan,normalizeRecords,normalizeJsonRecord,computeForward,binomRightTail,logChoose,zContinuity,classifyExactP,fmtP,mulberry32,cmpLabel,lastLocalLabel,checkOnly,repairConflicts,runForward,scheduleForward,syncSliderFromInput,onSliderInput,onFwdStartInput,runMonteCarlo,cancelMonteCarlo,renderMonteCarloIdle,refreshSliderRange,get fwdCache(){return fwdCache},get mc(){return mc},get lastConflictFixes(){return lastConflictFixes}};
 })();
 </script>
 </body></html>
