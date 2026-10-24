@@ -1,130 +1,127 @@
 'use strict';
-/**
- * 算法测试：原版评分/选码（组合约束实验已随页面移除）
- * 数据固定到 2026-258（若仓库数据更多，也限定到该期号核对，不比较不同长度样本）。
- */
-const test=require('node:test');
-const assert=require('node:assert/strict');
-const fs=require('fs');
-const path=require('path');
-const crypto=require('crypto');
-const {loadPage,extraStorage}=require('./helpers.cjs');
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { loadPage } = require('./helpers.cjs');
 
-const expected=JSON.parse(fs.readFileSync(path.join(__dirname,'expected.json'),'utf8'));
-const DATA_MAX='2026-258';
+test('底库加载：包含 2103 期快乐8真实历史记录，默认玩法为选十', () => {
+  const { T } = loadPage();
+  const { draws, codes, dates } = T.allData();
+  assert.equal(draws.length, 2103);
+  assert.equal(codes[0], '2020001');
+  assert.equal(dates[0], '2020-10-28');
+  assert.equal(codes[codes.length - 1], '2026282');
+  assert.equal(dates[dates.length - 1], '2026-10-23');
+  assert.equal(T.expectedCode(), '2026283');
+  assert.equal(T.currentPick, 10, '默认应为选十玩法');
 
-function sha256(v){return crypto.createHash('sha256').update(JSON.stringify(v)).digest('hex');}
-/** 跨 realm 安全比较数字数组 */
-function eqNums(actual,expected,msg){
-  const a=Array.isArray(actual)?actual.map(Number):[...actual].map(Number);
-  assert.equal(a.length,expected.length,(msg||'')+' 长度不一致');
-  for(let i=0;i<expected.length;i++)assert.equal(a[i],expected[i],`${msg||''} 第${i}个号码不一致: 实际[${a}] 期望[${expected}]`);
-}
-function expose(){
-  return'globalThis.__X={simulateEngine,longWaveEngine,origTop7,allData};';
-}
-
-test('预热边界：60 期以下不产出预测，60 期正常',t=>{
-  const page=loadPage({expose:expose()});
-  const X=page.sandbox.__X;
-  const{draws}=X.allData();
-  assert.equal(X.simulateEngine(draws.slice(0,59)),null);
-  assert.ok(X.simulateEngine(draws.slice(0,60)),'第 60 期历史应可出预测');
-});
-
-test('原版算法：1294 期预测哈希回归（2023-061 至 2026-258）',t=>{
-  const page=loadPage({preStorage:extraStorage(DATA_MAX),expose:expose()});
-  const X=page.sandbox.__X;
-  const{draws,labels}=X.allData();
-  const rows=[];
-  for(let i=60;i<draws.length;i++){
-    const m=X.longWaveEngine(draws.slice(0,i),labels[i]);
-    if(!m)continue;
-    rows.push({label:labels[i],pred:m.mergeNums.slice(),hit:m.mergeNums.includes(draws[i][6])});
-  }
-  assert.equal(rows.length,1294);
-  assert.equal(sha256(rows),expected.origRowsSha256,'原版逐期有序 7 码与固定核对数据不一致');
-  const hits=rows.filter(r=>r.hit).length;
-  assert.equal(hits,230,'全区间命中应为 230');
-  const y2026=rows.filter(r=>r.label.startsWith('2026')&&r.hit).length;
-  assert.equal(y2026,52,'2026-001..258 命中应为 52');
-  const last58=rows.filter(r=>r.label>='2026-201'&&r.hit).length;
-  assert.equal(last58,12,'2026-201..258（58 期）命中应为 12');
-});
-
-test('波色预测：按每组平均出现次数取最少，并列取红→蓝→绿（回归旧实现的并列偏绿 bug）',t=>{
-  const page=loadPage({});
-  const T=page.sandbox.window.__LOTTO_SYNC_TEST__;
-  // 跨 realm 对象不能直接 deepEqual，按字段比较
-  assert.equal(T.WAVE_GROUP.red,17);assert.equal(T.WAVE_GROUP.blue,16);assert.equal(T.WAVE_GROUP.green,16);
-  assert.equal(T.WAVE_ORDER.join(','),'red,blue,green');
-  // 三者全并列 → 红（旧实现会返回绿）
-  assert.equal(T.pickPredWave({red:15,blue:15,green:15}),'red');
-  // 红蓝并列最小、绿更多 → 红（旧实现返回蓝）
-  assert.equal(T.pickPredWave({red:14,blue:14,green:17}),'red');
-  // 蓝绿并列最小、红更多 → 蓝
-  assert.equal(T.pickPredWave({red:17,blue:13,green:13}),'blue');
-  // 组大小校正：17/16/16 下，红 16 + 蓝 15 的“人均”红更低 → 红
-  //   16/17 = 0.9412 < 15/16 = 0.9375 不成立，故这里用红 17 蓝 16（人均相等）→ 红
-  assert.equal(T.pickPredWave({red:17,blue:16,green:12}),'green','绿严格最少时不受并列规则影响');
-  assert.equal(T.pickPredWave({red:16,blue:15,green:14}),'green');
-  // 严格最少者优先于并列规则
-  assert.equal(T.pickPredWave({red:10,blue:20,green:15}),'red');
-  // 旧 bug 的特征：全并列时返回最后键
-  const keys=['red','blue','green'];
-  const old=keys.reduce((a,b)=>({red:15,blue:15,green:15}[a]<{red:15,blue:15,green:15}[b]?a:b));
-  assert.equal(old,'green','旧实现确实并列取后者（此断言记录 bug 形态）');
-});
-
-test('原版选码：前5纯分数 + 分区软约束 + 80% 分数阈值',t=>{
-  const page=loadPage({preStorage:extraStorage(DATA_MAX),expose:expose()});
-  const X=page.sandbox.__X;
-  const{draws,labels}=X.allData();
-  const i=labels.indexOf('2026-258');
-  const L=X.simulateEngine(draws.slice(0,i));
-  const top7=X.origTop7(L.allScores);
-  assert.equal(top7.length,7);
-  // 前 5 名必须与纯分数前 5 完全一致
-  for(let k=0;k<5;k++)assert.equal(top7[k].n,L.allScores[k].n,`前5第${k+1}名应为纯分数第${k+1}名`);
-  // 无重复
-  assert.equal(new Set(top7.map(s=>s.n)).size,7);
-  // 与 7码候选引擎输出一致
-  const m=X.longWaveEngine(draws.slice(0,i),labels[i]);
-  const merged=m.mergeNums.map(Number),t7=top7.map(s=>s.n);
-  assert.equal(merged.length,t7.length);
-  for(let k=0;k<7;k++)assert.equal(merged[k],t7[k],`第${k+1}码不一致`);
-});
-
-test('无未来信息：追加之后的数据不改变各期预测',t=>{
-  // 数据到 2026-258 与到 2026-265 的两个页面，公共区间预测必须一致
-  const pageA=loadPage({preStorage:extraStorage('2026-258'),expose:expose()});
-  const pageB=loadPage({preStorage:extraStorage('2026-265'),expose:expose()});
-  const A=pageA.sandbox.__X,B=pageB.sandbox.__X;
-  const{draws:da,labels:la}=A.allData();
-  const{draws:db,labels:lb}=B.allData();
-  for(const label of['2026-201','2026-210','2026-258']){
-    const iA=la.indexOf(label),iB=lb.indexOf(label);
-    assert.ok(iA>=0&&iB>=0,label);
-    const mA=A.longWaveEngine(da.slice(0,iA),label);
-    const mB=B.longWaveEngine(db.slice(0,iB),label);
-    eqNums(mB.mergeNums,mA.mergeNums,`${label} 的预测不应受后续数据影响`);
+  // 抽查首尾期号码合法性：20 个升序不重复 1..80 整数
+  for (const d of [draws[0], draws[1000], draws[draws.length - 1]]) {
+    assert.equal(T.validateNums(d), true);
+    for (let i = 1; i < d.length; i++) assert.ok(d[i] > d[i - 1], '号码应升序排列');
   }
 });
 
-test('确定性：同一数据重复计算结果一致',t=>{
-  const page=loadPage({preStorage:extraStorage(DATA_MAX),expose:expose()});
-  const X=page.sandbox.__X;
-  const{draws,labels}=X.allData();
-  const i=labels.indexOf('2026-230');
-  const p1=X.longWaveEngine(draws.slice(0,i),labels[i]).mergeNums;
-  const p2=X.longWaveEngine(draws.slice(0,i),labels[i]).mergeNums;
-  eqNums(p2,p1,'重复计算应复现同一结果');
+test('预热边界：少于 60 期返回 null，满 60 期正常产出 5 注', () => {
+  const { T } = loadPage();
+  const { draws } = T.allData();
+  assert.equal(T.generateDailyTickets(draws.slice(0, 59), '2020060', 10), null);
+  const res60 = T.generateDailyTickets(draws.slice(0, 60), '2020061', 10);
+  assert.ok(res60 && Array.isArray(res60.tickets));
+  assert.equal(res60.tickets.length, 5);
 });
 
-test('页面已移除组合约束：无开关、无 combo 代码路径',t=>{
-  const fs=require('fs');
-  const html=fs.readFileSync(path.resolve(__dirname,'..','index.html'),'utf8');
-  assert.ok(!html.includes('comboToggle'),'不得再出现组合约束开关');
-  assert.ok(!html.includes('comboSelect'),'不得再出现组合约束选码');
-  assert.ok(!html.includes('modelMode'),'不得再出现模型切换状态');
+test('选一至选十全玩法切换：每期稳定生成 5 注（1注随机＋4注不同策略），号码合法且互不完全雷同', () => {
+  const { T } = loadPage();
+  const { draws } = T.allData();
+  const target = T.expectedCode();
+
+  for (let k = 1; k <= 10; k++) {
+    T.setPickMode(k);
+    assert.equal(T.currentPick, k);
+    const res = T.generateDailyTickets(draws, target, k, 0);
+    assert.equal(res.tickets.length, 5, `选${k}应产出 5 注`);
+
+    for (let ti = 0; ti < 5; ti++) {
+      const tk = res.tickets[ti];
+      assert.equal(tk.length, k, `选${k} 第${ti + 1}注长度应为 ${k}`);
+      assert.equal(new Set(tk).size, k, `选${k} 第${ti + 1}注内部不应有重复号码`);
+      for (let m = 0; m < tk.length; m++) {
+        assert.ok(Number.isInteger(tk[m]) && tk[m] >= 1 && tk[m] <= 80, '号码须在 1..80 之间');
+        if (m > 0) assert.ok(tk[m] > tk[m - 1], '号码须升序排列');
+      }
+    }
+
+    if (k >= 5) {
+      // 至少 4 种以上互不相同的组合，防止策略退化成同一注
+      const sigs = new Set(res.tickets.map(tk => tk.join(',')));
+      assert.equal(sigs.size, 5, `选${k} 的 5 注应当各不相同`);
+
+      // 第 5 注（四区均衡）应满足四区配额均衡：每区不超过 ceil(k/4)
+      const t5 = res.tickets[4];
+      const qCnt = [0, 0, 0, 0];
+      for (const n of t5) qCnt[n <= 20 ? 0 : n <= 40 ? 1 : n <= 60 ? 2 : 3]++;
+      const maxQ = Math.ceil(k / 4);
+      const minQ = Math.floor(k / 4);
+      for (let q = 0; q < 4; q++) {
+        assert.ok(qCnt[q] >= minQ && qCnt[q] <= maxQ, `选${k} 第5注四区分布不均衡: ${qCnt}`);
+      }
+    }
+  }
+});
+
+test('第 1 注随机机选：定种可复现、支持手动重摇换号与恢复默认', () => {
+  const { T } = loadPage();
+  const base5 = Array.from(T.lastDailyRender.tickets, t => t.join(','));
+
+  // 重新加载页面，默认随机注和其余 4 注完全一致（保证“每天生成 5 注”稳定）
+  const { T: T2 } = loadPage();
+  const again5 = Array.from(T2.lastDailyRender.tickets, t => t.join(','));
+  assert.deepEqual(again5, base5);
+
+  // 手动重摇第 1 注：第 1 注变化，第 2~5 注策略保持不变
+  T.rerollRandomTicket();
+  assert.equal(T.rerollNonce, 1);
+  const rerolled = Array.from(T.lastDailyRender.tickets, t => t.join(','));
+  assert.notEqual(rerolled[0], base5[0], '重摇后第 1 注随机号应更新');
+  assert.deepEqual(rerolled.slice(1), base5.slice(1), '重摇第 1 注不应改变第 2~5 注策略选号');
+
+  // 恢复默认随机注
+  T.resetRandomTicket();
+  assert.equal(T.rerollNonce, 0);
+  assert.equal(T.lastDailyRender.tickets[0].join(','), base5[0]);
+});
+
+test('严格无未来信息 & 增量回放等价性：buildArchive 与单期独立切片预测 100% 一致，追加新期不改变历史预测', () => {
+  const { T } = loadPage();
+  const { draws, codes, dates } = T.allData();
+  const archive = T.buildArchive(draws, codes, dates, 10);
+  const rows2026 = archive.byYear['2026'];
+  assert.equal(rows2026.length, 282);
+
+  // 抽查若干历史期次：增量状态回放结果与只传入 draws.slice(0, i) 独立计算逐注逐码完全相同
+  for (const checkCode of ['2020061', '2022100', '2024200', '2026001', '2026282']) {
+    const idx = codes.indexOf(checkCode);
+    assert.ok(idx >= 60);
+    const standalone = T.generateDailyTickets(draws.slice(0, idx), checkCode, 10, 0).tickets;
+    const year = checkCode.slice(0, 4);
+    const archivedItem = archive.byYear[year].find(r => r.code === checkCode);
+    assert.ok(archivedItem, `应在回放中找到 ${checkCode}`);
+    const archivedTickets = archivedItem.evals.map(e => e.nums);
+    assert.deepEqual(archivedTickets, standalone, `期号 ${checkCode} 的增量回放与独立切片计算不一致`);
+  }
+
+  // 追加未来新期（2026283、2026284），验证此前 2026282 的 5 注预测毫发无损
+  const before282 = archive.byYear['2026'].find(r => r.code === '2026282').evals.map(e => e.nums.join(','));
+  const plan = T.planAppend([
+    { code: '2026283', year: 2026, period: 283, date: '2026-10-24', nums: [1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39] },
+    { code: '2026284', year: 2026, period: 284, date: '2026-10-25', nums: [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40] }
+  ]);
+  const res = T.applyPlan(plan);
+  assert.equal(res.ok, true);
+  assert.equal(res.wrote, 2);
+
+  const afterData = T.allData();
+  const afterArchive = T.buildArchive(afterData.draws, afterData.codes, afterData.dates, 10);
+  const after282 = afterArchive.byYear['2026'].find(r => r.code === '2026282').evals.map(e => e.nums.join(','));
+  assert.deepEqual(after282, before282, '追加未来开奖数据绝不能改变早期期次的 5 注预测');
 });
