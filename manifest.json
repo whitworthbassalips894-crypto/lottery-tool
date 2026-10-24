@@ -1,11 +1,11 @@
 {
-  "name": "特码推算系统",
-  "short_name": "推算系统",
-  "description": "融合极限自适应短波与多因子遗漏回补长波模型，构建动态多因子共振追踪系统。",
+  "name": "快乐8每日选号工具",
+  "short_name": "快乐8选号",
+  "description": "福彩快乐8每日5注选号工具（1注随机机选＋4注多策略精选），支持选一至选十切换、历史回放与一键同步。",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#FAF8F5",
-  "theme_color": "#14213A",
+  "background_color": "#F5F7FB",
+  "theme_color": "#1E293B",
   "icons": [
     {
       "src": "icon-192.png",
