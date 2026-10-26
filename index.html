@@ -1674,7 +1674,7 @@ function renderDailyFive(draws){
   grid.querySelectorAll('.copy-one').forEach(btn => {
     btn.addEventListener('click', () => {
       const i = Number(btn.dataset.idx);
-      const line = formatTicketLine(i, tickets[i]);
+      const line = formatTicketLine(tickets[i]);
       copyText(line, btn, '✅ 已复制');
     });
   });
@@ -1697,15 +1697,13 @@ function renderDailyFive(draws){
     '</div>';
 }
 
-function formatTicketLine(idx, nums){
-  return '第' + (idx + 1) + '注[' + STRATEGIES[idx].name + ']：' + nums.map(pad2).join(' ');
+function formatTicketLine(nums){
+  return nums.slice().sort((a, b) => a - b).map(pad2).join('、');
 }
 function formatAllTicketsText(){
   if (!lastDailyRender) return '';
-  const { code, pickK, tickets } = lastDailyRender;
-  const header = '【快乐8每日5注】目标期 ' + code + ' · ' + PLAY_NAMES[pickK] + '（每注' + pickK + '码）';
-  const lines = tickets.map((t, i) => formatTicketLine(i, t));
-  return [header].concat(lines).join('\n');
+  const { tickets } = lastDailyRender;
+  return tickets.map(t => formatTicketLine(t)).join('\n');
 }
 function copyText(text, btn, okLabel){
   if (!text) return;
