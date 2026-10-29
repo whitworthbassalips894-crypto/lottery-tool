@@ -1,12 +1,14 @@
-name: Sync lottery data
+name: 同步快乐8开奖记录
 
-# 定时抓取 https://2026kj.zkclhb.com:2025/am.html → data/am-latest.json
-# 澳门六合彩约每天 21:30（UTC+8）开奖，两个时间点各试一次（UTC 13:40 / 15:10）
 on:
   workflow_dispatch:
   schedule:
-    - cron: '40 13 * * *'
-    - cron: '10 15 * * *'
+    # UTC 时间，对应北京时间 21:35、21:40、21:45、21:50
+    - cron: '35,40,45,50 13 * * *'
+    # 对应北京时间 22:00、22:15、22:30
+    - cron: '0,15,30 14 * * *'
+    # 对应北京时间 23:15
+    - cron: '15 15 * * *'
 
 permissions:
   contents: write
@@ -19,25 +21,23 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: 配置 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Fetch and build data/am-latest.json
+      - name: 抓取快乐8开奖记录
         id: sync
         run: node scripts/sync-am.js
-        # 脚本退出码约定：0=成功(有无变化均算成功)  2=抓取失败(如403)  3=解析失败
-        # 失败时脚本保证不改动 data/am-latest.json，此步直接红叉并输出 ::error:: 说明
 
-      - name: Commit and push if changed
+      - name: 提交并推送更新
         if: steps.sync.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/am-latest.json
-          git commit -m "chore(data): sync am-latest.json → $(cat data/am-latest.json | grep latestLabel | head -1 | sed 's/.*: "//;s/".*//')"
+          git add data/kl8-latest.json data/am-latest.json
+          git commit -m "chore(data): sync 快乐8开奖记录"
           git push
