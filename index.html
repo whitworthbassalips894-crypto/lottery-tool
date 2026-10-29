@@ -7,7 +7,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png">
 <link rel="apple-touch-icon" href="./icon-180.png">
-<title>快乐8每日选号工具 · 每日5注</title>
+<title>快乐8每日选号工具 · 每日10注</title>
 <style>
 :root{
   --ink:#1e293b;
@@ -68,7 +68,7 @@ h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--
 .mode-rule{margin-top:9px;font-size:12px;color:var(--muted);line-height:1.65;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .mode-rule b{color:var(--ink)}
 
-/* 每日 5 注卡片列表 */
+/* 每日 10 注卡片列表 */
 .daily-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .daily-target{font-size:13.5px;color:var(--muted)}
 .daily-target b{color:var(--ink);font:800 15px Consolas,Monaco,monospace}
@@ -198,8 +198,8 @@ h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--
 <div class="page">
   <header>
     <div>
-      <h1>快乐8每日选号工具 <span class="brand-pill">20/80 · 每日5注</span></h1>
-      <div class="subtitle">1 注随机机选 ＋ 4 注多维策略精选（热势恒强 / 遗漏回补 / 关联共振 / 四区均衡）· 支持选一至选十自由切换</div>
+      <h1>快乐8每日选号工具 <span class="brand-pill">20/80 · 每日10注</span></h1>
+      <div class="subtitle">1 注随机机选 ＋ 4 注历史指标策略 ＋ 5 注分散覆盖· 支持选一至选十自由切换</div>
     </div>
     <div class="count"><b id="totalCount">--</b>期历史开奖</div>
   </header>
@@ -212,23 +212,24 @@ h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--
     <div class="lb-balls" id="latestBalls"></div>
   </div>
 
-  <!-- 模块 1：每日 5 注选号 -->
+  <!-- 模块 1：每日 10 注选号 -->
   <section class="card">
-    <h2>1. 每日 5 注选号 <span class="tag">1注随机 ＋ 4注精选</span></h2>
+    <h2>1. 每日 10 注选号 <span class="tag">1注随机 ＋ 4注策略 ＋ 5注覆盖</span></h2>
     <div class="mode-wrap">
       <div class="mode-tabs" id="modeTabs"></div>
       <div class="mode-rule" id="modeRule"></div>
     </div>
     <div class="daily-toolbar">
       <div class="daily-target">
-        目标期号 <b id="targetIssue">--</b> · 玩法 <b id="targetModeTxt">选十</b> · 5注共覆盖 <b id="coverCount">--</b> 个不同号码
+        目标期号 <b id="targetIssue">--</b> · 玩法 <b id="targetModeTxt">选十</b> · 10注共覆盖 <b id="coverCount">--</b> 个不同号码
       </div>
       <div class="actions" style="margin-top:0">
-        <button class="btn primary" id="copyAllBtn">📋 一键复制今日 5 注</button>
+        <button class="btn primary" id="copyAllBtn">📋 一键复制今日 10 注</button>
         <button class="btn" id="rerollBtn">🎲 重摇第1注随机号</button>
         <button class="btn" id="resetRandBtn" hidden>↺ 恢复今日默认随机</button>
       </div>
     </div>
+    <div class="notice">理性投注：10 注单倍共 20 元。开奖具有随机性，热号、遗漏和历史回放不能预测未来；分散覆盖只改变组合重叠，不保证中奖或盈利。回放按现行 10 注方案模拟，并非历史实际投注。</div>
     <div class="tickets-grid" id="ticketsGrid"></div>
     <div class="consensus-bar" id="consensusBar"></div>
   </section>
@@ -261,7 +262,7 @@ h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--
   <!-- 模块 3：历史回放 -->
   <section class="card">
     <h2>3. 历史回放 <span class="tag">无未来信息验证</span></h2>
-    <p class="desc">逐期回放均严格<b>只使用当期之前的历史数据</b>生成 5 注（切换上方「选一～选十」玩法时，回放命中与固定奖金同步切换；点击任意一行可展开查看当期生成的完整 5 注号码）。</p>
+    <p class="desc">逐期回放均严格<b>只使用当期之前的历史数据</b>生成 10 注（切换上方「选一～选十」玩法时，回放命中与固定奖金同步切换；点击任意一行可展开查看当期生成的完整 10 注号码）。</p>
     <div id="yearTabs" class="tabs"></div>
     <div id="metrics" class="metrics-layout"></div>
     <div class="scroll">
@@ -269,8 +270,8 @@ h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--
         <thead>
           <tr>
             <th class="col-period">期号 / 日期</th>
-            <th>当期开奖 20 码（红底为当期5注命中码）</th>
-            <th>5 注逐注命中（#1随机 / #2热势 / #3回补 / #4共振 / #5均衡）</th>
+            <th>当期开奖 20 码（红底为当期10注命中码）</th>
+            <th>10 注逐注命中（#1随机 / #2–5策略 / #6–10分散覆盖）</th>
             <th>当期奖金</th>
           </tr>
         </thead>
@@ -1050,7 +1051,8 @@ const STRATEGIES = [
   { id:'hot',  cls:'t-hot',  icon:'🔥', short:'热势', name:'热势恒强', badge:'近期热码＋重号斜连', desc:'追踪 EMA 短中周期活跃热码、上期温热重号与斜连邻号动量' },
   { id:'omit', cls:'t-omit', icon:'🎯', short:'回补', name:'遗漏回补', badge:'饱和度U型回补', desc:'捕捉个人历史遗漏 80%–98% 临界区与高活性热码短休回补窗' },
   { id:'link', cls:'t-link', icon:'🔗', short:'共振', name:'关联共振', badge:'期际跟随＋共现搭档', desc:'基于近 180 期条件转移升幅与同尾、两连号高频共现协同选码' },
-  { id:'bal',  cls:'t-bal',  icon:'⚖️', short:'均衡', name:'四区均衡', badge:'多因子黄金配比', desc:'融合贝叶斯频率、等隔韵律与四区奇偶均衡配额，适度跨注去重' }
+  { id:'bal',  cls:'t-bal',  icon:'⚖️', short:'均衡', name:'四区均衡', badge:'多因子黄金配比', desc:'融合贝叶斯频率、等隔韵律与四区奇偶均衡配额，适度跨注去重' },
+  ...Array.from({length: 5}, (_, i) => ({ id:'cover' + (i + 1), cls:'t-bal', icon:'🧩', short:'覆盖' + (i + 1), name:'分散覆盖 ' + (i + 1), badge:'优先低频覆盖', desc:'优先选择前面精选注中出现较少的号码，平衡覆盖；不代表更高的单注中奖概率' }))
 ];
 
 /* ==================== 基础数据与期号工具 ==================== */
@@ -1234,7 +1236,7 @@ function describeModeRule(pickK){
   }).join(' · ');
 }
 
-/* ==================== 快乐8 五注核心选号引擎（严格无未来信息） ==================== */
+/* ==================== 快乐8 十注核心选号引擎（严格无未来信息） ==================== */
 function fnv1a(str){
   let h = 2166136261 >>> 0;
   for (let i = 0; i < str.length; i++) {
@@ -1538,10 +1540,22 @@ function selectFromState(st, targetCode, K, nonce){
     if (!_IN[n]) { chosen5.push(n); _IN[n] = 1; }
   }
   chosen5.sort((a, b) => a - b);
-  return [t1, t2, t3, t4, chosen5];
+  // 增加五注分散覆盖：不依赖可重摇的第一注，保证重摇仅影响第一注。
+  const tickets = [t1, t2, t3, t4, chosen5];
+  const frequency = new Uint8Array(81);
+  for (const ticket of tickets.slice(1)) for (const n of ticket) frequency[n]++;
+  const coverRng = mulberry32(fnv1a('KL8:' + targetCode + ':K' + pickK + ':coverage'));
+  for (let i = 0; i < 5; i++) {
+    const order = Array.from({length: 80}, (_, n) => ({ n: n + 1, tie: coverRng() }));
+    order.sort((a, b) => frequency[a.n] - frequency[b.n] || a.tie - b.tie);
+    const next = order.slice(0, pickK).map(x => x.n).sort((a, b) => a - b);
+    tickets.push(next);
+    for (const n of next) frequency[n]++;
+  }
+  return tickets;
 }
 
-/** 独立生成某期 5 注（只喂入 histDraws，用于今日预测与单测无未来信息校验） */
+/** 独立生成某期 10 注（只喂入 histDraws，用于今日预测与单测无未来信息校验） */
 function generateDailyTickets(histDraws, targetCode, pickK, nonce){
   if (!Array.isArray(histDraws) || histDraws.length < WARMUP_PERIODS) return null;
   const st = createRollingState();
@@ -1556,7 +1570,7 @@ function generateDailyTickets(histDraws, targetCode, pickK, nonce){
   return { tickets, omits, lastDraw: st.lastDraw };
 }
 
-/* ==================== 渲染：顶部最新开奖 & 模块1 每日 5 注 ==================== */
+/* ==================== 渲染：顶部最新开奖 & 模块1 每日 10 注 ==================== */
 function ticketShape(nums){
   let oddC = 0, bigC = 0, sum = 0;
   const q = [0, 0, 0, 0];
@@ -1604,7 +1618,7 @@ function renderModeBar(){
     btn.addEventListener('click', () => setPickMode(Number(btn.dataset.pick)));
   });
   document.getElementById('modeRule').innerHTML =
-    '<span>当前规则：<b>' + PLAY_NAMES[currentPick] + '</b>（每注选 <b>' + currentPick + '</b> 个号，单注 2 元，每日 5 注共 10 元）</span>' +
+    '<span>当前规则：<b>' + PLAY_NAMES[currentPick] + '</b>（每注选 <b>' + currentPick + '</b> 个号，单注 2 元，每日 10 注共 20 元）</span>' +
     '<span>设奖：' + escapeHtml(describeModeRule(currentPick)) + '</span>';
 }
 
@@ -1626,7 +1640,7 @@ function renderDailyFive(draws){
   const stratFreq = new Uint8Array(81);
   const allUnique = new Set();
   const quadCover = [0, 0, 0, 0];
-  for (let ti = 0; ti < 5; ti++) {
+  for (let ti = 0; ti < tickets.length; ti++) {
     for (const n of tickets[ti]) {
       if (!allUnique.has(n)) {
         allUnique.add(n);
@@ -1685,7 +1699,7 @@ function renderDailyFive(draws){
 
   const consHtml = consensusNums.length
     ? consensusNums.map(x => '<span class="ball sm q' + getQuad(x.n) + ' consensus" title="' + x.c + '注策略同时选中">' + pad2(x.n) + '</span>').join('')
-    : '<span style="color:var(--muted)">本期 4 注策略完全分散无重叠</span>';
+    : '<span style="color:var(--muted)">本期精选号码无重叠</span>';
 
   document.getElementById('consensusBar').innerHTML =
     '<div class="consensus-left"><b>★ 多策略共识号（≥2注精选同选）：</b>' + consHtml + '</div>' +
@@ -1739,17 +1753,17 @@ function makeScopeStats(){
     totalPrize: 0,
     maxPeriodPrize: 0,
     floatingHits: 0,
-    perStrat: Array.from({ length: 5 }, () => ({ hitsSum: 0, winCount: 0, prizeSum: 0, maxHits: 0 }))
+    perStrat: Array.from({ length: STRATEGIES.length }, () => ({ hitsSum: 0, winCount: 0, prizeSum: 0, maxHits: 0 }))
   };
 }
 function accScopeStats(stats, item){
   stats.periods++;
-  stats.totalCost += 10;
+  stats.totalCost += item.evals.length * 2;
   stats.totalPrize += item.periodPrize;
   if (item.periodPrize > 0) stats.anyWinPeriods++;
   if (item.periodPrize > stats.maxPeriodPrize) stats.maxPeriodPrize = item.periodPrize;
   if (item.hasFloating) stats.floatingHits++;
-  for (let s = 0; s < 5; s++) {
+  for (let s = 0; s < STRATEGIES.length; s++) {
     const tr = item.evals[s];
     const ps = stats.perStrat[s];
     ps.hitsSum += tr.hits;
@@ -1783,7 +1797,7 @@ function buildArchive(draws, codes, dates, pickK){
       let periodPrize = 0;
       let hasFloating = false;
       const hitUnion = new Set();
-      for (let s = 0; s < 5; s++) {
+      for (let s = 0; s < STRATEGIES.length; s++) {
         const tk = tickets[s];
         let h = 0;
         for (let m = 0; m < tk.length; m++) {
@@ -1854,13 +1868,13 @@ function renderArchive(archive){
 
   document.getElementById('metrics').innerHTML =
     '<div class="metric-card v-prize">' +
-      '<div class="mc-head">' + PLAY_NAMES[currentPick] + ' · 5注有奖期占比</div>' +
+      '<div class="mc-head">' + PLAY_NAMES[currentPick] + ' · 10注有奖期占比</div>' +
       '<div><span class="mc-val">' + winPeriodRate + '%</span><span class="mc-label">' + st.anyWinPeriods + ' / ' + st.periods + ' 期有奖</span></div>' +
       '<div class="mc-bar"><div class="mc-fill" style="width:' + Math.min(100, parseFloat(winPeriodRate)) + '%"></div></div>' +
       '<div class="mc-sub">累计奖金 <b>¥' + fmtMoney(st.totalPrize) + '</b> / 投入 ¥' + st.totalCost + '（返奖比 ' + retRate + '%）<br>单期最高 ¥' + fmtMoney(st.maxPeriodPrize) + (st.floatingHits ? ' · 含浮动头奖按封顶计' : '') + '</div>' +
     '</div>' +
     '<div class="metric-card">' +
-      '<div class="mc-head">5 注策略逐注场均命中球数对比（随机理论期望：' + baseAvgHit + ' 码 / 期）</div>' +
+      '<div class="mc-head">10 注策略逐注场均命中球数对比（随机理论期望：' + baseAvgHit + ' 码 / 期）</div>' +
       '<div class="strat-compare">' + stratBoxes + '</div>' +
     '</div>';
 
@@ -2043,7 +2057,7 @@ function init(){
   dateEl.value = new Date().toISOString().slice(0, 10);
 
   document.getElementById('copyAllBtn').addEventListener('click', e => {
-    copyText(formatAllTicketsText(), e.currentTarget || e.target, '✅ 已复制全部 5 注');
+    copyText(formatAllTicketsText(), e.currentTarget || e.target, '✅ 已复制全部 10 注');
   });
   document.getElementById('rerollBtn').addEventListener('click', rerollRandomTicket);
   document.getElementById('resetRandBtn').addEventListener('click', resetRandomTicket);

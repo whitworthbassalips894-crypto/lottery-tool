@@ -21,16 +21,16 @@ test('底库加载：包含 2103 期快乐8真实历史记录，默认玩法为�
   }
 });
 
-test('预热边界：少于 60 期返回 null，满 60 期正常产出 5 注', () => {
+test('预热边界：少于 60 期返回 null，满 60 期正常产出 10 注', () => {
   const { T } = loadPage();
   const { draws } = T.allData();
   assert.equal(T.generateDailyTickets(draws.slice(0, 59), '2020060', 10), null);
   const res60 = T.generateDailyTickets(draws.slice(0, 60), '2020061', 10);
   assert.ok(res60 && Array.isArray(res60.tickets));
-  assert.equal(res60.tickets.length, 5);
+  assert.equal(res60.tickets.length, 10);
 });
 
-test('选一至选十全玩法切换：每期稳定生成 5 注（1注随机＋4注不同策略），号码合法且互不完全雷同', () => {
+test('选一至选十全玩法切换：每期稳定生成 10 注（1注随机＋4注策略＋5注覆盖），号码合法且互不完全雷同', () => {
   const { T } = loadPage();
   const { draws } = T.allData();
   const target = T.expectedCode();
@@ -39,9 +39,9 @@ test('选一至选十全玩法切换：每期稳定生成 5 注（1注随机＋4
     T.setPickMode(k);
     assert.equal(T.currentPick, k);
     const res = T.generateDailyTickets(draws, target, k, 0);
-    assert.equal(res.tickets.length, 5, `选${k}应产出 5 注`);
+    assert.equal(res.tickets.length, 10, `选${k}应产出 10 注`);
 
-    for (let ti = 0; ti < 5; ti++) {
+    for (let ti = 0; ti < 10; ti++) {
       const tk = res.tickets[ti];
       assert.equal(tk.length, k, `选${k} 第${ti + 1}注长度应为 ${k}`);
       assert.equal(new Set(tk).size, k, `选${k} 第${ti + 1}注内部不应有重复号码`);
@@ -54,7 +54,7 @@ test('选一至选十全玩法切换：每期稳定生成 5 注（1注随机＋4
     if (k >= 5) {
       // 至少 4 种以上互不相同的组合，防止策略退化成同一注
       const sigs = new Set(res.tickets.map(tk => tk.join(',')));
-      assert.equal(sigs.size, 5, `选${k} 的 5 注应当各不相同`);
+      assert.equal(sigs.size, 10, `选${k} 的 10 注应当各不相同`);
 
       // 第 5 注（四区均衡）应满足四区配额均衡：每区不超过 ceil(k/4)
       const t5 = res.tickets[4];
@@ -73,17 +73,17 @@ test('第 1 注随机机选：定种可复现、支持手动重摇换号与恢�
   const { T } = loadPage();
   const base5 = Array.from(T.lastDailyRender.tickets, t => t.join(','));
 
-  // 重新加载页面，默认随机注和其余 4 注完全一致（保证“每天生成 5 注”稳定）
+  // 重新加载页面，默认随机注和其余 9 注完全一致
   const { T: T2 } = loadPage();
   const again5 = Array.from(T2.lastDailyRender.tickets, t => t.join(','));
   assert.deepEqual(again5, base5);
 
-  // 手动重摇第 1 注：第 1 注变化，第 2~5 注策略保持不变
+  // 手动重摇第 1 注：第 1 注变化，第 2~10 注策略保持不变
   T.rerollRandomTicket();
   assert.equal(T.rerollNonce, 1);
   const rerolled = Array.from(T.lastDailyRender.tickets, t => t.join(','));
   assert.notEqual(rerolled[0], base5[0], '重摇后第 1 注随机号应更新');
-  assert.deepEqual(rerolled.slice(1), base5.slice(1), '重摇第 1 注不应改变第 2~5 注策略选号');
+  assert.deepEqual(rerolled.slice(1), base5.slice(1), '重摇第 1 注不应改变第 2~10 注策略选号');
 
   // 恢复默认随机注
   T.resetRandomTicket();
@@ -97,6 +97,10 @@ test('严格无未来信息 & 增量回放等价性：buildArchive 与单期独�
   const archive = T.buildArchive(draws, codes, dates, 10);
   const rows2026 = archive.byYear['2026'];
   assert.equal(rows2026.length, 282);
+  assert.equal(archive.statsByScope['2026'].totalCost, 282 * 20);
+  assert.equal(archive.statsByScope['2026'].perStrat.length, 10);
+  assert.equal(rows2026[0].evals.length, 10);
+  assert.equal(rows2026[0].periodPrize, rows2026[0].evals.reduce((sum, e) => sum + e.amount, 0));
 
   // 抽查若干历史期次：增量状态回放结果与只传入 draws.slice(0, i) 独立计算逐注逐码完全相同
   for (const checkCode of ['2020061', '2022100', '2024200', '2026001', '2026282']) {
@@ -110,7 +114,7 @@ test('严格无未来信息 & 增量回放等价性：buildArchive 与单期独�
     assert.deepEqual(archivedTickets, standalone, `期号 ${checkCode} 的增量回放与独立切片计算不一致`);
   }
 
-  // 追加未来新期（2026283、2026284），验证此前 2026282 的 5 注预测毫发无损
+  // 追加未来新期（2026283、2026284），验证此前 2026282 的 10 注预测毫发无损
   const before282 = archive.byYear['2026'].find(r => r.code === '2026282').evals.map(e => e.nums.join(','));
   const plan = T.planAppend([
     { code: '2026283', year: 2026, period: 283, date: '2026-10-24', nums: [1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39] },
@@ -123,5 +127,5 @@ test('严格无未来信息 & 增量回放等价性：buildArchive 与单期独�
   const afterData = T.allData();
   const afterArchive = T.buildArchive(afterData.draws, afterData.codes, afterData.dates, 10);
   const after282 = afterArchive.byYear['2026'].find(r => r.code === '2026282').evals.map(e => e.nums.join(','));
-  assert.deepEqual(after282, before282, '追加未来开奖数据绝不能改变早期期次的 5 注预测');
+  assert.deepEqual(after282, before282, '追加未来开奖数据绝不能改变早期期次的 10 注预测');
 });
