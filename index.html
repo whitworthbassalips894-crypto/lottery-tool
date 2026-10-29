@@ -283,7 +283,7 @@ h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--
   <!-- 模块 4：数据同步 -->
   <section class="card">
     <h2>4. 数据同步 <span class="tag">一键同步 / 粘贴兜底</span></h2>
-    <p class="desc">“一键同步”读取本仓库内 <b>./data/kl8-latest.json</b>（由 GitHub Actions 每日开奖后定时抓取福彩快乐8数据并自动更新）。新增开奖记录只追加写入本机 localStorage，<b>不改动</b>页面内置历史数组。</p>
+    <p class="desc">“一键同步”读取本仓库内 <b>./data/kl8-latest.json</b>（由 GitHub Actions 每日开奖后定时抓取福彩快乐8数据并自动更新）。北京时间约 21:30 开奖后可点击同步核对，数据源发布、定时任务和部署可能延迟；休市时不一定有当期开奖结果。新增开奖记录只追加写入本机 localStorage，<b>不改动</b>页面内置历史数组。</p>
     <div class="sync-status">
       <div class="ss-item"><small>本地最后一期</small><b id="ssLocal">--</b></div>
       <div class="ss-item"><small>JSON 数据源最新一期</small><b id="ssRemote">--</b></div>
@@ -2315,7 +2315,7 @@ function localMap(){
 
 function planAppend(records){
   const map = localMap(), last = lastLocalCode();
-  const res = { append: [], overlap: 0, conflicts: [], conflictCodes: [], dupes: 0, gapFrom: '', remoteLatest: '', invalid: [] };
+  const res = { append: [], overlap: 0, conflicts: [], conflictCodes: [], dupes: 0, gapFrom: '', remoteLatest: '', remoteDate: '', invalid: [] };
   const seen = new Set(), clean = [];
   for (const r of records) {
     if (!r || !r.code) continue;
@@ -2325,6 +2325,7 @@ function planAppend(records){
   }
   clean.sort((a, b) => a.code.localeCompare(b.code));
   res.remoteLatest = clean.length ? clean[clean.length - 1].code : '';
+  res.remoteDate = clean.length ? clean[clean.length - 1].date || '' : '';
   let prev = last;
   for (const r of clean) {
     if (r.code <= last) {
@@ -2406,6 +2407,18 @@ function updateRepairBtn(plan){
   }
 }
 
+// 中国标准时间固定 UTC+8，不依赖使用者设备所在时区。
+function drawFreshness(remoteDate, now = new Date()){
+  const china = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  const today = china.toISOString().slice(0, 10);
+  const afterDraw = china.getUTCHours() * 60 + china.getUTCMinutes() >= 21 * 60 + 30;
+  if (!remoteDate) return { warn: true, text: '数据源最新期缺少有效开奖日期，无法判断是否为今日开奖，请核对官方结果。' };
+  if (remoteDate > today) return { warn: true, text: '数据源开奖日期晚于北京时间今日，请核对官方结果。' };
+  if (remoteDate === today) return { warn: false, text: '数据源包含北京时间今日开奖（' + today + '），请结合期号和冲突提示核对。' };
+  if (afterDraw) return { warn: true, text: '北京时间已过 21:30，数据源尚无今日开奖（最新日期 ' + remoteDate + '）；可能尚未发布、同步或部署延迟，也可能休市，请稍后重试或核对官方公告。' };
+  return { warn: false, text: '北京时间尚未到今日 21:30；数据源最新日期 ' + remoteDate + '，请核对是否有未同步的往期开奖。' };
+}
+
 function showPlanResult(plan, result, tag){
   const last = lastLocalCode();
   setSS('ssLocal', last, '');
@@ -2432,13 +2445,15 @@ function showPlanResult(plan, result, tag){
     parts.push('⚠️ 数据源落后于本地（源 ' + (plan.remoteLatest || '--') + ' < 本地 ' + last + '）');
     setSS('ssAppend', '0 期', 'warn');
   } else {
-    parts.push('✅ 已是最新：本地与数据源完全一致');
-    setSS('ssAppend', '0 期（已是最新）', 'ok');
+    parts.push('本地与数据源最新期号一致（不代表已有今日开奖）');
+    setSS('ssAppend', '0 期（期号一致）', 'ok');
   }
   if (plan.conflicts.length) {
     parts.push('⚠️ 发现同号冲突 ' + plan.conflicts.length + ' 期（保留本地值）：' + plan.conflictCodes.slice(0, 6).join('、'));
   }
-  const cls = (result && !result.ok) ? 'bad' : (plan.conflicts.length || plan.gapFrom || ((plan.remoteLatest || '') < last)) ? 'warn' : 'ok';
+  const freshness = drawFreshness(plan.remoteDate);
+  parts.push(freshness.text);
+  const cls = (result && !result.ok) ? 'bad' : (freshness.warn || plan.conflicts.length || plan.gapFrom || ((plan.remoteLatest || '') < last)) ? 'warn' : 'ok';
   setSS('ssMsg', parts.slice(1).join('；'), cls);
   updateRepairBtn(plan);
   return parts;
@@ -2487,7 +2502,7 @@ async function syncNow(){
   btn.disabled = true;
   btn.textContent = '同步中…';
   try {
-    const plan = await checkOnly(true);
+    const plan = await checkOnly(false);
     if (!plan) return;
     let result = { ok: true, wrote: 0 };
     if (plan.append.length) result = applyPlan(plan);
@@ -2618,6 +2633,8 @@ window.__KL8_TEST__ = {
   planAppend,
   applyPlan,
   normalizeRecords,
+  drawFreshness,
+  showPlanResult,
   checkOnly,
   syncNow,
   repairConflicts,

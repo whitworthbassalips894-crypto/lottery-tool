@@ -50,7 +50,7 @@
 ## 四、GitHub Actions 自动同步与部署
 
 1. **GitHub Pages 部署**：仓库 **Settings → Pages → Source** 选择 `Deploy from a branch`，分支 `main`、目录 `/ (root)` 保存即可。
-2. **定时同步**：福彩快乐8每天约北京时间 21:30 开奖，Actions 在每天 UTC `13:45` 与 `15:15`（北京时间 21:45 / 23:15）自动运行 `node scripts/sync-kl8.js`，也可在 Actions 页面手动点击 **Run workflow**。
+2. **定时同步**：福彩快乐8每天约北京时间 21:30 开奖，Actions 在北京时间 21:35、21:40、21:45、21:50、22:00、22:15、22:30 和 23:15 尝试抓取（通过 `node scripts/sync-am.js` 调用 `sync-kl8.js`）；Actions 排队、源站更新与部署可能延迟，不能保证实时，也可在 Actions 页面手动点击 **Run workflow**。
 3. **多源容灾**：`scripts/sync-kl8.js` 优先请求中国福利彩票官网接口 `findDrawNotice?name=kl8`，若云服务器 IP 遇到拦截则自动切换公开每日镜像源兜底；仅当记录实际新增时才提交更新。
 
 ## 五、运行自动测试
