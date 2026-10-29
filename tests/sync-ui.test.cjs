@@ -112,3 +112,28 @@ test('数据同步保护：连续追加、跨年首期衔接、期号断档拦�
   assert.equal(T.isNextConsecutiveCode('2026351', '2027001'), true);
   assert.equal(T.isNextConsecutiveCode('2026282', '2027001'), false, '10月期号不能直接跨年跳到次年001');
 });
+
+test('北京时间开奖边界与数据新鲜度：缺失、延迟、休市和今日数据不混淆', () => {
+  const { T } = loadPage();
+  const before = new Date('2026-10-29T13:29:59Z');
+  const after = new Date('2026-10-29T13:30:00Z');
+  assert.match(T.drawFreshness('2026-10-28', before).text, /尚未到/);
+  const stale = T.drawFreshness('2026-10-28', after);
+  assert.equal(stale.warn, true);
+  assert.match(stale.text, /尚无今日开奖/);
+  assert.match(stale.text, /休市/);
+  assert.equal(T.drawFreshness('2026-10-29', after).warn, false);
+  assert.match(T.drawFreshness('2026-10-29', after).text, /今日开奖/);
+  assert.equal(T.drawFreshness('', after).warn, true);
+  assert.equal(T.drawFreshness('2026-10-30', after).warn, true);
+  // 北京时间跨日，不能依赖设备当地时区。
+  assert.match(T.drawFreshness('2026-10-29', new Date('2026-10-29T16:00:00Z')).text, /尚未到/);
+});
+
+test('一键同步离线失败：明确提示，不把缓存或本地旧结果说成最新', async () => {
+  const { T, document } = loadPage({ fetch: async () => { throw new Error('offline'); } });
+  await T.syncNow();
+  assert.match(document.getElementById('ssMsg').textContent, /无法读取/);
+  assert.match(document.getElementById('syncLog').textContent, /读取失败/);
+  assert.equal(document.getElementById('syncBtn').disabled, false);
+});
