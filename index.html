@@ -7,7 +7,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png">
 <link rel="apple-touch-icon" href="./icon-180.png">
-<title>快乐8每日选号工具 · 每日10注</title>
+<title>快乐8每日选号工具 · 每日推荐</title>
 <style>
 :root{
   --ink:#1e293b;
@@ -199,7 +199,7 @@ h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--
   <header>
     <div>
       <h1>快乐8每日选号工具 <span class="brand-pill">20/80 · 每日推荐</span></h1>
-      <div class="subtitle">10元 / 20元混合玩法推荐 · 另支持选一至选十单玩法</div>
+      <div class="subtitle">10元至50元混合玩法推荐 · 单倍投注</div>
     </div>
     <div class="count"><b id="totalCount">--</b>期历史开奖</div>
   </header>
@@ -213,41 +213,21 @@ h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--
   </div>
 
   <section class="card" aria-labelledby="recommendTitle">
-    <h2 id="recommendTitle">每日推荐方案 <span class="tag">单倍 · 混合玩法</span></h2>
-    <p class="desc">任选一个预算，不用同时购买。10元版：3注选四＋1注选五＋1注选十；20元版：6注选四＋3注选五＋1注选十。</p>
+    <h2 id="recommendTitle">1. 每日推荐方案 <span class="tag">单倍 · 混合玩法</span></h2>
+    <p class="desc">任选一个预算，不用同时购买。10元：3注选四＋1注选五＋1注选十；20元：6注选四＋3注选五＋1注选十；30元：9注选四＋5注选五＋1注选十；40元：12注选四＋6注选五＋2注选十；50元：15注选四＋8注选五＋2注选十。</p>
     <div class="mode-tabs" role="group" aria-label="选择每日预算">
       <button type="button" class="mode-btn" id="budget10">10元 · 5注</button>
       <button type="button" class="mode-btn" id="budget20">20元 · 10注</button>
+      <button type="button" class="mode-btn" id="budget30">30元 · 15注</button>
+      <button type="button" class="mode-btn" id="budget40">40元 · 20注</button>
+      <button type="button" class="mode-btn" id="budget50">50元 · 25注</button>
     </div>
     <div class="daily-toolbar" style="margin-top:14px">
       <div class="daily-target" id="recommendedSummary" aria-live="polite"></div>
       <button type="button" class="btn primary" id="copyRecommended">📋 复制推荐方案</button>
     </div>
-    <div class="notice">号码按目标期号固定生成，优先减少同玩法组合重叠；10元版号码是20元版的子集。分散不提高单注中奖概率，不保证中奖或盈利。目标期号根据本机最新开奖推算，购买前请先同步并确认期号、玩法及金额；复制后请自行保存，开奖后与官方结果核对。下方历史回放仅针对单玩法10注，不核算本混合方案。</div>
+    <div class="notice">号码按目标期号固定生成，优先减少同玩法组合重叠；较低预算的号码是较高预算的子集。分散不提高单注中奖概率，不保证中奖或盈利。目标期号根据本机最新开奖推算，购买前请先同步并确认期号、玩法及金额；复制后请自行保存，开奖后与官方结果核对。下方历史回放按当前预算模拟，并非实际购买记录。</div>
     <div class="tickets-grid" id="recommendedTickets"></div>
-  </section>
-
-  <!-- 模块 1：每日 10 注选号 -->
-  <section class="card">
-    <h2>1. 每日 10 注选号 <span class="tag">1注随机 ＋ 4注策略 ＋ 5注覆盖</span></h2>
-    <p class="desc">以下为独立的单玩法10注工具，与上方混合推荐不是同一份投注；历史回放只针对这里的单玩法方案。</p>
-    <div class="mode-wrap">
-      <div class="mode-tabs" id="modeTabs"></div>
-      <div class="mode-rule" id="modeRule"></div>
-    </div>
-    <div class="daily-toolbar">
-      <div class="daily-target">
-        目标期号 <b id="targetIssue">--</b> · 玩法 <b id="targetModeTxt">选十</b> · 10注共覆盖 <b id="coverCount">--</b> 个不同号码
-      </div>
-      <div class="actions" style="margin-top:0">
-        <button class="btn primary" id="copyAllBtn">📋 一键复制今日 10 注</button>
-        <button class="btn" id="rerollBtn">🎲 重摇第1注随机号</button>
-        <button class="btn" id="resetRandBtn" hidden>↺ 恢复今日默认随机</button>
-      </div>
-    </div>
-    <div class="notice">理性投注：10 注单倍共 20 元。开奖具有随机性，热号、遗漏和历史回放不能预测未来；分散覆盖只改变组合重叠，不保证中奖或盈利。回放按现行 10 注方案模拟，并非历史实际投注。</div>
-    <div class="tickets-grid" id="ticketsGrid"></div>
-    <div class="consensus-bar" id="consensusBar"></div>
   </section>
 
   <!-- 模块 2：录入开奖 -->
@@ -278,7 +258,7 @@ h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--
   <!-- 模块 3：历史回放 -->
   <section class="card">
     <h2>3. 历史回放 <span class="tag">无未来信息验证</span></h2>
-    <p class="desc">逐期回放均严格<b>只使用当期之前的历史数据</b>生成 10 注（切换上方「选一～选十」玩法时，回放命中与固定奖金同步切换；点击任意一行可展开查看当期生成的完整 10 注号码）。</p>
+    <p class="desc">按当前预算和当期期号重现每日推荐方案，逐注按对应玩法核奖；生成号码不使用当期或未来开奖号码。点击任意一行可查看号码。回放是按现行规则的模拟，并非历史实际投注；浮动奖按封顶估算、未扣税，过去结果不代表未来表现。</p>
     <div id="yearTabs" class="tabs"></div>
     <div id="metrics" class="metrics-layout"></div>
     <div class="scroll">
@@ -286,8 +266,8 @@ h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--
         <thead>
           <tr>
             <th class="col-period">期号 / 日期</th>
-            <th>当期开奖 20 码（红底为当期10注命中码）</th>
-            <th>10 注逐注命中（#1随机 / #2–5策略 / #6–10分散覆盖）</th>
+            <th>当期开奖 20 码（红底为方案命中码）</th>
+            <th>逐注玩法与命中</th>
             <th>当期奖金</th>
           </tr>
         </thead>
@@ -1039,9 +1019,7 @@ const COMPRESSED_DATA = [
 
 /* ==================== 常量与官方设奖规则（中国福彩快乐8现行规则） ==================== */
 const STORAGE_KEY = 'kl8_manual_draws_v1';
-const MODE_KEY = 'kl8_pick_mode_v1';
 const MAX_IMPORT_BYTES = 4 * 1024 * 1024;
-const WARMUP_PERIODS = 60;
 
 const PLAY_NAMES = {
   1:'选一', 2:'选二', 3:'选三', 4:'选四', 5:'选五',
@@ -1062,20 +1040,9 @@ const PRIZE_RULES = {
   1:  { 1:{amount:4.5} }
 };
 
-const STRATEGIES = [
-  { id:'rand', cls:'t-rand', icon:'🎲', short:'随机', name:'随机机选', badge:'纯随机基线', desc:'按目标期号与玩法定种机选（可手动重摇），作纯粹随机对照' },
-  { id:'hot',  cls:'t-hot',  icon:'🔥', short:'热势', name:'热势恒强', badge:'近期热码＋重号斜连', desc:'追踪 EMA 短中周期活跃热码、上期温热重号与斜连邻号动量' },
-  { id:'omit', cls:'t-omit', icon:'🎯', short:'回补', name:'遗漏回补', badge:'饱和度U型回补', desc:'捕捉个人历史遗漏 80%–98% 临界区与高活性热码短休回补窗' },
-  { id:'link', cls:'t-link', icon:'🔗', short:'共振', name:'关联共振', badge:'期际跟随＋共现搭档', desc:'基于近 180 期条件转移升幅与同尾、两连号高频共现协同选码' },
-  { id:'bal',  cls:'t-bal',  icon:'⚖️', short:'均衡', name:'四区均衡', badge:'多因子黄金配比', desc:'融合贝叶斯频率、等隔韵律与四区奇偶均衡配额，适度跨注去重' },
-  ...Array.from({length: 5}, (_, i) => ({ id:'cover' + (i + 1), cls:'t-bal', icon:'🧩', short:'覆盖' + (i + 1), name:'分散覆盖 ' + (i + 1), badge:'优先低频覆盖', desc:'优先选择前面精选注中出现较少的号码，平衡覆盖；不代表更高的单注中奖概率' }))
-];
-
 /* ==================== 基础数据与期号工具 ==================== */
 let BASE_DRAWS = [], BASE_CODES = [], BASE_DATES = [];
 let addedDraws = [], addedCodes = [], addedDates = [];
-let currentPick = 10;
-let rerollNonce = 0;
 let selectedScope = null;
 let expandedIssue = null;
 let dataVersion = 0;
@@ -1202,16 +1169,6 @@ function loadManual(){
     return { draws: [], codes: [], dates: [] };
   }
 }
-function loadPickMode(){
-  try {
-    const v = Number(localStorage.getItem(MODE_KEY));
-    if (Number.isInteger(v) && v >= 1 && v <= 10) return v;
-  } catch (e) {}
-  return 10;
-}
-function savePickMode(k){
-  try { localStorage.setItem(MODE_KEY, String(k)); } catch (e) {}
-}
 function allData(){
   const draws = BASE_DRAWS.concat(addedDraws);
   const codes = BASE_CODES.concat(addedCodes);
@@ -1272,321 +1229,6 @@ function mulberry32(seed){
   };
 }
 
-function createRollingState(){
-  return {
-    count: 0,
-    emaFast: new Float64Array(81),
-    freq15: new Int16Array(81),
-    freq30: new Int16Array(81),
-    freq50: new Int16Array(81),
-    freq100: new Int16Array(81),
-    freq180: new Int16Array(81),
-    lastSeen: new Int32Array(81).fill(-1),
-    maxDoneOmit: new Int32Array(81),
-    appearCount: new Int32Array(81),
-    sumGap: new Float64Array(81),
-    sumSqGap: new Float64Array(81),
-    trans180: new Int16Array(81 * 81),
-    pair180: new Int16Array(81 * 81),
-    last1Mask: new Uint8Array(81),
-    last2Mask: new Uint8Array(81),
-    lastDraw: null
-  };
-}
-
-function stepRollingState(st, nums, idx, allDraws){
-  for (let n = 1; n <= 80; n++) {
-    st.emaFast[n] *= 0.82;
-    st.last2Mask[n] = st.last1Mask[n];
-    st.last1Mask[n] = 0;
-  }
-  for (let k = 0; k < 20; k++) {
-    const n = nums[k];
-    st.emaFast[n] += 0.18;
-    st.last1Mask[n] = 1;
-    st.freq15[n]++;
-    st.freq30[n]++;
-    st.freq50[n]++;
-    st.freq100[n]++;
-    st.freq180[n]++;
-    const gap = st.lastSeen[n] < 0 ? idx : (idx - 1 - st.lastSeen[n]);
-    if (gap > st.maxDoneOmit[n]) st.maxDoneOmit[n] = gap;
-    st.appearCount[n]++;
-    st.sumGap[n] += gap;
-    st.sumSqGap[n] += gap * gap;
-    st.lastSeen[n] = idx;
-  }
-  if (idx >= 15)  { const old = allDraws[idx - 15];  for (let k = 0; k < 20; k++) st.freq15[old[k]]--; }
-  if (idx >= 30)  { const old = allDraws[idx - 30];  for (let k = 0; k < 20; k++) st.freq30[old[k]]--; }
-  if (idx >= 50)  { const old = allDraws[idx - 50];  for (let k = 0; k < 20; k++) st.freq50[old[k]]--; }
-  if (idx >= 100) { const old = allDraws[idx - 100]; for (let k = 0; k < 20; k++) st.freq100[old[k]]--; }
-  if (idx >= 180) { const old = allDraws[idx - 180]; for (let k = 0; k < 20; k++) st.freq180[old[k]]--; }
-
-  if (idx >= 1) {
-    const prev = allDraws[idx - 1];
-    for (let a = 0; a < 20; a++) {
-      const pa = prev[a] * 81, ca = nums[a] * 81;
-      for (let b = 0; b < 20; b++) {
-        st.trans180[pa + nums[b]]++;
-        if (a !== b) st.pair180[ca + nums[b]]++;
-      }
-    }
-  } else {
-    for (let a = 0; a < 20; a++) {
-      const ca = nums[a] * 81;
-      for (let b = 0; b < 20; b++) if (a !== b) st.pair180[ca + nums[b]]++;
-    }
-  }
-
-  if (idx >= 180) {
-    const remCur = allDraws[idx - 180];
-    for (let a = 0; a < 20; a++) {
-      const ca = remCur[a] * 81;
-      for (let b = 0; b < 20; b++) if (a !== b) st.pair180[ca + remCur[b]]--;
-    }
-    if (idx >= 181) {
-      const remPrev = allDraws[idx - 181];
-      for (let a = 0; a < 20; a++) {
-        const pa = remPrev[a] * 81;
-        for (let b = 0; b < 20; b++) st.trans180[pa + remCur[b]]--;
-      }
-    }
-  }
-  st.lastDraw = nums;
-  st.count = idx + 1;
-}
-
-// 预分配排序辅助缓冲区，降低 2000+ 期历史回放的 GC 开销
-const _ORD = new Int32Array(80);
-const _SC2 = new Float64Array(81);
-const _SC3 = new Float64Array(81);
-const _SC5 = new Float64Array(81);
-const _FOL = new Float64Array(81);
-const _TAIL = new Float64Array(10);
-const _USED = new Uint8Array(81);
-const _IN = new Uint8Array(81);
-const _POOL = new Int32Array(80);
-
-function sortBallsByScore(scoreArr){
-  for (let i = 0; i < 80; i++) _ORD[i] = i + 1;
-  for (let i = 1; i < 80; i++) {
-    const key = _ORD[i];
-    const sk = scoreArr[key];
-    let j = i - 1;
-    while (j >= 0) {
-      const nb = _ORD[j];
-      const sb = scoreArr[nb];
-      if (sb < sk || (sb === sk && nb > key)) {
-        _ORD[j + 1] = nb;
-        j--;
-      } else break;
-    }
-    _ORD[j + 1] = key;
-  }
-}
-
-function pickGuarded(scoreArr, K, maxPerQuad, maxRun){
-  sortBallsByScore(scoreArr);
-  const chosen = [];
-  const qCnt = [0, 0, 0, 0];
-  _IN.fill(0);
-  for (let i = 0; i < 80 && chosen.length < K; i++) {
-    const n = _ORD[i];
-    const q = getQuad(n);
-    if (K >= 4 && qCnt[q] >= maxPerQuad) continue;
-    let run = 1, l = n - 1, r = n + 1;
-    while (l >= 1 && _IN[l]) { run++; l--; }
-    while (r <= 80 && _IN[r]) { run++; r++; }
-    if (run > maxRun) continue;
-    chosen.push(n);
-    qCnt[q]++;
-    _IN[n] = 1;
-  }
-  for (let i = 0; i < 80 && chosen.length < K; i++) {
-    const n = _ORD[i];
-    if (!_IN[n]) { chosen.push(n); _IN[n] = 1; }
-  }
-  chosen.sort((a, b) => a - b);
-  return chosen;
-}
-
-function selectFromState(st, targetCode, K, nonce){
-  if (st.count < WARMUP_PERIODS) return null;
-  const pickK = Math.max(1, Math.min(10, Number(K) || 10));
-  const t = st.count;
-  const rNonce = Number(nonce) || 0;
-
-  // 第 1 注：定种随机机选（可手动重摇）
-  const seed = fnv1a('KL8:' + targetCode + ':K' + pickK + ':R' + rNonce);
-  const rng = mulberry32(seed);
-  for (let i = 0; i < 80; i++) _POOL[i] = i + 1;
-  for (let i = 0; i < pickK; i++) {
-    const j = i + Math.floor(rng() * (80 - i));
-    const tmp = _POOL[i]; _POOL[i] = _POOL[j]; _POOL[j] = tmp;
-  }
-  const t1 = Array.from(_POOL.subarray(0, pickK)).sort((a, b) => a - b);
-
-  // 第 2 注：热势恒强（EMA 近期动量 + 重号 + 斜连邻号）
-  for (let n = 1; n <= 80; n++) {
-    const in1 = st.last1Mask[n], in2 = st.last2Mask[n];
-    let diag = 0;
-    if (n > 1 && st.last1Mask[n - 1]) { diag += 1.0; if (n > 2 && st.last2Mask[n - 2]) diag += 0.7; }
-    if (n < 80 && st.last1Mask[n + 1]) { diag += 1.0; if (n < 79 && st.last2Mask[n + 2]) diag += 0.7; }
-    const repBonus = in1 ? (st.freq15[n] >= 4 ? 3.4 : 1.1) : (in2 && st.freq15[n] >= 5 ? 1.9 : 0);
-    _SC2[n] = st.emaFast[n] * 40 + st.freq15[n] * 2.3 + st.freq50[n] * 0.42 + repBonus + diag * 1.85;
-  }
-  const t2 = pickGuarded(_SC2, pickK, Math.max(2, Math.ceil(pickK * 0.45)), 3);
-
-  // 第 3 注：遗漏回补（个人遗漏饱和度 U 型临界区 + 热码短休回补）
-  const w100 = Math.min(100, t);
-  const exp100 = w100 * 0.25;
-  for (let n = 1; n <= 80; n++) {
-    const omit = st.lastSeen[n] < 0 ? t : (t - 1 - st.lastSeen[n]);
-    const mx = st.maxDoneOmit[n];
-    const sat = mx > 0 ? omit / mx : 1;
-    let satScore = 0;
-    if (sat >= 0.84 && sat < 0.98) satScore = 28;
-    else if (sat >= 0.98 && sat <= 1.12) satScore = 20;
-    else if (sat >= 0.72 && sat < 0.84) satScore = 13;
-    else if (sat > 1.25) satScore = -9;
-    if (omit >= 4 && omit <= 8 && st.freq100[n] >= exp100 + 2) {
-      const sweet = 19 + (st.freq100[n] - exp100) * 1.15;
-      if (sweet > satScore) satScore = sweet;
-    }
-    if (omit <= 1) satScore -= 14;
-    _SC3[n] = satScore + (st.freq100[n] - exp100) * 0.65 + (omit >= 3 && omit <= 11 ? 3.5 : 0);
-  }
-  const t3 = pickGuarded(_SC3, pickK, Math.max(2, Math.ceil(pickK * 0.36)), 2);
-
-  // 第 4 注：关联共振（近 180 期条件转移升幅 + 同尾/连号共现搭档）
-  _USED.fill(0);
-  for (let i = 0; i < t2.length; i++) _USED[t2[i]]++;
-  for (let i = 0; i < t3.length; i++) _USED[t3[i]]++;
-  _TAIL.fill(0);
-  const last = st.lastDraw;
-  const w180 = Math.min(180, t);
-  for (let k = 0; k < 20; k++) _TAIL[last[k] % 10] += 1;
-  for (let n = 1; n <= 80; n++) {
-    let trSum = 0;
-    for (let k = 0; k < 20; k++) trSum += st.trans180[last[k] * 81 + n];
-    const uPen = _USED[n] >= 2 ? 3.0 : _USED[n] === 1 ? 1.1 : 0;
-    _FOL[n] = (trSum / 20) * 8.5 - st.freq180[n] * 0.62 + _TAIL[n % 10] * 0.75 - uPen;
-  }
-  const chosen4 = [];
-  _IN.fill(0);
-  const tail4 = [0,0,0,0,0,0,0,0,0,0];
-  for (let step = 0; step < pickK; step++) {
-    let bestN = -1, bestVal = -1e9;
-    for (let n = 1; n <= 80; n++) {
-      if (_IN[n]) continue;
-      if (pickK >= 4 && tail4[n % 10] >= 2) continue;
-      let val = _FOL[n];
-      const clen = chosen4.length;
-      if (clen > 0) {
-        let pairSum = 0, adj = 0;
-        const fn = st.freq180[n];
-        for (let c = 0; c < clen; c++) {
-          const m = chosen4[c];
-          const expPair = (st.freq180[m] * fn) / w180;
-          pairSum += (st.pair180[m * 81 + n] - expPair * 0.85);
-          if (m - n === 1 || n - m === 1) adj++;
-        }
-        val += (pairSum / clen) * 1.45;
-        if (adj === 1) val += 1.3;
-        else if (adj >= 2) val -= 4.0;
-        if (tail4[n % 10] === 1) val += 0.9;
-      }
-      if (val > bestVal) { bestVal = val; bestN = n; }
-    }
-    if (bestN < 0) {
-      for (let n = 1; n <= 80; n++) if (!_IN[n]) { bestN = n; break; }
-    }
-    chosen4.push(bestN);
-    _IN[bestN] = 1;
-    tail4[bestN % 10]++;
-  }
-  chosen4.sort((a, b) => a - b);
-  const t4 = chosen4;
-
-  // 第 5 注：四区均衡（贝叶斯多窗口频率 + 等隔韵律 + 四区奇偶黄金配比 + 适度去重）
-  for (let i = 0; i < t4.length; i++) _USED[t4[i]]++;
-  const w30 = Math.min(30, t);
-  for (let n = 1; n <= 80; n++) {
-    const omit = st.lastSeen[n] < 0 ? t : (t - 1 - st.lastSeen[n]);
-    const cnt = st.appearCount[n];
-    const meanGap = cnt > 0 ? st.sumGap[n] / cnt : 3.0;
-    const varGap = cnt > 1 ? Math.max(0.5, st.sumSqGap[n] / cnt - meanGap * meanGap) : 9.0;
-    const diff = omit >= meanGap ? omit - meanGap : meanGap - omit;
-    const rhythmBonus = Math.max(-2, 4.5 - diff * 1.1) + (6.0 / Math.sqrt(varGap));
-    const bayesRate = ((st.freq30[n] + 3.0) / (w30 + 12.0)) * 65 + ((st.freq100[n] + 5.0) / (w100 + 20.0)) * 40;
-    const divPen = _USED[n] >= 2 ? 1.8 : _USED[n] === 1 ? 2.6 : 0;
-    _SC5[n] = bayesRate + rhythmBonus + _FOL[n] * 0.25 - divPen;
-  }
-  sortBallsByScore(_SC5);
-  const baseQ = Math.floor(pickK / 4), remQ = pickK % 4;
-  const qTopSum = [0, 0, 0, 0], qSeen = [0, 0, 0, 0];
-  for (let i = 0; i < 80; i++) {
-    const n = _ORD[i], q = getQuad(n);
-    if (qSeen[q] < 2) { qTopSum[q] += _SC5[n]; qSeen[q]++; }
-  }
-  const qOrder = [0, 1, 2, 3].sort((a, b) => qTopSum[b] - qTopSum[a] || a - b);
-  const qQuota = [baseQ, baseQ, baseQ, baseQ];
-  for (let r = 0; r < remQ; r++) qQuota[qOrder[r]]++;
-  const maxOdd = Math.ceil(pickK / 2) + (pickK >= 6 ? 1 : 0);
-  const maxEven = Math.ceil(pickK / 2) + (pickK >= 6 ? 1 : 0);
-
-  const chosen5 = [];
-  const qUsed = [0, 0, 0, 0];
-  _IN.fill(0);
-  let oddCnt = 0, evenCnt = 0;
-  for (let i = 0; i < 80 && chosen5.length < pickK; i++) {
-    const n = _ORD[i], q = getQuad(n), isOdd = n & 1;
-    if (qUsed[q] >= qQuota[q]) continue;
-    if (pickK >= 2) {
-      if (isOdd && oddCnt >= maxOdd) continue;
-      if (!isOdd && evenCnt >= maxEven) continue;
-    }
-    chosen5.push(n);
-    _IN[n] = 1;
-    qUsed[q]++;
-    if (isOdd) oddCnt++; else evenCnt++;
-  }
-  for (let i = 0; i < 80 && chosen5.length < pickK; i++) {
-    const n = _ORD[i];
-    if (!_IN[n]) { chosen5.push(n); _IN[n] = 1; }
-  }
-  chosen5.sort((a, b) => a - b);
-  // 增加五注分散覆盖：不依赖可重摇的第一注，保证重摇仅影响第一注。
-  const tickets = [t1, t2, t3, t4, chosen5];
-  const frequency = new Uint8Array(81);
-  for (const ticket of tickets.slice(1)) for (const n of ticket) frequency[n]++;
-  const coverRng = mulberry32(fnv1a('KL8:' + targetCode + ':K' + pickK + ':coverage'));
-  for (let i = 0; i < 5; i++) {
-    const order = Array.from({length: 80}, (_, n) => ({ n: n + 1, tie: coverRng() }));
-    order.sort((a, b) => frequency[a.n] - frequency[b.n] || a.tie - b.tie);
-    const next = order.slice(0, pickK).map(x => x.n).sort((a, b) => a - b);
-    tickets.push(next);
-    for (const n of next) frequency[n]++;
-  }
-  return tickets;
-}
-
-/** 独立生成某期 10 注（只喂入 histDraws，用于今日预测与单测无未来信息校验） */
-function generateDailyTickets(histDraws, targetCode, pickK, nonce){
-  if (!Array.isArray(histDraws) || histDraws.length < WARMUP_PERIODS) return null;
-  const st = createRollingState();
-  for (let i = 0; i < histDraws.length; i++) {
-    stepRollingState(st, histDraws[i], i, histDraws);
-  }
-  const tickets = selectFromState(st, targetCode, pickK, nonce || 0);
-  const omits = new Int32Array(81);
-  for (let n = 1; n <= 80; n++) {
-    omits[n] = st.lastSeen[n] < 0 ? st.count : (st.count - 1 - st.lastSeen[n]);
-  }
-  return { tickets, omits, lastDraw: st.lastDraw };
-}
-
-/* ==================== 渲染：顶部最新开奖 & 模块1 每日 10 注 ==================== */
 function ticketShape(nums){
   let oddC = 0, bigC = 0, sum = 0;
   const q = [0, 0, 0, 0];
@@ -1627,22 +1269,30 @@ function renderLatestDraw(draws, codes, dates){
 // 推荐方案使用期号定种的随机组合，贪心减少同玩法已选号码的重复。
 // 这只是管理覆盖，不是对开奖结果的预测。
 function generateRecommendedPlan(code, budget){
-  const count4 = budget === 10 ? 3 : 6;
-  const count5 = budget === 10 ? 1 : 3;
+  const allocation = PLAN_ALLOCATIONS[budget];
+  if (!allocation) throw new RangeError('无效预算');
+  const [count4, count5, count10] = allocation;
   function choose(k, count){
     const rng = mulberry32(fnv1a('KL8:recommend:' + code + ':K' + k));
     const used = new Uint8Array(81), seen = new Set(), result = [];
+    // 稀疏洗牌：只记录交换过的位置，等价于每次初始化 01–80 的数组。
+    const pool = new Uint8Array(80), stamps = new Uint32Array(80);
+    let stamp = 0;
     for (let i = 0; i < count; i++) {
       let best = null, bestScore = Infinity;
       for (let c = 0; c < 32; c++) {
-        const pool = Array.from({length: 80}, (_, n) => n + 1);
+        stamp++;
+        const nums = [];
+        let score = 0;
         for (let j = 0; j < k; j++) {
           const q = j + Math.floor(rng() * (80 - j));
-          const tmp = pool[j]; pool[j] = pool[q]; pool[q] = tmp;
+          const selected = stamps[q] === stamp ? pool[q] : q + 1;
+          const replacement = stamps[j] === stamp ? pool[j] : j + 1;
+          pool[q] = replacement; stamps[q] = stamp;
+          nums.push(selected); score += used[selected];
         }
-        const nums = pool.slice(0, k).sort((a, b) => a - b);
+        nums.sort((a, b) => a - b);
         const key = nums.join(',');
-        const score = nums.reduce((sum, n) => sum + used[n], 0);
         if (!seen.has(key) && score < bestScore) { best = nums; bestScore = score; }
       }
       if (!best) throw new Error('无法生成不重复的推荐组合');
@@ -1652,8 +1302,9 @@ function generateRecommendedPlan(code, budget){
     }
     return result;
   }
-  return choose(4, count4).concat(choose(5, count5), choose(10, 1));
+  return choose(4, count4).concat(choose(5, count5), choose(10, count10));
 }
+const PLAN_ALLOCATIONS = Object.freeze({ 10:[3,1,1], 20:[6,3,1], 30:[9,5,1], 40:[12,6,2], 50:[15,8,2] });
 let recommendedBudget = 20;
 let lastRecommended = null;
 function formatRecommendedText(plan){
@@ -1665,7 +1316,7 @@ function renderRecommended(){
   const code = expectedCode();
   const tickets = generateRecommendedPlan(code, recommendedBudget);
   lastRecommended = { code, budget: recommendedBudget, tickets };
-  for (const budget of [10, 20]) {
+  for (const budget of Object.keys(PLAN_ALLOCATIONS).map(Number)) {
     const btn = document.getElementById('budget' + budget);
     btn.classList.toggle('active', budget === recommendedBudget);
     btn.setAttribute('aria-pressed', String(budget === recommendedBudget));
@@ -1677,122 +1328,14 @@ function renderRecommended(){
   ).join('');
 }
 function setRecommendedBudget(budget){
-  if (budget !== 10 && budget !== 20) return;
+  if (!PLAN_ALLOCATIONS[budget]) return;
   recommendedBudget = budget;
   try { localStorage.setItem('kl8_recommended_budget_v1', String(budget)); } catch (e) {}
-  renderRecommended();
-}
-
-function renderModeBar(){
-  const wrap = document.getElementById('modeTabs');
-  wrap.innerHTML = [10,9,8,7,6,5,4,3,2,1].map(k =>
-    '<button type="button" class="mode-btn' + (k === currentPick ? ' active' : '') + '" data-pick="' + k + '">' +
-    PLAY_NAMES[k] + (k === 10 ? '（默认）' : '') + '</button>'
-  ).join('');
-  wrap.querySelectorAll('.mode-btn').forEach(btn => {
-    btn.addEventListener('click', () => setPickMode(Number(btn.dataset.pick)));
-  });
-  document.getElementById('modeRule').innerHTML =
-    '<span>当前规则：<b>' + PLAY_NAMES[currentPick] + '</b>（每注选 <b>' + currentPick + '</b> 个号，单注 2 元，每日 10 注共 20 元）</span>' +
-    '<span>设奖：' + escapeHtml(describeModeRule(currentPick)) + '</span>';
-}
-
-let lastDailyRender = null;
-function renderDailyFive(draws){
-  const code = expectedCode();
-  const res = generateDailyTickets(draws, code, currentPick, rerollNonce);
-  document.getElementById('targetIssue').textContent = code;
-  document.getElementById('targetModeTxt').textContent = PLAY_NAMES[currentPick] + '（每注' + currentPick + '码）';
-  document.getElementById('resetRandBtn').hidden = rerollNonce === 0;
-
-  if (!res) {
-    document.getElementById('ticketsGrid').innerHTML = '<div class="notice">历史数据不足 60 期预热门槛，暂无法生成策略号码。</div>';
-    return;
-  }
-  const { tickets, omits, lastDraw } = res;
-  const lastSet = new Set(lastDraw || []);
-
-  const stratFreq = new Uint8Array(81);
-  const allUnique = new Set();
-  const quadCover = [0, 0, 0, 0];
-  for (let ti = 0; ti < tickets.length; ti++) {
-    for (const n of tickets[ti]) {
-      if (!allUnique.has(n)) {
-        allUnique.add(n);
-        quadCover[getQuad(n)]++;
-      }
-      if (ti >= 1) stratFreq[n]++;
-    }
-  }
-  document.getElementById('coverCount').textContent = allUnique.size;
-  lastDailyRender = { code, pickK: currentPick, tickets };
-
-  const grid = document.getElementById('ticketsGrid');
-  grid.innerHTML = tickets.map((nums, idx) => {
-    const st = STRATEGIES[idx];
-    const sh = ticketShape(nums);
-    const ballsHtml = nums.map(n => {
-      const isCons = idx >= 1 && stratFreq[n] >= 2;
-      const tip = pad2(n) + '号 · ' + (lastSet.has(n) ? '上期重号' : ('当前遗漏 ' + omits[n] + ' 期')) +
-        (isCons ? (' · ' + stratFreq[n] + '注策略共识码') : '');
-      return '<span class="ball q' + getQuad(n) + (isCons ? ' consensus' : '') + '" title="' + escapeHtml(tip) + '">' + pad2(n) + '</span>';
-    }).join('');
-    const randTag = (idx === 0 && rerollNonce > 0) ? '（手动重摇 #' + rerollNonce + '）' : '';
-    return '<div class="ticket-card ' + st.cls + '">' +
-      '<div class="tk-top">' +
-        '<div class="tk-title">' +
-          '<span class="tk-idx">第 ' + (idx + 1) + ' 注</span>' +
-          '<span class="tk-name">' + st.icon + ' ' + st.name + escapeHtml(randTag) + '</span>' +
-          '<span class="tk-badge">' + st.badge + '</span>' +
-          '<span class="tk-desc">' + escapeHtml(st.desc) + '</span>' +
-        '</div>' +
-        '<button type="button" class="btn-xs copy-one" data-idx="' + idx + '">复制本注</button>' +
-      '</div>' +
-      '<div class="tk-body">' +
-        '<div class="tk-balls">' + ballsHtml + '</div>' +
-        '<div class="tk-meta">' +
-          '<span>奇偶 ' + sh.oddEven + '</span>' +
-          '<span>大小 ' + sh.bigSmall + '</span>' +
-          '<span>四区 ' + sh.quads + '</span>' +
-          '<span>和值 ' + sh.sum + '</span>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-
-  grid.querySelectorAll('.copy-one').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const i = Number(btn.dataset.idx);
-      const line = formatTicketLine(tickets[i]);
-      copyText(line, btn, '✅ 已复制');
-    });
-  });
-
-  const consensusNums = [];
-  for (let n = 1; n <= 80; n++) if (stratFreq[n] >= 2) consensusNums.push({ n, c: stratFreq[n] });
-  consensusNums.sort((a, b) => b.c - a.c || a.n - b.n);
-
-  const consHtml = consensusNums.length
-    ? consensusNums.map(x => '<span class="ball sm q' + getQuad(x.n) + ' consensus" title="' + x.c + '注策略同时选中">' + pad2(x.n) + '</span>').join('')
-    : '<span style="color:var(--muted)">本期精选号码无重叠</span>';
-
-  document.getElementById('consensusBar').innerHTML =
-    '<div class="consensus-left"><b>★ 多策略共识号（≥2注精选同选）：</b>' + consHtml + '</div>' +
-    '<div class="quad-legend">' +
-      '<span><i style="background:var(--q1)"></i>一区(01-20) ' + quadCover[0] + '码</span>' +
-      '<span><i style="background:var(--q2)"></i>二区(21-40) ' + quadCover[1] + '码</span>' +
-      '<span><i style="background:var(--q3)"></i>三区(41-60) ' + quadCover[2] + '码</span>' +
-      '<span><i style="background:var(--q4)"></i>四区(61-80) ' + quadCover[3] + '码</span>' +
-    '</div>';
+  refresh();
 }
 
 function formatTicketLine(nums){
   return nums.slice().sort((a, b) => a - b).map(pad2).join('、');
-}
-function formatAllTicketsText(){
-  if (!lastDailyRender) return '';
-  const { tickets } = lastDailyRender;
-  return tickets.map(t => formatTicketLine(t)).join('\n');
 }
 function copyText(text, btn, okLabel){
   if (!text) return;
@@ -1820,88 +1363,50 @@ function fallbackCopy(text, done){
 }
 
 /* ==================== 历史回放构建与渲染 ==================== */
-function makeScopeStats(){
-  return {
-    periods: 0,
-    anyWinPeriods: 0,
-    totalCost: 0,
-    totalPrize: 0,
-    maxPeriodPrize: 0,
-    floatingHits: 0,
-    perStrat: Array.from({ length: STRATEGIES.length }, () => ({ hitsSum: 0, winCount: 0, prizeSum: 0, maxHits: 0 }))
-  };
+function makeScopeStats(count){
+  return { periods: 0, anyWinPeriods: 0, totalCost: 0, totalPrize: 0, maxPeriodPrize: 0, floatingHits: 0,
+    perStrat: Array.from({length: count}, () => ({ hitsSum: 0, winCount: 0, prizeSum: 0, maxHits: 0 })) };
 }
 function accScopeStats(stats, item){
   stats.periods++;
   stats.totalCost += item.evals.length * 2;
   stats.totalPrize += item.periodPrize;
-  if (item.periodPrize > 0) stats.anyWinPeriods++;
-  if (item.periodPrize > stats.maxPeriodPrize) stats.maxPeriodPrize = item.periodPrize;
+  if (item.evals.some(e => e.win)) stats.anyWinPeriods++;
+  stats.maxPeriodPrize = Math.max(stats.maxPeriodPrize, item.periodPrize);
   if (item.hasFloating) stats.floatingHits++;
-  for (let s = 0; s < STRATEGIES.length; s++) {
-    const tr = item.evals[s];
-    const ps = stats.perStrat[s];
+  item.evals.forEach((tr, i) => {
+    const ps = stats.perStrat[i];
     ps.hitsSum += tr.hits;
     if (tr.win) ps.winCount++;
     ps.prizeSum += tr.amount;
-    if (tr.hits > ps.maxHits) ps.maxHits = tr.hits;
-  }
+    ps.maxHits = Math.max(ps.maxHits, tr.hits);
+  });
 }
-
-function buildArchive(draws, codes, dates, pickK){
-  const cacheKey = dataVersion + ':' + draws.length + ':' + pickK;
-  if (archiveCacheMap.has(cacheKey)) return archiveCacheMap.get(cacheKey);
-
-  const st = createRollingState();
-  const byYear = {};
-  const statsByScope = {};
-  const allItems = [];
-  const winMask = new Uint8Array(81);
-
+function buildArchive(draws, codes, dates, budget){
+  if (!PLAN_ALLOCATIONS[budget]) throw new RangeError('无效预算');
+  const byYear = {}, statsByScope = {}, allItems = [];
   for (let i = 0; i < draws.length; i++) {
-    if (i >= WARMUP_PERIODS) {
-      const code = codes[i];
-      const date = dates[i] || '';
-      const year = code.slice(0, 4);
-      const tickets = selectFromState(st, code, pickK, 0);
-      const actual = draws[i];
-      winMask.fill(0);
-      for (let k = 0; k < 20; k++) winMask[actual[k]] = 1;
-
-      const evals = [];
-      let periodPrize = 0;
-      let hasFloating = false;
-      const hitUnion = new Set();
-      for (let s = 0; s < STRATEGIES.length; s++) {
-        const tk = tickets[s];
-        let h = 0;
-        for (let m = 0; m < tk.length; m++) {
-          if (winMask[tk[m]]) { h++; hitUnion.add(tk[m]); }
-        }
-        const pz = evalPrize(pickK, h);
-        periodPrize += pz.amount;
-        if (pz.floating) hasFloating = true;
-        evals.push({ nums: tk, hits: h, win: pz.win, amount: pz.amount, floating: pz.floating, zero: pz.zero });
-      }
-
-      const item = { code, date, year, actual, evals, periodPrize, hasFloating, hitSet: hitUnion };
-      (byYear[year] || (byYear[year] = [])).push(item);
-      if (!statsByScope[year]) statsByScope[year] = makeScopeStats();
-      accScopeStats(statsByScope[year], item);
-      allItems.push(item);
-    }
-    stepRollingState(st, draws[i], i, draws);
+    const code = codes[i], date = dates[i] || '', year = code.slice(0, 4);
+    const actual = draws[i], actualSet = new Set(actual), hitSet = new Set();
+    const tickets = generateRecommendedPlan(code, budget);
+    const evals = tickets.map(t => {
+      let hits = 0;
+      for (const n of t.nums) if (actualSet.has(n)) { hits++; hitSet.add(n); }
+      const pz = evalPrize(t.pickK, hits);
+      return { pickK: t.pickK, nums: t.nums, hits, win: pz.win, amount: pz.amount, floating: pz.floating, zero: pz.zero };
+    });
+    const periodPrize = evals.reduce((sum, e) => sum + e.amount, 0);
+    const item = { code, date, year, actual, evals, periodPrize, hasFloating: evals.some(e => e.floating), hitSet };
+    (byYear[year] || (byYear[year] = [])).push(item);
+    if (!statsByScope[year]) statsByScope[year] = makeScopeStats(tickets.length);
+    accScopeStats(statsByScope[year], item);
+    allItems.push(item);
   }
-
-  const recent100 = allItems.slice(-100);
-  const recentStats = makeScopeStats();
-  for (let i = 0; i < recent100.length; i++) accScopeStats(recentStats, recent100[i]);
-  byYear['recent100'] = recent100;
-  statsByScope['recent100'] = recentStats;
-
-  const built = { byYear, statsByScope, pickK };
-  archiveCacheMap.set(cacheKey, built);
-  return built;
+  const recent100 = allItems.slice(-100), recentStats = makeScopeStats(budget / 2);
+  for (const item of recent100) accScopeStats(recentStats, item);
+  byYear.recent100 = recent100;
+  statsByScope.recent100 = recentStats;
+  return { byYear, statsByScope, budget };
 }
 
 function renderArchive(archive){
@@ -1929,13 +1434,12 @@ function renderArchive(archive){
   const st = archive.statsByScope[selectedScope];
   const winPeriodRate = st.periods ? (st.anyWinPeriods / st.periods * 100).toFixed(1) : '0.0';
   const retRate = st.totalCost ? (st.totalPrize / st.totalCost * 100).toFixed(1) : '0.0';
-  const baseAvgHit = (currentPick * 0.25).toFixed(2);
-
-  const stratBoxes = STRATEGIES.map((meta, idx) => {
+  const ticketModes = PLAN_ALLOCATIONS[archive.budget].flatMap((count, i) => Array(count).fill([4, 5, 10][i]));
+  const stratBoxes = ticketModes.map((pickK, idx) => {
     const ps = st.perStrat[idx];
     const avgHit = st.periods ? (ps.hitsSum / st.periods).toFixed(2) : '0.00';
     return '<div class="sc-box">' +
-      '<span class="sc-name">' + meta.icon + ' #' + (idx + 1) + ' ' + meta.short + '</span>' +
+      '<span class="sc-name">' + '#' + (idx + 1) + ' ' + PLAY_NAMES[pickK] + '</span>' +
       '<span class="sc-hit">' + avgHit + ' 码</span>' +
       '<small>中奖 ' + ps.winCount + ' 次 · 最高中 ' + ps.maxHits + '<br>累计 ¥' + fmtMoney(ps.prizeSum) + '</small>' +
     '</div>';
@@ -1943,13 +1447,13 @@ function renderArchive(archive){
 
   document.getElementById('metrics').innerHTML =
     '<div class="metric-card v-prize">' +
-      '<div class="mc-head">' + PLAY_NAMES[currentPick] + ' · 10注有奖期占比</div>' +
+      '<div class="mc-head">' + archive.budget + '元方案 · 有奖期占比</div>' +
       '<div><span class="mc-val">' + winPeriodRate + '%</span><span class="mc-label">' + st.anyWinPeriods + ' / ' + st.periods + ' 期有奖</span></div>' +
       '<div class="mc-bar"><div class="mc-fill" style="width:' + Math.min(100, parseFloat(winPeriodRate)) + '%"></div></div>' +
       '<div class="mc-sub">累计奖金 <b>¥' + fmtMoney(st.totalPrize) + '</b> / 投入 ¥' + st.totalCost + '（返奖比 ' + retRate + '%）<br>单期最高 ¥' + fmtMoney(st.maxPeriodPrize) + (st.floatingHits ? ' · 含浮动头奖按封顶计' : '') + '</div>' +
     '</div>' +
     '<div class="metric-card">' +
-      '<div class="mc-head">10 注策略逐注场均命中球数对比（随机理论期望：' + baseAvgHit + ' 码 / 期）</div>' +
+      '<div class="mc-head">逐注场均命中球数（玩法不同，不宜直接比较）</div>' +
       '<div class="strat-compare">' + stratBoxes + '</div>' +
     '</div>';
 
@@ -1961,8 +1465,8 @@ function renderArchive(archive){
     ).join('');
     const pillsHtml = r.evals.map((ev, i) => {
       const cls = ev.win ? (ev.zero ? 'tk-pill zero-win' : 'tk-pill win') : 'tk-pill';
-      const txt = '#' + (i + 1) + ' ' + (ev.zero ? '全不中' : ('中' + ev.hits)) + (ev.win ? ('·¥' + fmtMoney(ev.amount)) : '');
-      return '<span class="' + cls + '" title="第' + (i + 1) + '注 ' + STRATEGIES[i].name + '：' + ev.nums.map(pad2).join(' ') + '">' + txt + '</span>';
+      const txt = '#' + (i + 1) + ' ' + PLAY_NAMES[ev.pickK] + ' ' + (ev.zero ? '全不中' : ('中' + ev.hits)) + (ev.win ? ('·¥' + fmtMoney(ev.amount) + (ev.floating ? '*' : '')) : '');
+      return '<span class="' + cls + '" title="第' + (i + 1) + '注 ' + PLAY_NAMES[ev.pickK] + '：' + ev.nums.map(pad2).join(' ') + '">' + txt + '</span>';
     }).join('');
     const isExp = expandedIssue === r.code;
     const totHtml = r.periodPrize > 0
@@ -1976,9 +1480,9 @@ function renderArchive(archive){
         const balls = ev.nums.map(n =>
           '<span class="d-num' + (actualSet.has(n) ? ' hit' : '') + '">' + pad2(n) + '</span>'
         ).join('');
-        const tag = ev.win ? ('<b style="color:#dc2626">¥' + fmtMoney(ev.amount) + '</b>') : '<span style="color:#94a3b8">未中奖</span>';
+        const tag = ev.win ? ('<b style="color:#dc2626">¥' + fmtMoney(ev.amount) + (ev.floating ? '*' : '') + '</b>') : '<span style="color:#94a3b8">未中奖</span>';
         return '<div class="detail-item">' +
-          '<span><b>#' + (i + 1) + ' ' + STRATEGIES[i].name + '</b>（中' + ev.hits + '码 · ' + tag + '）</span>' +
+          '<span><b>#' + (i + 1) + ' ' + PLAY_NAMES[ev.pickK] + '</b>（中' + ev.hits + '码 · ' + tag + '）</span>' +
           '<div class="detail-nums">' + balls + '</div>' +
         '</div>';
       }).join('');
@@ -2084,31 +1588,14 @@ function refresh(){
   document.getElementById('totalCount').textContent = draws.length;
   renderLatestDraw(draws, codes, dates);
   renderRecommended();
-  renderModeBar();
-  renderDailyFive(draws);
-  const archive = buildArchive(draws, codes, dates, currentPick);
+  const key = dataVersion + ":" + recommendedBudget;
+  let archive = archiveCacheMap.get(key);
+  if (!archive) { archive = buildArchive(draws, codes, dates, recommendedBudget); archiveCacheMap.set(key, archive); }
   renderArchive(archive);
 }
 
 function scheduleRefresh(){
   requestAnimationFrame(() => setTimeout(refresh, 0));
-}
-
-function setPickMode(k){
-  const next = Math.max(1, Math.min(10, Number(k) || 10));
-  if (next === currentPick) return;
-  currentPick = next;
-  rerollNonce = 0;
-  savePickMode(currentPick);
-  refresh();
-}
-function rerollRandomTicket(){
-  rerollNonce++;
-  renderDailyFive(allData().draws);
-}
-function resetRandomTicket(){
-  rerollNonce = 0;
-  renderDailyFive(allData().draws);
 }
 
 function downloadFile(name, text, type){
@@ -2124,10 +1611,8 @@ function downloadFile(name, text, type){
 
 function init(){
   ({ draws: addedDraws, codes: addedCodes, dates: addedDates } = loadManual());
-  currentPick = loadPickMode();
-  try { if (localStorage.getItem('kl8_recommended_budget_v1') === '10') recommendedBudget = 10; } catch (e) {}
-  document.getElementById('budget10').addEventListener('click', () => setRecommendedBudget(10));
-  document.getElementById('budget20').addEventListener('click', () => setRecommendedBudget(20));
+  try { const saved = Number(localStorage.getItem('kl8_recommended_budget_v1')); if (PLAN_ALLOCATIONS[saved]) recommendedBudget = saved; } catch (e) {}
+  for (const budget of Object.keys(PLAN_ALLOCATIONS).map(Number)) document.getElementById('budget' + budget).addEventListener('click', () => setRecommendedBudget(budget));
   document.getElementById('copyRecommended').addEventListener('click', e => copyText(formatRecommendedText(lastRecommended), e.currentTarget || e.target, '✅ 已复制推荐方案'));
   setupManualInput();
 
@@ -2135,12 +1620,6 @@ function init(){
   const dateEl = document.getElementById('drawDateInput');
   periodEl.value = expectedCode();
   dateEl.value = new Date().toISOString().slice(0, 10);
-
-  document.getElementById('copyAllBtn').addEventListener('click', e => {
-    copyText(formatAllTicketsText(), e.currentTarget || e.target, '✅ 已复制全部 10 注');
-  });
-  document.getElementById('rerollBtn').addEventListener('click', rerollRandomTicket);
-  document.getElementById('resetRandBtn').addEventListener('click', resetRandomTicket);
 
   document.getElementById('submitDraw').addEventListener('click', () => {
     const qBox = document.getElementById('quickNumsInput');
@@ -2165,7 +1644,6 @@ function init(){
     }
     dataVersion++;
     archiveCacheMap.clear();
-    rerollNonce = 0;
     selectedManualSet.clear();
     renderManualSelection(true);
     periodEl.value = expectedCode();
@@ -2450,7 +1928,6 @@ function applyPlan(plan){
   }
   dataVersion++;
   archiveCacheMap.clear();
-  rerollNonce = 0;
   document.getElementById('periodLabel').value = expectedCode();
   scheduleRefresh();
   return { ok: true, wrote: plan.append.length };
@@ -2691,8 +2168,6 @@ window.addEventListener('load', () => {
 window.__KL8_TEST__ = {
   PRIZE_RULES,
   PLAY_NAMES,
-  STRATEGIES,
-  WARMUP_PERIODS,
   evalPrize,
   normalizeCode,
   splitCode,
@@ -2703,10 +2178,7 @@ window.__KL8_TEST__ = {
   lastLocalCode,
   validateNums,
   parseQuickNums,
-  createRollingState,
-  stepRollingState,
-  selectFromState,
-  generateDailyTickets,
+  PLAN_ALLOCATIONS,
   generateRecommendedPlan,
   formatRecommendedText,
   setRecommendedBudget,
@@ -2722,12 +2194,6 @@ window.__KL8_TEST__ = {
   checkOnly,
   syncNow,
   repairConflicts,
-  setPickMode,
-  rerollRandomTicket,
-  resetRandomTicket,
-  get currentPick(){ return currentPick; },
-  get rerollNonce(){ return rerollNonce; },
-  get lastDailyRender(){ return lastDailyRender; },
   get lastConflictFixes(){ return lastConflictFixes; }
 };
 })();
