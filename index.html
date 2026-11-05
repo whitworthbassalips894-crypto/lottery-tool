@@ -198,8 +198,8 @@ h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--
 <div class="page">
   <header>
     <div>
-      <h1>快乐8每日选号工具 <span class="brand-pill">20/80 · 每日10注</span></h1>
-      <div class="subtitle">1 注随机机选 ＋ 4 注历史指标策略 ＋ 5 注分散覆盖· 支持选一至选十自由切换</div>
+      <h1>快乐8每日选号工具 <span class="brand-pill">20/80 · 每日推荐</span></h1>
+      <div class="subtitle">10元 / 20元混合玩法推荐 · 另支持选一至选十单玩法</div>
     </div>
     <div class="count"><b id="totalCount">--</b>期历史开奖</div>
   </header>
@@ -212,9 +212,25 @@ h2{font-size:17px;margin:0 0 14px;padding-left:10px;border-left:4px solid var(--
     <div class="lb-balls" id="latestBalls"></div>
   </div>
 
+  <section class="card" aria-labelledby="recommendTitle">
+    <h2 id="recommendTitle">每日推荐方案 <span class="tag">单倍 · 混合玩法</span></h2>
+    <p class="desc">任选一个预算，不用同时购买。10元版：3注选四＋1注选五＋1注选十；20元版：6注选四＋3注选五＋1注选十。</p>
+    <div class="mode-tabs" role="group" aria-label="选择每日预算">
+      <button type="button" class="mode-btn" id="budget10">10元 · 5注</button>
+      <button type="button" class="mode-btn" id="budget20">20元 · 10注</button>
+    </div>
+    <div class="daily-toolbar" style="margin-top:14px">
+      <div class="daily-target" id="recommendedSummary" aria-live="polite"></div>
+      <button type="button" class="btn primary" id="copyRecommended">📋 复制推荐方案</button>
+    </div>
+    <div class="notice">号码按目标期号固定生成，优先减少同玩法组合重叠；10元版号码是20元版的子集。分散不提高单注中奖概率，不保证中奖或盈利。目标期号根据本机最新开奖推算，购买前请先同步并确认期号、玩法及金额；复制后请自行保存，开奖后与官方结果核对。下方历史回放仅针对单玩法10注，不核算本混合方案。</div>
+    <div class="tickets-grid" id="recommendedTickets"></div>
+  </section>
+
   <!-- 模块 1：每日 10 注选号 -->
   <section class="card">
     <h2>1. 每日 10 注选号 <span class="tag">1注随机 ＋ 4注策略 ＋ 5注覆盖</span></h2>
+    <p class="desc">以下为独立的单玩法10注工具，与上方混合推荐不是同一份投注；历史回放只针对这里的单玩法方案。</p>
     <div class="mode-wrap">
       <div class="mode-tabs" id="modeTabs"></div>
       <div class="mode-rule" id="modeRule"></div>
@@ -1608,6 +1624,65 @@ function renderLatestDraw(draws, codes, dates){
   ).join('');
 }
 
+// 推荐方案使用期号定种的随机组合，贪心减少同玩法已选号码的重复。
+// 这只是管理覆盖，不是对开奖结果的预测。
+function generateRecommendedPlan(code, budget){
+  const count4 = budget === 10 ? 3 : 6;
+  const count5 = budget === 10 ? 1 : 3;
+  function choose(k, count){
+    const rng = mulberry32(fnv1a('KL8:recommend:' + code + ':K' + k));
+    const used = new Uint8Array(81), seen = new Set(), result = [];
+    for (let i = 0; i < count; i++) {
+      let best = null, bestScore = Infinity;
+      for (let c = 0; c < 32; c++) {
+        const pool = Array.from({length: 80}, (_, n) => n + 1);
+        for (let j = 0; j < k; j++) {
+          const q = j + Math.floor(rng() * (80 - j));
+          const tmp = pool[j]; pool[j] = pool[q]; pool[q] = tmp;
+        }
+        const nums = pool.slice(0, k).sort((a, b) => a - b);
+        const key = nums.join(',');
+        const score = nums.reduce((sum, n) => sum + used[n], 0);
+        if (!seen.has(key) && score < bestScore) { best = nums; bestScore = score; }
+      }
+      if (!best) throw new Error('无法生成不重复的推荐组合');
+      seen.add(best.join(','));
+      best.forEach(n => used[n]++);
+      result.push({ pickK: k, nums: best });
+    }
+    return result;
+  }
+  return choose(4, count4).concat(choose(5, count5), choose(10, 1));
+}
+let recommendedBudget = 20;
+let lastRecommended = null;
+function formatRecommendedText(plan){
+  if (!plan) return '';
+  return '快乐8 第' + plan.code + '期 · 单倍 ' + plan.budget + '元（' + plan.tickets.length + '注）\n' +
+    plan.tickets.map((t, i) => '第' + (i + 1) + '注 ' + PLAY_NAMES[t.pickK] + '：' + formatTicketLine(t.nums)).join('\n');
+}
+function renderRecommended(){
+  const code = expectedCode();
+  const tickets = generateRecommendedPlan(code, recommendedBudget);
+  lastRecommended = { code, budget: recommendedBudget, tickets };
+  for (const budget of [10, 20]) {
+    const btn = document.getElementById('budget' + budget);
+    btn.classList.toggle('active', budget === recommendedBudget);
+    btn.setAttribute('aria-pressed', String(budget === recommendedBudget));
+  }
+  document.getElementById('recommendedSummary').textContent = '目标期号 ' + code + ' · ' + tickets.length + '注单倍 · 共 ' + recommendedBudget + ' 元';
+  document.getElementById('recommendedTickets').innerHTML = tickets.map((t, i) =>
+    '<div class="ticket-card t-bal"><div class="tk-top"><div class="tk-title"><span class="tk-idx">第 ' + (i + 1) + ' 注</span><span class="tk-name">' + PLAY_NAMES[t.pickK] + '</span><span class="tk-badge">单倍 · 2元</span></div></div><div class="tk-balls">' +
+    t.nums.map(n => '<span class="ball q' + getQuad(n) + '">' + pad2(n) + '</span>').join('') + '</div></div>'
+  ).join('');
+}
+function setRecommendedBudget(budget){
+  if (budget !== 10 && budget !== 20) return;
+  recommendedBudget = budget;
+  try { localStorage.setItem('kl8_recommended_budget_v1', String(budget)); } catch (e) {}
+  renderRecommended();
+}
+
 function renderModeBar(){
   const wrap = document.getElementById('modeTabs');
   wrap.innerHTML = [10,9,8,7,6,5,4,3,2,1].map(k =>
@@ -2008,6 +2083,7 @@ function refresh(){
   const { draws, codes, dates } = allData();
   document.getElementById('totalCount').textContent = draws.length;
   renderLatestDraw(draws, codes, dates);
+  renderRecommended();
   renderModeBar();
   renderDailyFive(draws);
   const archive = buildArchive(draws, codes, dates, currentPick);
@@ -2049,6 +2125,10 @@ function downloadFile(name, text, type){
 function init(){
   ({ draws: addedDraws, codes: addedCodes, dates: addedDates } = loadManual());
   currentPick = loadPickMode();
+  try { if (localStorage.getItem('kl8_recommended_budget_v1') === '10') recommendedBudget = 10; } catch (e) {}
+  document.getElementById('budget10').addEventListener('click', () => setRecommendedBudget(10));
+  document.getElementById('budget20').addEventListener('click', () => setRecommendedBudget(20));
+  document.getElementById('copyRecommended').addEventListener('click', e => copyText(formatRecommendedText(lastRecommended), e.currentTarget || e.target, '✅ 已复制推荐方案'));
   setupManualInput();
 
   const periodEl = document.getElementById('periodLabel');
@@ -2627,6 +2707,10 @@ window.__KL8_TEST__ = {
   stepRollingState,
   selectFromState,
   generateDailyTickets,
+  generateRecommendedPlan,
+  formatRecommendedText,
+  setRecommendedBudget,
+  get lastRecommended(){ return lastRecommended; },
   buildArchive,
   allData,
   parseDrawText,
