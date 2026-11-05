@@ -28,7 +28,7 @@ test('页面模块核验：已彻底移除「号码热度」「6. 前瞻验证�
 
   // 确认保留的四大核心模块均在页面且已正常渲染
   for (const required of [
-    '1. 每日 10 注选号',
+    '1. 每日推荐方案',
     '2. 录入开奖',
     '3. 历史回放',
     '4. 数据同步',
@@ -39,12 +39,12 @@ test('页面模块核验：已彻底移除「号码热度」「6. 前瞻验证�
 
   assert.equal(document.getElementById('totalCount').textContent, 2103);
   assert.equal(document.getElementById('latestIssue').textContent, '2026282');
-  assert.equal(document.getElementById('targetIssue').textContent, '2026283');
-  assert.ok(document.getElementById('ticketsGrid').innerHTML.includes('随机机选'));
-  assert.ok(document.getElementById('ticketsGrid').innerHTML.includes('热势恒强'));
-  assert.ok(document.getElementById('ticketsGrid').innerHTML.includes('遗漏回补'));
-  assert.ok(document.getElementById('ticketsGrid').innerHTML.includes('关联共振'));
-  assert.ok(document.getElementById('ticketsGrid').innerHTML.includes('四区均衡'));
+  assert.match(document.getElementById('recommendedSummary').textContent, /2026283/);
+  assert.ok(document.getElementById('recommendedTickets').innerHTML.includes('选四'));
+  assert.ok(document.getElementById('recommendedTickets').innerHTML.includes('选五'));
+  assert.ok(document.getElementById('recommendedTickets').innerHTML.includes('选十'));
+  assert.equal(html.includes('id="ticketsGrid"'), false);
+
 });
 
 test('多格式解析器：同时兼容福彩官网 JSON、Markdown、纯文本与 HTML（前端与同步脚本一致）', () => {

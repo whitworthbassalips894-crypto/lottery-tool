@@ -3,174 +3,126 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { loadPage } = require('./helpers.cjs');
 
-test('底库加载：包含 2103 期快乐8真实历史记录，默认玩法为选十', () => {
+const allocation = { 10: [3,1,1], 20: [6,3,1], 30: [9,5,1], 40: [12,6,2], 50: [15,8,2] };
+
+test('底库和五档方案：注数、号码、成本、确定性和子集关系', () => {
   const { T } = loadPage();
-  const { draws, codes, dates } = T.allData();
+  const { draws, codes } = T.allData();
   assert.equal(draws.length, 2103);
-  assert.equal(codes[0], '2020001');
-  assert.equal(dates[0], '2020-10-28');
-  assert.equal(codes[codes.length - 1], '2026282');
-  assert.equal(dates[dates.length - 1], '2026-10-23');
+  assert.equal(codes.at(-1), '2026282');
   assert.equal(T.expectedCode(), '2026283');
-  assert.equal(T.currentPick, 10, '默认应为选十玩法');
-
-  // 抽查首尾期号码合法性：20 个升序不重复 1..80 整数
-  for (const d of [draws[0], draws[1000], draws[draws.length - 1]]) {
-    assert.equal(T.validateNums(d), true);
-    for (let i = 1; i < d.length; i++) assert.ok(d[i] > d[i - 1], '号码应升序排列');
-  }
-});
-
-test('预热边界：少于 60 期返回 null，满 60 期正常产出 10 注', () => {
-  const { T } = loadPage();
-  const { draws } = T.allData();
-  assert.equal(T.generateDailyTickets(draws.slice(0, 59), '2020060', 10), null);
-  const res60 = T.generateDailyTickets(draws.slice(0, 60), '2020061', 10);
-  assert.ok(res60 && Array.isArray(res60.tickets));
-  assert.equal(res60.tickets.length, 10);
-});
-
-test('选一至选十全玩法切换：每期稳定生成 10 注（1注随机＋4注策略＋5注覆盖），号码合法且互不完全雷同', () => {
-  const { T } = loadPage();
-  const { draws } = T.allData();
-  const target = T.expectedCode();
-
-  for (let k = 1; k <= 10; k++) {
-    T.setPickMode(k);
-    assert.equal(T.currentPick, k);
-    const res = T.generateDailyTickets(draws, target, k, 0);
-    assert.equal(res.tickets.length, 10, `选${k}应产出 10 注`);
-
-    for (let ti = 0; ti < 10; ti++) {
-      const tk = res.tickets[ti];
-      assert.equal(tk.length, k, `选${k} 第${ti + 1}注长度应为 ${k}`);
-      assert.equal(new Set(tk).size, k, `选${k} 第${ti + 1}注内部不应有重复号码`);
-      for (let m = 0; m < tk.length; m++) {
-        assert.ok(Number.isInteger(tk[m]) && tk[m] >= 1 && tk[m] <= 80, '号码须在 1..80 之间');
-        if (m > 0) assert.ok(tk[m] > tk[m - 1], '号码须升序排列');
-      }
-    }
-
-    if (k >= 5) {
-      // 至少 4 种以上互不相同的组合，防止策略退化成同一注
-      const sigs = new Set(res.tickets.map(tk => tk.join(',')));
-      assert.equal(sigs.size, 10, `选${k} 的 10 注应当各不相同`);
-
-      // 第 5 注（四区均衡）应满足四区配额均衡：每区不超过 ceil(k/4)
-      const t5 = res.tickets[4];
-      const qCnt = [0, 0, 0, 0];
-      for (const n of t5) qCnt[n <= 20 ? 0 : n <= 40 ? 1 : n <= 60 ? 2 : 3]++;
-      const maxQ = Math.ceil(k / 4);
-      const minQ = Math.floor(k / 4);
-      for (let q = 0; q < 4; q++) {
-        assert.ok(qCnt[q] >= minQ && qCnt[q] <= maxQ, `选${k} 第5注四区分布不均衡: ${qCnt}`);
-      }
-    }
-  }
-});
-
-test('第 1 注随机机选：定种可复现、支持手动重摇换号与恢复默认', () => {
-  const { T } = loadPage();
-  const base5 = Array.from(T.lastDailyRender.tickets, t => t.join(','));
-
-  // 重新加载页面，默认随机注和其余 9 注完全一致
-  const { T: T2 } = loadPage();
-  const again5 = Array.from(T2.lastDailyRender.tickets, t => t.join(','));
-  assert.deepEqual(again5, base5);
-
-  // 手动重摇第 1 注：第 1 注变化，第 2~10 注策略保持不变
-  T.rerollRandomTicket();
-  assert.equal(T.rerollNonce, 1);
-  const rerolled = Array.from(T.lastDailyRender.tickets, t => t.join(','));
-  assert.notEqual(rerolled[0], base5[0], '重摇后第 1 注随机号应更新');
-  assert.deepEqual(rerolled.slice(1), base5.slice(1), '重摇第 1 注不应改变第 2~10 注策略选号');
-
-  // 恢复默认随机注
-  T.resetRandomTicket();
-  assert.equal(T.rerollNonce, 0);
-  assert.equal(T.lastDailyRender.tickets[0].join(','), base5[0]);
-});
-
-test('严格无未来信息 & 增量回放等价性：buildArchive 与单期独立切片预测 100% 一致，追加新期不改变历史预测', () => {
-  const { T } = loadPage();
-  const { draws, codes, dates } = T.allData();
-  const archive = T.buildArchive(draws, codes, dates, 10);
-  const rows2026 = archive.byYear['2026'];
-  assert.equal(rows2026.length, 282);
-  assert.equal(archive.statsByScope['2026'].totalCost, 282 * 20);
-  assert.equal(archive.statsByScope['2026'].perStrat.length, 10);
-  assert.equal(rows2026[0].evals.length, 10);
-  assert.equal(rows2026[0].periodPrize, rows2026[0].evals.reduce((sum, e) => sum + e.amount, 0));
-
-  // 抽查若干历史期次：增量状态回放结果与只传入 draws.slice(0, i) 独立计算逐注逐码完全相同
-  for (const checkCode of ['2020061', '2022100', '2024200', '2026001', '2026282']) {
-    const idx = codes.indexOf(checkCode);
-    assert.ok(idx >= 60);
-    const standalone = T.generateDailyTickets(draws.slice(0, idx), checkCode, 10, 0).tickets;
-    const year = checkCode.slice(0, 4);
-    const archivedItem = archive.byYear[year].find(r => r.code === checkCode);
-    assert.ok(archivedItem, `应在回放中找到 ${checkCode}`);
-    const archivedTickets = archivedItem.evals.map(e => e.nums);
-    assert.deepEqual(archivedTickets, standalone, `期号 ${checkCode} 的增量回放与独立切片计算不一致`);
-  }
-
-  // 追加未来新期（2026283、2026284），验证此前 2026282 的 10 注预测毫发无损
-  const before282 = archive.byYear['2026'].find(r => r.code === '2026282').evals.map(e => e.nums.join(','));
-  const plan = T.planAppend([
-    { code: '2026283', year: 2026, period: 283, date: '2026-10-24', nums: [1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39] },
-    { code: '2026284', year: 2026, period: 284, date: '2026-10-25', nums: [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40] }
-  ]);
-  const res = T.applyPlan(plan);
-  assert.equal(res.ok, true);
-  assert.equal(res.wrote, 2);
-
-  const afterData = T.allData();
-  const afterArchive = T.buildArchive(afterData.draws, afterData.codes, afterData.dates, 10);
-  const after282 = afterArchive.byYear['2026'].find(r => r.code === '2026282').evals.map(e => e.nums.join(','));
-  assert.deepEqual(after282, before282, '追加未来开奖数据绝不能改变早期期次的 10 注预测');
-});
-
-test('混合推荐方案：两档预算、合法不重复、稳定且10元版为20元版子集', () => {
-  const { T } = loadPage();
   for (const code of ['2026283', '2027001', '2024200']) {
-    const small = T.generateRecommendedPlan(code, 10);
-    const large = T.generateRecommendedPlan(code, 20);
-    assert.deepEqual(Array.from(small, x => x.pickK), [4, 4, 4, 5, 10]);
-    assert.deepEqual(Array.from(large, x => x.pickK), [4, 4, 4, 4, 4, 4, 5, 5, 5, 10]);
-    assert.equal(small.length * 2, 10);
-    assert.equal(large.length * 2, 20);
-    const signatures = new Set();
-    for (const t of large) {
-      assert.equal(t.nums.length, t.pickK);
-      assert.equal(new Set(t.nums).size, t.pickK);
-      assert.ok(t.nums.every((n, i) => Number.isInteger(n) && n >= 1 && n <= 80 && (i === 0 || t.nums[i - 1] < n)));
-      const sig = t.pickK + ':' + t.nums.join(',');
-      assert.ok(!signatures.has(sig));
-      signatures.add(sig);
+    let previous = new Set();
+    for (const budget of [10,20,30,40,50]) {
+      const tickets = T.generateRecommendedPlan(code, budget);
+      assert.equal(tickets.length, budget / 2);
+      assert.deepEqual([4,5,10].map(k => tickets.filter(t => t.pickK === k).length), allocation[budget]);
+      const seen = new Set();
+      for (const t of tickets) {
+        assert.equal(t.nums.length, t.pickK);
+        assert.equal(new Set(t.nums).size, t.pickK);
+        assert.ok(t.nums.every((n,i) => Number.isInteger(n) && n >= 1 && n <= 80 && (!i || t.nums[i-1] < n)));
+        const sig = t.pickK + ':' + t.nums.join(',');
+        assert.ok(!seen.has(sig));
+        seen.add(sig);
+      }
+      for (const sig of previous) assert.ok(seen.has(sig), '较低预算应为子集');
+      previous = seen;
+      assert.equal(JSON.stringify(T.generateRecommendedPlan(code, budget)), JSON.stringify(tickets));
     }
-    for (const t of small) assert.ok(signatures.has(t.pickK + ':' + t.nums.join(',')));
-    assert.equal(JSON.stringify(T.generateRecommendedPlan(code, 20)), JSON.stringify(large));
+  }
+  assert.throws(() => T.generateRecommendedPlan('2026283', 15), /无效预算/);
+  // 沿用旧版10元号码，避免已复制投注与新版本历史回放不一致。
+  assert.equal(JSON.stringify(T.generateRecommendedPlan('2026283', 10)), JSON.stringify([
+    {pickK:4,nums:[11,14,25,56]}, {pickK:4,nums:[4,10,64,71]},
+    {pickK:4,nums:[28,41,62,77]}, {pickK:5,nums:[7,29,33,44,69]},
+    {pickK:10,nums:[3,7,15,17,43,48,50,51,61,80]}
+  ]));
+});
+
+test('五档历史回放：号码、逐注玩法、奖金、成本、追加未来数据一致', () => {
+  const { T } = loadPage();
+  const all = T.allData();
+  const draws = all.draws.slice(-4), codes = all.codes.slice(-4), dates = all.dates.slice(-4);
+  for (const budget of [10,20,30,40,50]) {
+    const archive = T.buildArchive(draws, codes, dates, budget);
+    const rows = archive.byYear['2026'];
+    assert.equal(rows.length, 4);
+    assert.equal(archive.statsByScope['2026'].totalCost, 4 * budget);
+    assert.equal(archive.statsByScope.recent100.totalCost, 4 * budget);
+    assert.equal(archive.statsByScope['2026'].perStrat.length, budget / 2);
+    let total = 0;
+    for (const row of rows) {
+      const expected = T.generateRecommendedPlan(row.code, budget);
+      assert.equal(row.evals.length, budget / 2);
+      for (let i = 0; i < expected.length; i++) {
+        const ev = row.evals[i], ticket = expected[i];
+        assert.equal(ev.pickK, ticket.pickK);
+        assert.equal(ev.nums.join(','), ticket.nums.join(','));
+        const hits = ticket.nums.filter(n => row.actual.includes(n)).length;
+        const prize = T.evalPrize(ticket.pickK, hits);
+        assert.equal(ev.hits, hits);
+        assert.equal(ev.win, prize.win);
+        assert.equal(ev.amount, prize.amount);
+        assert.equal(ev.zero, prize.zero);
+      }
+      assert.equal(row.periodPrize, row.evals.reduce((s, e) => s + e.amount, 0));
+      total += row.periodPrize;
+    }
+    assert.equal(archive.statsByScope['2026'].totalPrize, total);
+    const past = T.buildArchive(draws.slice(0, 2), codes.slice(0, 2), dates.slice(0, 2), budget);
+    assert.equal(JSON.stringify(past.byYear['2026'][0].evals), JSON.stringify(rows[0].evals));
   }
 });
 
-test('推荐切换、复制文本与预算持久化，不影响单玩法回放', () => {
+test('切换方案同步回放、复制文本及预算持久化', () => {
   const { T, document, localStorage } = loadPage();
-  const originalPick = T.currentPick;
-  document.getElementById('budget10').click();
-  assert.equal(T.lastRecommended.budget, 10);
-  assert.equal(T.currentPick, originalPick);
-  assert.match(document.getElementById('recommendedSummary').textContent, /5注单倍 · 共 10 元/);
-  const copied = T.formatRecommendedText(T.lastRecommended);
-  assert.match(copied, /2026283期 · 单倍 10元（5注）/);
-  const lines = copied.split('\n');
-  assert.equal(lines.length, 6);
-  assert.match(lines[1], /第1注 选四：/);
-  assert.match(lines[4], /第4注 选五：/);
-  assert.match(lines[5], /第5注 选十：/);
-  const restored = loadPage({ preStorage: localStorage._dump() });
-  assert.equal(restored.T.lastRecommended.budget, 10);
-  assert.equal(restored.T.formatRecommendedText(restored.T.lastRecommended), copied);
-  document.getElementById('budget20').click();
-  assert.equal(T.lastRecommended.tickets.length, 10);
-  assert.equal(T.formatRecommendedText(T.lastRecommended).split('\n').length, 11);
+  for (const budget of [10,30,40,50,20]) {
+    document.getElementById('budget' + budget).click();
+    assert.equal(T.lastRecommended.budget, budget);
+    assert.equal(T.lastRecommended.tickets.length, budget / 2);
+    assert.match(document.getElementById('recommendedSummary').textContent, new RegExp(`共 ${budget} 元`));
+    assert.match(document.getElementById('metrics').innerHTML, new RegExp(`${budget}元方案`));
+    const text = T.formatRecommendedText(T.lastRecommended);
+    assert.match(text, new RegExp(`2026283期 · 单倍 ${budget}元`));
+    assert.equal(text.split('\n').length, budget / 2 + 1);
+    assert.ok(text.includes('选四：') && text.includes('选五：') && text.includes('选十：'));
+    assert.equal(localStorage.getItem('kl8_recommended_budget_v1'), String(budget));
+  }
+  document.getElementById('budget30').click();
+  const restored = loadPage({preStorage: localStorage._dump()});
+  assert.equal(restored.T.lastRecommended.budget, 30);
+  assert.equal(restored.T.formatRecommendedText(restored.T.lastRecommended), T.formatRecommendedText(T.lastRecommended));
+});
+
+test('回放正确处理选十浮动头奖与全不中奖', () => {
+  const { T } = loadPage();
+  const code = '2026283';
+  const dream = T.generateRecommendedPlan(code, 10).find(t => t.pickK === 10).nums;
+  const extras = Array.from({length: 80}, (_, i) => i + 1).filter(n => !dream.includes(n));
+  const allHit = dream.concat(extras.slice(0, 10));
+  const allMiss = extras.slice(0, 20);
+  const full = T.buildArchive([allHit], [code], ['2026-10-24'], 10).byYear['2026'][0];
+  const zero = T.buildArchive([allMiss], [code], ['2026-10-24'], 10).byYear['2026'][0];
+  const winning = full.evals.find(e => e.pickK === 10);
+  assert.equal(winning.hits, 10);
+  assert.equal(winning.floating, true);
+  assert.equal(winning.amount, 5000000);
+  assert.equal(full.hasFloating, true);
+  const missed = zero.evals.find(e => e.pickK === 10);
+  assert.equal(missed.hits, 0);
+  assert.equal(missed.zero, true);
+  assert.equal(missed.amount, 2);
+});
+
+test('复制按钮提供当前预算、期号、每注玩法和完整号码', async () => {
+  const { T, document, sandbox } = loadPage();
+  let copied = '';
+  sandbox.navigator.clipboard = { writeText: async text => { copied = text; } };
+  document.getElementById('budget50').click();
+  document.getElementById('copyRecommended').click();
+  await Promise.resolve();
+  assert.equal(copied, T.formatRecommendedText(T.lastRecommended));
+  assert.equal(copied.split('\n').length, 26);
+  assert.match(copied, /单倍 50元（25注）/);
 });
