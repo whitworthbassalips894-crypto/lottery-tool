@@ -129,3 +129,48 @@ test('严格无未来信息 & 增量回放等价性：buildArchive 与单期独�
   const after282 = afterArchive.byYear['2026'].find(r => r.code === '2026282').evals.map(e => e.nums.join(','));
   assert.deepEqual(after282, before282, '追加未来开奖数据绝不能改变早期期次的 10 注预测');
 });
+
+test('混合推荐方案：两档预算、合法不重复、稳定且10元版为20元版子集', () => {
+  const { T } = loadPage();
+  for (const code of ['2026283', '2027001', '2024200']) {
+    const small = T.generateRecommendedPlan(code, 10);
+    const large = T.generateRecommendedPlan(code, 20);
+    assert.deepEqual(Array.from(small, x => x.pickK), [4, 4, 4, 5, 10]);
+    assert.deepEqual(Array.from(large, x => x.pickK), [4, 4, 4, 4, 4, 4, 5, 5, 5, 10]);
+    assert.equal(small.length * 2, 10);
+    assert.equal(large.length * 2, 20);
+    const signatures = new Set();
+    for (const t of large) {
+      assert.equal(t.nums.length, t.pickK);
+      assert.equal(new Set(t.nums).size, t.pickK);
+      assert.ok(t.nums.every((n, i) => Number.isInteger(n) && n >= 1 && n <= 80 && (i === 0 || t.nums[i - 1] < n)));
+      const sig = t.pickK + ':' + t.nums.join(',');
+      assert.ok(!signatures.has(sig));
+      signatures.add(sig);
+    }
+    for (const t of small) assert.ok(signatures.has(t.pickK + ':' + t.nums.join(',')));
+    assert.equal(JSON.stringify(T.generateRecommendedPlan(code, 20)), JSON.stringify(large));
+  }
+});
+
+test('推荐切换、复制文本与预算持久化，不影响单玩法回放', () => {
+  const { T, document, localStorage } = loadPage();
+  const originalPick = T.currentPick;
+  document.getElementById('budget10').click();
+  assert.equal(T.lastRecommended.budget, 10);
+  assert.equal(T.currentPick, originalPick);
+  assert.match(document.getElementById('recommendedSummary').textContent, /5注单倍 · 共 10 元/);
+  const copied = T.formatRecommendedText(T.lastRecommended);
+  assert.match(copied, /2026283期 · 单倍 10元（5注）/);
+  const lines = copied.split('\n');
+  assert.equal(lines.length, 6);
+  assert.match(lines[1], /第1注 选四：/);
+  assert.match(lines[4], /第4注 选五：/);
+  assert.match(lines[5], /第5注 选十：/);
+  const restored = loadPage({ preStorage: localStorage._dump() });
+  assert.equal(restored.T.lastRecommended.budget, 10);
+  assert.equal(restored.T.formatRecommendedText(restored.T.lastRecommended), copied);
+  document.getElementById('budget20').click();
+  assert.equal(T.lastRecommended.tickets.length, 10);
+  assert.equal(T.formatRecommendedText(T.lastRecommended).split('\n').length, 11);
+});

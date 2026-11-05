@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kl8-tool-cache-v3';
+const CACHE_NAME = 'kl8-tool-cache-v4';
 const urlsToCache = [
   './',
   './index.html',
