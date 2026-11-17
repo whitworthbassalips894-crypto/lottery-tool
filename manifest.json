@@ -1,31 +1,13 @@
 {
-  "name": "快乐8每日选号工具",
-  "short_name": "快乐8选号",
-  "description": "福彩快乐8每日5注选号工具（1注随机机选＋4注多策略精选），支持选一至选十切换、历史回放与一键同步。",
+  "name": "三中三 · 7码复式推荐",
+  "short_name": "三中三推荐",
+  "description": "基于前6平码的7码复式推荐和历史回放",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#F5F7FB",
-  "theme_color": "#1E293B",
+  "background_color": "#f4f7fb",
+  "theme_color": "#1e293b",
   "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "icon-180.png",
-      "sizes": "180x180",
-      "type": "image/png"
-    },
-    {
-      "src": "favicon-32.png",
-      "sizes": "32x32",
-      "type": "image/png"
-    }
+    {"src":"icon-192.png","sizes":"192x192","type":"image/png"},
+    {"src":"icon-512.png","sizes":"512x512","type":"image/png"}
   ]
 }
