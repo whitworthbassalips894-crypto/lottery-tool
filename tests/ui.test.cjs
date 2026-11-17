@@ -44,3 +44,14 @@ test('页面同步冲突时不修改本机数据或推荐期号',async()=>{
  assert.equal(ctx.get('latestIssue').textContent,'2026-320');
  assert.equal(ctx.store.has('three_in_three_sync_v1'),false);
 });
+
+
+test('历史回放显示单期投入、中奖返奖、累计盈亏及逐期奖金',async()=>{
+ const ctx=setup(snapshot); await flush();
+ const summary=ctx.get('summary').innerHTML;
+ assert.match(summary,/有奖期占比/);
+ assert.match(summary,/35 组 × 2 元 = 70 元/);
+ assert.match(summary,/2 元 × 700 = 1,400 元/);
+ assert.match(summary,/模拟盈亏/);
+ assert.match(ctx.get('historyBody').innerHTML,/¥(?:0|1400|5600|14000|28000)/);
+});

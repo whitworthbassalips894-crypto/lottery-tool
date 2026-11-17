@@ -34,14 +34,26 @@ function renderHistory(){
   el('yearTabs').innerHTML = scopes.map(s => `<button type="button" class="tab${s===selectedScope?' active':''}" data-scope="${esc(s)}" aria-pressed="${s===selectedScope}">${s==='recent'?'近100期':esc(s)+'年'}</button>`).join('');
   el('yearTabs').querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => { selectedScope=btn.dataset.scope; expanded=''; renderHistory(); }));
   const rows = selectedScope === 'recent' ? replay.slice(-100) : replay.filter(r=>String(r.year)===selectedScope);
-  const wins = rows.filter(r=>r.triples>0).length, triples = rows.reduce((a,r)=>a+r.triples,0);
-  el('summary').innerHTML = `<div class="stat">回放 <b>${rows.length}</b> 期</div><div class="stat">至少命中一组 <b>${wins}</b> 期</div><div class="stat">累计命中 <b>${triples}</b> 组</div>`;
+  const stats = summarizeReplay(rows);
+  const winRate = stats.winningRate.toFixed(1), returnRate = stats.returnRate.toFixed(1);
+  const net = stats.net >= 0 ? '+' + stats.net : String(stats.net);
+  el('summary').innerHTML = `<div class="metric-card v-prize">
+    <div class="mc-head">7码复式 · 有奖期占比</div>
+    <div><span class="mc-val">${winRate}%</span><span class="mc-label">${stats.winningPeriods} / ${stats.periods} 期有奖</span></div>
+    <div class="mc-bar"><div class="mc-fill" style="width:${Math.min(100,stats.winningRate)}%"></div></div>
+    <div class="mc-sub">模拟奖金 <b>¥${stats.prize}</b> / 投入 ¥${stats.cost}（返奖比 ${returnRate}%）<br>模拟盈亏 ¥${net} · 累计命中 ${stats.groups} 组</div>
+  </div><div class="metric-card">
+    <div class="mc-head">回放核算说明</div>
+    <div class="calc-line"><span>每期投入</span><b>35 组 × 2 元 = 70 元</b></div>
+    <div class="calc-line"><span>每组模拟奖金</span><b>2 元 × 700 = 1,400 元</b></div>
+    <div class="mc-sub">按700倍为含本金的总返奖计算，未计税费；有奖不等于当期盈利。实际规则请以销售方为准。</div>
+  </div>`;
   el('historyBody').innerHTML = rows.slice().reverse().map((r,i) => {
     const selected = new Set(r.hits);
-    const line = `<tr data-idx="${i}" tabindex="0" aria-expanded="${expanded===r.label}"><td><b>${esc(r.label)}</b><br>${esc(r.date)}</td><td>${r.numbers.map(n=>`<span class="${selected.has(n)?'hit':''}">${pad2(n)}</span>`).join(' ')}</td><td>${r.recommended.map(n=>`<span class="${selected.has(n)?'hit':''}">${pad2(n)}</span>`).join(' ')}</td><td>${r.hits.length} 码</td><td>${r.triples} 组</td></tr>`;
+    const line = `<tr data-idx="${i}" tabindex="0" aria-expanded="${expanded===r.label}"><td><b>${esc(r.label)}</b><br>${esc(r.date)}</td><td>${r.numbers.map(n=>`<span class="${selected.has(n)?'hit':''}">${pad2(n)}</span>`).join(' ')}</td><td>${r.recommended.map(n=>`<span class="${selected.has(n)?'hit':''}">${pad2(n)}</span>`).join(' ')}</td><td>${r.hits.length} 码</td><td>${r.triples} 组</td><td class="${r.prize ? 'hit' : ''}">¥${r.prize}</td></tr>`;
     if (expanded !== r.label) return line;
     const groups = buildAll35Triples(r.recommended).filter(t => t.split('-').every(n=>selected.has(Number(n))));
-    return line + `<tr class="detail"><td colspan="5">主推 ${r.recommended.map(pad2).join('、')}<br>命中号码：${r.hits.length?r.hits.map(pad2).join('、'):'无'}<br>命中组合：${groups.length?groups.join('　'):'无'}</td></tr>`;
+    return line + `<tr class="detail"><td colspan="6">本期投入 ¥${r.cost} · 模拟奖金 ¥${r.prize} · 模拟盈亏 ¥${r.prize-r.cost}<br>主推 ${r.recommended.map(pad2).join('、')}<br>命中号码：${r.hits.length?r.hits.map(pad2).join('、'):'无'}<br>命中组合：${groups.length?groups.join('　'):'无'}</td></tr>`;
   }).join('');
   const shown = rows.slice().reverse();
   el('historyBody').querySelectorAll('tr[data-idx]').forEach(tr => {

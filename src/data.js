@@ -1,6 +1,9 @@
 'use strict';
 if (typeof module !== 'undefined') Object.assign(globalThis, require('./engine.js'));
 // 仅使用前 6 个平码；特码即使存在也不会进入记录或选号。
+const UNIT_STAKE = 2, PAYOUT_MULTIPLIER = 700, GROUPS_PER_PLAN = 35;
+const COST_PER_PERIOD = UNIT_STAKE * GROUPS_PER_PLAN;
+const PRIZE_PER_GROUP = UNIT_STAKE * PAYOUT_MULTIPLIER;
 function normalizeSource(source){
   if (!source || !Array.isArray(source.draws) || !source.draws.length || source.draws.length > 10000) throw new Error('数据源缺少有效开奖记录');
   const map = new Map(), invalid = [];
@@ -45,7 +48,17 @@ function buildReplay(records){
     // 数据极少时附件算法可能无法凑满7码，不能将不足7码伪装成复式方案。
     if (plan.opt.length !== 7) return [];
     const actual = new Set(r.numbers), hits = plan.opt.filter(n => actual.has(n));
-    return [{ ...r, recommended: plan.opt, hits, triples: countTriples(hits.length) }];
+    const triples = countTriples(hits.length);
+    return [{ ...r, recommended: plan.opt, hits, triples, cost: COST_PER_PERIOD, prize: triples * PRIZE_PER_GROUP }];
   });
 }
-if (typeof module !== 'undefined') module.exports = { normalizeSource, mergeSource, buildReplay };
+function summarizeReplay(rows){
+  const periods = rows.length;
+  const winningPeriods = rows.filter(r => r.triples > 0).length;
+  const groups = rows.reduce((total, r) => total + r.triples, 0);
+  const cost = periods * COST_PER_PERIOD, prize = groups * PRIZE_PER_GROUP;
+  return { periods, winningPeriods, groups, cost, prize, net: prize - cost,
+    winningRate: periods ? winningPeriods / periods * 100 : 0,
+    returnRate: cost ? prize / cost * 100 : 0 };
+}
+if (typeof module !== 'undefined') module.exports = { normalizeSource, mergeSource, buildReplay, summarizeReplay, UNIT_STAKE, PAYOUT_MULTIPLIER, GROUPS_PER_PLAN, COST_PER_PERIOD, PRIZE_PER_GROUP };
