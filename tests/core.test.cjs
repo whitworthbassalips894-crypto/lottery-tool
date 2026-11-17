@@ -2,7 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const engine=require('../src/engine.js');
-const {normalizeSource,mergeSource,buildReplay}=require('../src/data.js');
+const {normalizeSource,mergeSource,buildReplay,summarizeReplay}=require('../src/data.js');
 const snapshot=require('../data/draws.json');
 const source = (records, latestId) => ({updatedAt:'2026-11-17',latestId,draws:records});
 const sample=(id,numbers=[1,2,3,4,5,6])=>({id,date:'2026-11-17',numbers,special:49});
@@ -56,4 +56,24 @@ test('同步只追加连续有效数据，冲突、缺口、落后源不写入',
  const conflict=snapshot.draws.map(d=>d.id==='2026-320'?{...d,numbers:[1,2,3,4,5,6]}:d);
  assert.throws(()=>mergeSource(current,source(conflict,'2026-320')),/冲突/);
  assert.throws(()=>mergeSource(res.records,snapshot),/落后/);
+});
+
+
+test('每注2元、中奖总返奖700倍：逐期与累计核算',()=>{
+ const rows=[0,1,4,10,20].map(triples=>({triples}));
+ const stats=summarizeReplay(rows);
+ assert.equal(stats.periods,5);
+ assert.equal(stats.winningPeriods,4);
+ assert.equal(stats.groups,35);
+ assert.equal(stats.cost,350);
+ assert.equal(stats.prize,49000);
+ assert.equal(stats.net,48650);
+ assert.equal(stats.winningRate,80);
+ assert.equal(stats.returnRate,14000);
+ assert.deepEqual(summarizeReplay([]),{periods:0,winningPeriods:0,groups:0,cost:0,prize:0,net:0,winningRate:0,returnRate:0});
+ const replay=buildReplay(normalizeSource(snapshot).records.slice(0,80));
+ for(const row of replay){
+   assert.equal(row.cost,70);
+   assert.equal(row.prize,row.triples*1400);
+ }
 });
