@@ -1,5 +1,5 @@
 'use strict';
-// 选号内核移植自用户提供的《三中三(2).html》，仅使用前六个平码。
+// 选号内核移植自用户提供的《三中三(2).html》，仅使用前六个平码；第 7 位特码只做记录与命中统计，不进入评分。
 const WAVE_MAP = (() => {
   const m = new Array(50).fill('green');
   for (const n of [1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46]) m[n] = 'red';
@@ -221,4 +221,12 @@ function run3in3At(usableAsc, P, year, periodNum, dateStr) {
 }
 
 
-if (typeof module !== 'undefined') module.exports = {run3in3At, validSixNums, parseLabel, nextLabelOf, periodToDate, countTriples, buildAll35Triples};
+function zodiacOfNumber(num, dateStr) {
+  return zodiacByBase(num, yearZodiacBaseIdx(dateStr));
+}
+
+if (typeof module !== 'undefined') module.exports = {
+  run3in3At, validSixNums, parseLabel, nextLabelOf, periodToDate, countTriples, buildAll35Triples,
+  pad2, escapeHtml, zoneOf, maxPeriodOfYear, zodiacOfNumber, yearZodiacBaseIdx, zodiacByBase,
+  WAVE_MAP, WAVE_COLOR, ZODIACS, LUNAR_NEW_YEAR_DATES
+};
