@@ -2,7 +2,7 @@
 const SOURCE_URL = 'https://whitworthbassalips894-crypto.github.io/Number-selection-tool/data/draws.json';
 const STORAGE_KEY = 'three_in_three_sync_v1';
 // 版本号与 sw.js 缓存名一起提升，避免旧缓存与新代码混用。
-const APP_BUILD = '2026.11.23-r7';
+const APP_BUILD = '2026.11.23-r8';
 const HISTORY_PAGE = 50, SPECIAL_PAGE = 30, RECENT_WINDOW = 100;
 // 检查更新只取上游文件开头一小段，读出 latestId / updatedAt 即可判断差几期。
 const SOURCE_PROBE_RANGE = 'bytes=0-1023';
@@ -593,22 +593,32 @@ async function init() {
     const base = normalizeSource(await response.json());
     records = base.records; excluded = base.invalid; sourceUpdated = base.updatedAt;
     builtinLabel = base.records.at(-1).label; builtinUpdated = base.updatedAt;
-    let savedWarning = '';
+    let savedWarning = '', savedNotes = [];
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw);
-        const merged = mergeSource(records, saved);
+        // 内置快照可能比本机备份新（站点更新过），也可能更旧（本机同步过），两种情况都要合并，
+        // 不能因为「本机备份落后」就整体丢弃——否则手动补录与上次同步记录会被静默忽略、随后被覆盖。
+        const merged = mergeLocal(records, saved);
         records = merged.records;
         excluded = Array.isArray(saved.invalid) && saved.invalid.length ? saved.invalid : base.invalid;
-        sourceUpdated = merged.updatedAt || base.updatedAt;
+        // 期号口径仍以「官方更新时间」为准，不因本机备份里记的旧时间回退。
+        sourceUpdated = base.updatedAt || saved.updatedAt || '';
         if (saved.lastSync && typeof saved.lastSync === 'object') lastSync = saved.lastSync;
         rangeProbeOk = saved.rangeOk === true;
+        if (merged.specialFilled) savedNotes.push(`本机备份补全了 ${merged.specialFilled} 期内置数据缺失的特码`);
+        if (merged.manualKept) savedNotes.push(`本机手动补录 ${merged.manualKept} 条已恢复（最新 ${records.at(-1).label}）`);
+        if (merged.manualConfirmed) savedNotes.push(`${merged.manualConfirmed} 条手动记录已被内置快照收录，按官方数据计`);
+        if (merged.conflicts.length) {
+          savedNotes.push('⚠️ ' + merged.conflicts.slice(0, 3).join('；') + (merged.conflicts.length > 3 ? ' 等' : '') + '。如需保留自己的记录，请先复制备份再继续同步');
+        }
+        if (merged.added) savedNotes.push(`内置快照之后本机还有 ${merged.added} 期`);
       }
     } catch (e) { savedWarning = '\n本机同步数据无效或有冲突，已使用内置数据：' + (e.message || e); }
     render();
     resetManualInputs();
-    initNote = (savedWarning + cleanupWarning).trim();
+    initNote = (savedWarning + (savedNotes.length ? '\n' + savedNotes.join('；') + '。' : '') + cleanupWarning).trim();
     describeState('');
     // 只有在确认上游支持分段请求后才自动检查，避免每次打开页面都下载完整数据。
     if (rangeProbeOk && /^https?:/.test(location.protocol)) checkUpdate(true);

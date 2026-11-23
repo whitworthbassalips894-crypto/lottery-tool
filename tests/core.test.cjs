@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const engine = require('../src/engine.js');
 const {
-  normalizeSource, mergeSource, buildReplay, summarizeReplay, summarizeSpecial,
+  normalizeSource, mergeSource, mergeLocal, buildReplay, summarizeReplay, summarizeSpecial,
   normalizeSpecial, parsePastedNumbers, validateManualDraw, appendManualDraw,
   undoLastManual, manualRecords, storagePayload,
   COST_PER_PERIOD, PRIZE_PER_GROUP, SPECIAL_BASELINE_RATE
@@ -257,6 +257,49 @@ test('同步会回填旧数据缺失的特码，并确认已被数据源收录�
   // 本机备份里的手动标记要保留
   const saved = mergeSource(records.slice(0, -1), source(storagePayload(withManual, '2026-11-20', []).draws, manual.label));
   assert.equal(manualRecords(saved.records).length, 1);
+});
+
+test('打开页面合并本机备份：内置更新/本机更新两个方向都合得上，冲突以官方为准并留说明', () => {
+  // 本机备份落后（站点发布过新内置快照）：合并成功，不能整份作废
+  const older = storagePayload(records.filter(r => r.label <= '2026-323'), '2026-11-19', []);
+  const merged = mergeLocal(records, older);
+  assert.equal(merged.records.length, records.length);
+  assert.equal(merged.records.at(-1).label, '2026-326');
+  assert.equal(merged.added, 0);
+  assert.deepEqual(merged.conflicts, []);
+  // 本机备份领先（同步过更新的数据 + 手动补录）：多出的期次按期号连续追加并保留手动标记
+  const aheadDraws = [
+    { id: '2026-327', date: '2026-11-23', numbers: [3, 11, 22, 35, 41, 48], special: 7, manual: true },
+    { id: '2026-328', date: '2026-11-24', numbers: [5, 9, 14, 27, 33, 44], special: 19, manual: true },
+    ...records.map(r => ({ id: r.label, date: r.date, numbers: r.numbers, special: r.special }))
+  ];
+  const ahead = mergeLocal(records, source(aheadDraws, '2026-328'));
+  assert.equal(ahead.records.at(-1).label, '2026-328');
+  assert.equal(ahead.added, 2);
+  assert.equal(ahead.manualKept, 2);
+  assert.deepEqual(ahead.records.slice(-2).map(r => r.manual), [true, true]);
+  // 备份里的手动记录已被官方收录（号码一致）→ 记确认，不再保留 manual
+  const confirmedSource = records.map(r => (r.label === '2026-326' ? { id: r.label, date: r.date, numbers: r.numbers, special: r.special, manual: true } : { id: r.label, date: r.date, numbers: r.numbers, special: r.special }));
+  const confirmed = mergeLocal(records, source(confirmedSource, '2026-326'));
+  assert.equal(confirmed.manualConfirmed, 1);
+  assert.equal(confirmed.records.some(r => r.manual), false);
+  // 手动记录与官方不符 → 以官方为准，并给出可读说明（不静默覆盖）
+  const wrongSix = records.map(r => (r.label === '2026-326' ? { id: r.label, date: r.date, numbers: [1, 2, 3, 4, 5, 6], special: r.special, manual: true } : { id: r.label, date: r.date, numbers: r.numbers, special: r.special }));
+  const fixed = mergeLocal(records, source(wrongSix, '2026-326'));
+  assert.deepEqual(fixed.records.at(-1).numbers, records.at(-1).numbers);
+  assert.equal(fixed.records.some(r => r.manual), false);
+  assert.equal(fixed.manualDropped, 1);
+  assert.match(fixed.conflicts.join('；'), /2026-326 的手动补录与官方开奖号码不一致/);
+  const wrongSpecial = records.map(r => (r.label === '2026-326' ? { id: r.label, date: r.date, numbers: r.numbers, special: 1 } : { id: r.label, date: r.date, numbers: r.numbers, special: r.special }));
+  assert.match(mergeLocal(records, source(wrongSpecial, '2026-326')).conflicts.join('；'), /特码不一致（本机 01 \/ 官方 23）/);
+  // 内置快照缺特码时由本机备份补全（反向回填）
+  const builtinNoSpecial = records.map(r => (r.label > '2026-319' ? { ...r, special: null } : r));
+  const filled = mergeLocal(builtinNoSpecial, source(records.map(r => ({ id: r.label, date: r.date, numbers: r.numbers, special: r.special })), '2026-326'));
+  assert.equal(filled.specialFilled, 7);
+  assert.ok(filled.records.slice(-7).every(r => r.special != null));
+  // 备份有缺口时拒绝采用，避免出现断档
+  const gap = source([{ id: '2026-328', date: '2026-11-24', numbers: [1, 2, 3, 4, 5, 6], special: 7 }, ...records.map(r => ({ id: r.label, date: r.date, numbers: r.numbers, special: r.special }))], '2026-328');
+  assert.throws(() => mergeLocal(records, gap), /缺口/);
 });
 
 test('手动补录校验：7 个号码互不重复、期号必须紧接最新一期', () => {
