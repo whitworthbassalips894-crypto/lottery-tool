@@ -4,9 +4,12 @@ const assert = require('node:assert/strict');
 const engine = require('../src/engine.js');
 const {
   normalizeSource, mergeSource, mergeLocal, buildReplay, summarizeReplay, summarizeSpecial,
-  normalizeSpecial, parsePastedNumbers, validateManualDraw, appendManualDraw,
+  normalizeSpecial, parsePastedNumbers, pickPastedSeven, validateManualDraw, appendManualDraw,
+  replaceLastManual, followLedger, significance, missRunQuantile,
   undoLastManual, manualRecords, storagePayload,
-  COST_PER_PERIOD, PRIZE_PER_GROUP, SPECIAL_BASELINE_RATE
+  COST_PER_PERIOD, PRIZE_PER_GROUP, SPECIAL_BASELINE_RATE,
+  EXPECTED_GROUPS_PER_PERIOD, EXPECTED_PRIZE_PER_PERIOD, EV_PER_PERIOD, THEORY_RETURN_RATE,
+  ALT_RETURN_RATE, FAIR_PAYOUT_MULTIPLIER
 } = require('../src/data.js');
 const snapshot = require('../data/draws.json');
 
@@ -172,11 +175,20 @@ test('固定 7 码的回放口径：与随机基线同一水平，不做任何�
 test('三中三金额口径不变：每注2元、中奖总返奖700倍', () => {
   const rows = [0, 1, 4, 10, 20].map(triples => ({ triples }));
   const stats = summarizeReplay(rows);
+  // 期望值一栏只由赔率口径决定，与这份 rows 无关，单独断言，不混进金额口径的比较里
+  const theory = {
+    expectedPrize: stats.expectedPrize, theoryReturnRate: stats.theoryReturnRate, evPerPeriod: stats.evPerPeriod
+  };
+  assert.equal(Math.round(theory.theoryReturnRate * 100) / 100, 75.99);
+  assert.equal(Math.round(theory.evPerPeriod * 100) / 100, -16.81);
+  assert.equal(Math.round(stats.expectedPrize * 100) / 100, Math.round(stats.periods * EXPECTED_PRIZE_PER_PERIOD * 100) / 100);
+  const rest = { ...stats, avgHits: undefined, baselineAvgHits: undefined, baselineWinningRate: undefined, ...theory };
   assert.deepEqual(
-    { ...stats, avgHits: undefined, baselineAvgHits: undefined, baselineWinningRate: undefined },
+    { ...rest, expectedPrize: undefined, theoryReturnRate: undefined, evPerPeriod: undefined },
     {
       periods: 5, winningPeriods: 4, groups: 35, cost: 350, prize: 49000, net: 48650,
-      winningRate: 80, returnRate: 14000, avgHits: undefined, baselineAvgHits: undefined, baselineWinningRate: undefined
+      winningRate: 80, returnRate: 14000, avgHits: undefined, baselineAvgHits: undefined, baselineWinningRate: undefined,
+      expectedPrize: undefined, theoryReturnRate: undefined, evPerPeriod: undefined
     });
   assert.equal(summarizeReplay([]).periods, 0);
   assert.equal(summarizeReplay([]).avgHits, 0);
@@ -370,4 +382,146 @@ test('粘贴解析口径与参考工具一致：按 1~2 位切块并只保留 1~
   assert.deepEqual(parsePastedNumbers(''), []);
   assert.deepEqual(parsePastedNumbers(null), []);
   assert.equal(parsePastedNumbers('1 2 3').length, 3);
+});
+
+test('粘贴解析：官网整行、工具自己的复制文案、位序标签都能取对号码，取不够时明确报错', () => {
+  // 旧实现对整段文本按 1~2 位硬切，期号 2026-327 会被切成 20/26/32/07 顶掉真正的号码，
+  // 填出来的号码看着完全正常——这是最容易把错号存进去的路径。
+  const cases = [
+    ['三中三 2026-327期 · 7码复式（35组）：05、08、17、21、32、38、43', [5, 8, 17, 21, 32, 38, 43]],
+    ['第2026327期 开奖日期 2026-11-23 平码 19 04 14 12 21 34 特码 43', [19, 4, 14, 12, 21, 34, 43]],
+    ['2026-327  2026年11月23日  开奖号码：19,04,14,12,21,34 + 43', [19, 4, 14, 12, 21, 34, 43]],
+    ['正1:19 正2:04 正3:14 正4:12 正5:21 正6:34 特:43', [19, 4, 14, 12, 21, 34, 43]],
+    ['19 04 14 12 21 34 + 43', [19, 4, 14, 12, 21, 34, 43]],
+    ['19041412213443', [19, 4, 14, 12, 21, 34, 43]]
+  ];
+  for (const [text, want] of cases) {
+    const res = pickPastedSeven(text);
+    assert.equal(res.error, undefined, `不该报错：${text}`);
+    assert.deepEqual(res.seven, want, `取错号码：${text}`);
+    assert.equal(res.duplicate, '');
+  }
+  // 丢弃了非开奖数字时要说清楚丢了什么，不能悄悄改数据
+  const noisy = pickPastedSeven('备注 2026 号码 05 08 17 21 32 38 43');
+  assert.deepEqual(noisy.seven, [5, 8, 17, 21, 32, 38, 43]);
+  assert.equal(noisy.dropped, 2);
+  assert.equal(noisy.droppedHead, '20、26');
+  // 号码不够 7 个：必须报错，绝不静默不动（旧实现直接 return，用户以为输入框坏了）
+  const short = pickPastedSeven('19 04 14 12 21 34 60');
+  assert.match(short.error, /只认出 6 个号码/);
+  assert.deepEqual(short.found, [19, 4, 14, 12, 21, 34]);
+  assert.match(pickPastedSeven('50 60 70').error, /没有从粘贴内容里认出/);
+  assert.match(pickPastedSeven('').error, /还没有粘贴内容/);
+  // 重复号码要提前指出，不等保存时才拦
+  assert.equal(pickPastedSeven('19 04 19 12 21 34 43').duplicate, '19');
+});
+
+test('显著性与连错分位：把「近100期看着更高」还原成抽样噪声', () => {
+  // 近 100 期特码 24/100：绝对值高于基线，但 n 太小时区间很宽，必须原样告诉用户
+  const small = significance(24, 100, SPECIAL_BASELINE_RATE);
+  assert.equal(Math.round(small.ci95[0] * 10) / 10, 7.4);
+  assert.equal(Math.round(small.ci95[1] * 10) / 10, 21.1);
+  assert.ok(Math.abs(small.z - 2.78) < 0.01);
+  // 全样本 251/1786：落在区间内，结论就是「与随机无显著差异」
+  const full = significance(251, 1786, SPECIAL_BASELINE_RATE);
+  assert.equal(full.verdict, 'noise');
+  assert.match(full.text, /无显著差异/);
+  assert.equal(significance(0, 0, SPECIAL_BASELINE_RATE), null);
+  // 连错分位：P(连错 ≥ n) = (1-p)^(n-1)
+  assert.equal(missRunQuantile(7 / 49, 0.5), 5);
+  assert.ok(missRunQuantile(0.030951780258, 0.5) === 23);
+  assert.ok(missRunQuantile(0.030951780258, 0.05) > 90);
+  assert.equal(missRunQuantile(0, 0.5), null);
+});
+
+test('理论期望：只算前6平码时每期必亏，若特码也算开奖号则结论翻号', () => {
+  assert.equal(Math.round(EXPECTED_GROUPS_PER_PERIOD * 1e6) / 1e6, 0.037994);
+  assert.equal(Math.round(THEORY_RETURN_RATE * 100) / 100, 75.99);
+  assert.equal(Math.round(EV_PER_PERIOD * 100) / 100, -16.81);
+  // 同一份 700 倍赔率，只因「特码算不算开奖号」，期望就从 -16.81 翻成 +23.09
+  assert.ok(ALT_RETURN_RATE > 130 && ALT_RETURN_RATE < 134);
+  // 打平需要约 921 倍（含本金），700 倍本身就是抽水
+  assert.ok(FAIR_PAYOUT_MULTIPLIER > 900 && FAIR_PAYOUT_MULTIPLIER < 940);
+});
+
+test('上游一期坏号码不再永久卡死同步；真正的缺口仍然拒绝', () => {
+  const mk = (id, numbers) => sample(id, numbers, 1, { date: '2026-01-01' });
+  const current = normalizeSource(source([mk('2026-320')], '2026-320')).records;
+  // 2026-322 开出重号 → 上游自己判为无效，序列里留下空洞
+  const withBad = source([mk('2026-320'), mk('2026-321', [7, 8, 9, 10, 11, 12]), mk('2026-322', [5, 5, 5, 5, 5, 5]), mk('2026-323', [13, 14, 15, 16, 17, 18])], '2026-323');
+  const merged = mergeSource(current, withBad);
+  assert.equal(merged.added, 2, '坏期前后的合法期次都要写进来');
+  assert.deepEqual(merged.skippedInvalid, ['2026-322']);
+  assert.equal(merged.records.at(-1).label, '2026-323');
+  assert.equal(merged.records.some(r => r.label === '2026-322'), false);
+  // 上游没说无效、单纯少一期 → 仍然拒绝，不静默接上
+  const realGap = source([mk('2026-320'), mk('2026-321', [7, 8, 9, 10, 11, 12]), mk('2026-323', [13, 14, 15, 16, 17, 18])], '2026-323');
+  assert.throws(() => mergeSource(current, realGap), /缺口/);
+  // 落后源改成带 code 的异常，调用方按 code 分流而不是匹配中文文案
+  assert.throws(() => mergeSource(merged.records, source([mk('2026-320')], '2026-320')), e => e.code === 'STALE_SOURCE' && /落后/.test(e.message));
+});
+
+test('期号提示分清「超出年期内」与「序号没写三位」', () => {
+  const seven = [3, 11, 22, 35, 41, 48, 7];
+  // 旧实现对 2026-31 回「2026 年最多 365 期」，而 31 < 365，解释不通
+  assert.match(validateManualDraw('2026-31', seven, records).error, /序号需三位，应写 2026-031/);
+  assert.match(validateManualDraw('2026-999', seven, records).error, /2026 年最多 365 期/);
+  assert.match(validateManualDraw('2024-31', seven, records).error, /序号需三位，应写 2024-031/);
+});
+
+test('修改最后一条手动记录：录错一个号不必整条撤销重来', () => {
+  const { record } = validateManualDraw('2026-327', [3, 11, 22, 35, 41, 48, 7], records);
+  const next = appendManualDraw(records, record);
+  // 修改模式：期号必须是当前最新一期，且那一条得是手动补录
+  const fixed = validateManualDraw('2026-327', [3, 11, 22, 35, 41, 48, 9], next, { mode: 'replace' });
+  assert.equal(fixed.error, undefined);
+  const done = replaceLastManual(next, fixed.record);
+  assert.equal(done.records.length, next.length);
+  assert.equal(done.records.at(-1).special, 9);
+  assert.equal(done.replaced.special, 7);
+  assert.equal(done.records.at(-1).manual, true);
+  assert.equal(undoLastManual(done.records).removed.special, 9, '改完仍能撤销');
+  // 不能借「修改」改期号
+  assert.match(validateManualDraw('2026-328', [3, 11, 22, 35, 41, 48, 9], next, { mode: 'replace' }).error, /不能改期号/);
+  // 非手动的最新一期不允许在这里改
+  assert.match(validateManualDraw('2026-326', [3, 11, 22, 35, 41, 48, 9], records, { mode: 'replace' }).error, /不是手动补录/);
+  assert.throws(() => replaceLastManual(records, fixed.record), /没有可修改/);
+  // 手动记录后面接了新期次时不许改，否则对不上账
+  const withNewer = next.concat([{ year: 2026, periodNum: 328, label: '2026-328', date: '2026-11-24', numbers: [1, 2, 3, 4, 5, 6], special: 9 }]);
+  assert.throws(() => replaceLastManual(withNewer, fixed.record), /之后已有新期次/);
+});
+
+test('跟号账本：按用户自己的跟号起点累计投入、返奖、盈亏与回本缺口', () => {
+  const led = followLedger(replay, '2026-01-01');
+  assert.equal(led.active, true);
+  assert.equal(led.periods, 326);
+  assert.equal(led.firstLabel, '2026-001');
+  assert.equal(led.lastLabel, '2026-326');
+  assert.equal(led.cost, 326 * COST_PER_PERIOD);
+  assert.equal(led.prize, led.groups * PRIZE_PER_GROUP);
+  assert.equal(led.net, led.prize - led.cost);
+  assert.equal(led.net >= 0 ? led.groupsToBreakEven : Math.ceil(-led.net / PRIZE_PER_GROUP), led.groupsToBreakEven);
+  assert.equal(led.specialWins, replay.slice(-326).filter(r => r.specialHit === true).length);
+  // 期望奖金：用来判断这段区间的实际盈亏是手气还是抽水
+  assert.ok(Math.abs(led.expectedPrize - 326 * EXPECTED_PRIZE_PER_PERIOD) < 1e-6);
+  // 未设起点 / 起点晚于全部数据
+  assert.equal(followLedger(replay, ''), null);
+  assert.deepEqual(followLedger(replay, '2030-01-01'), { active: false, periods: 0 });
+  // 起点之后的区间一定更短
+  assert.ok(followLedger(replay, '2026-06-01').periods < led.periods);
+  // 载荷里带 followSince，且能被 normalizeSource 忽略
+  const payload = storagePayload(records, '2026-11-23', base.invalid, { followSince: '2026-01-01' });
+  assert.equal(payload.followSince, '2026-01-01');
+  assert.equal(storagePayload(records, '2026-11-23', base.invalid).followSince, undefined);
+  assert.equal(normalizeSource(payload).records.length, records.length);
+});
+
+test('日期工具：判断本机数据是否落后于今天', () => {
+  assert.equal(engine.daysBetween('2026-11-17', '2026-11-23'), 6);
+  assert.equal(engine.daysBetween('2026-11-23', '2026-11-23'), 0);
+  assert.equal(engine.daysBetween('2026-11-23', '2026-11-17'), -6);
+  assert.equal(engine.daysBetween('2026-12-31', '2027-01-01'), 1);
+  assert.equal(engine.daysBetween('2026-11-23', '坏日期'), null);
+  assert.match(engine.todayUTC('2026-11-23T05:00:00Z'), /^2026-11-23$/);
+  assert.match(engine.todayUTC(), /^\d{4}-\d{2}-\d{2}$/);
 });

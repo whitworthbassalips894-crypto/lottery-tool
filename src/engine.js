@@ -26,6 +26,19 @@ const LUNAR_NEW_YEAR_DATES = {
 
 function pad2(n) { return String(n).padStart(2, '0'); }
 function escapeHtml(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+// 今天（UTC）的 YYYY-MM-DD。用来判断本机数据是否已经落后——目标期号的日期一旦早于今天，
+// 就说明本机停在过去的期次，照着首屏买会买错期。
+function todayUTC(now) {
+  const d = now == null ? new Date() : new Date(now);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
+}
+// 两个 ISO 日期相差几天（to - from）。任一非法返回 null，不猜。
+function daysBetween(from, to) {
+  const a = Date.parse(from), b = Date.parse(to);
+  if (Number.isNaN(a) || Number.isNaN(b)) return null;
+  return Math.round((b - a) / 86400000);
+}
 function isLeapYear(y) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
 function maxPeriodOfYear(y) { return isLeapYear(y) ? 366 : 365; }
 function periodToDate(year, periodNum) {
@@ -141,5 +154,6 @@ if (typeof module !== 'undefined') module.exports = {
   periodToDate, countTriples, buildAll35Triples,
   RANDOM_AVG_HITS, RANDOM_AVG_INTERVAL, RANDOM_WIN_RATE,
   pad2, escapeHtml, zoneOf, maxPeriodOfYear, zodiacOfNumber, yearZodiacBaseIdx, zodiacByBase,
+  todayUTC, daysBetween,
   WAVE_MAP, WAVE_COLOR, ZODIACS, LUNAR_NEW_YEAR_DATES
 };

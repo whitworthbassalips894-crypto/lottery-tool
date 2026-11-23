@@ -187,7 +187,7 @@ test('历史命中：特码与三中三分别展示，7码中特在两个视图�
   const pick3Summary = p.text('summary');
   assert.match(pick3Summary, /有奖期占比/);
   assert.match(pick3Summary, /35 组 × 2 元 = 70 元/);
-  assert.match(pick3Summary, /2 元 × 700 = 1,400 元/);
+  assert.match(pick3Summary, /2 元 × 700 = ¥1,400/);
   // 关键要求：切到三中三视图后，7码中特记录仍然可见（指标卡 + 每行一列）
   assert.match(pick3Summary, /7码中特 · 常驻记录/);
   assert.match(pick3Summary, /切换视图不丢失/);
@@ -220,11 +220,11 @@ test('历史命中交互：展开明细、年份范围、搜索、仅看命中�
   assert.equal(p.$$('#historyBody tr.row')[0].getAttribute('aria-expanded'), 'true');
   await p.click(p.$$('#historyBody tr.row')[0]);
   assert.ok(!p.q('#historyBody tr.detail'), '再次点击应收起明细');
-  // 年份范围切换
-  await p.click(p.$$('#yearTabs .tab')[2]);
+  // 年份范围切换（页签顺序：近100期 / 全部 / 2026年 / 2025年 …）
+  await p.click(p.$$('#yearTabs .tab')[3]);
   assert.equal(p.text('historyScopeTag'), '2025年');
   assert.match(p.text('filterCount'), /365 期/);
-  assert.ok(p.$$('#yearTabs .tab')[2].classList.contains('active'));
+  assert.ok(p.$$('#yearTabs .tab')[3].classList.contains('active'));
   // 搜索期号
   await p.type('historySearch', '2025-100');
   assert.equal(p.$$('#historyBody tr.row').length, 1);
@@ -649,8 +649,10 @@ test('网络失败：同步与检查更新都保留现有数据，并给出可�
   const p = await boot(snapshot, null, null, { netError: 'Failed to fetch' });
   await p.click('#syncBtn');
   await p.until(() => /同步失败/.test(p.text('syncStatus')));
-  assert.match(p.text('syncStatus'), /❌ 同步失败，未更改现有数据：Failed to fetch/);
-  assert.match(p.text('syncStatus'), /请检查网络、数据源或期号后重试/);
+  assert.match(p.text('syncStatus'), /❌ 同步失败（网络问题），未更改现有数据：Failed to fetch/);
+  assert.match(p.text('syncStatus'), /页面仍可正常使用内置快照/);
+  // 纯网络故障不该再提「撤销手动记录」——那是数据校验失败才需要的建议
+  assert.doesNotMatch(p.text('syncStatus'), /撤销上条手动/);
   assert.equal(p.text('latestIssue'), '2026-326');
   assert.equal(p.text('targetIssue'), '2026-327');
   assert.equal(p.$('syncBtn').disabled, false, '失败后按钮应可再次点击');
@@ -709,8 +711,9 @@ test('刷新后：记住上次同步结果，上游支持分段请求时自动�
 test('离线打包：sw.js 缓存版本随数据提升，且上游开奖数据始终直连不吃缓存', { skip }, () => {
   const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
   const app = fs.readFileSync(path.join(ROOT, 'src/app.js'), 'utf8');
-  assert.match(sw, /const CACHE_NAME='three-in-three-v8'/);
-  assert.match(app, /const APP_BUILD = '2026\.11\.23-r8'/);
+  assert.match(sw, /const CACHE_NAME='three-in-three-v9'/);
+  // 这两个必须一起提升，否则旧缓存会与新代码混用——这条断言就是提醒用的绊线。
+  assert.match(app, /const APP_BUILD = '2026\.11\.23-r9'/);
   // 缓存清单包含数据与三个脚本
   for (const asset of ['./index.html', './src/app.js', './src/data.js', './src/engine.js', './data/draws.json']) {
     assert.ok(sw.includes(`'${asset}'`), 'sw.js 预缓存清单缺少 ' + asset);
@@ -725,4 +728,188 @@ test('离线打包：sw.js 缓存版本随数据提升，且上游开奖数据�
   // 内置快照与上游最新期一致，避免"打包即过期"
   assert.equal(snapshot.latestId, '2026-326');
   assert.equal(snapshot.draws.length, 1787);
+});
+
+test('本机数据落后于今天时，首屏与推荐区都要警示（不能只写在最底部）', { skip }, async () => {
+  // 内置快照停在一周前：首屏的「下期目标期」会是早就开过的那一期
+  const stale = {
+    ...snapshot, updatedAt: '2026-11-16T22:00:00.000Z', latestId: '2026-320',
+    draws: snapshot.draws.filter(d => !(d.id.startsWith('2026') && Number(d.id.slice(5)) > 320))
+  };
+  const p = await boot(stale, null, stale);
+  assert.equal(p.text('latestIssue'), '2026-320');
+  assert.equal(p.text('targetIssue'), '2026-321');
+  const banner = p.$('staleBanner');
+  assert.equal(banner.hidden, false, '数据落后必须显示首屏横幅');
+  assert.match(banner.textContent, /本机数据已落后约 \d+ 天/);
+  assert.match(banner.textContent, /下期目标期 2026-321/);
+  assert.match(banner.textContent, /早就开过了/);
+  assert.ok(banner.querySelector('a[href="#sync"]'), '横幅要给出直达同步的入口');
+  const rec = p.$('recommendStale');
+  assert.equal(rec.hidden, false, '推荐区也要单独提示，用户可能直接跳到这一节');
+  assert.match(rec.textContent, /目标期号 2026-321 对应 2026-11-17/);
+  assert.deepEqual(p.errors, []);
+  p.window.close();
+});
+
+test('数据是最新的时候不显示落后警示', { skip }, async () => {
+  // 内置快照的目标期正好是今天：不该吓人
+  const today = new Date();
+  const p = await boot(snapshot);
+  const s = p.window.eval('staleness()');
+  const banner = p.$('staleBanner');
+  if (s && s.stale) {
+    assert.equal(banner.hidden, false);
+  } else {
+    assert.equal(banner.hidden, true, '未落后时不该出现红色横幅');
+    assert.equal(p.$('recommendStale').hidden, true);
+  }
+  assert.deepEqual(p.errors, []);
+  p.window.close();
+});
+
+test('搜索支持期号、日期与开奖号码，并说明各命中几期', { skip }, async () => {
+  const p = await boot(snapshot);
+  await p.click(p.$$('#yearTabs .tab')[1]); // 全部
+  assert.match(p.text('historyScopeTag'), /^全部\d+期$/);
+  // 旧实现只匹配期号字符串：搜「07」返回的是期号里含 "07" 的那一期，含义完全不同
+  await p.type('historySearch', '07');
+  const count = p.text('filterCount');
+  assert.match(count, /开出号码 07 共 \d+ 期/);
+  const rows = p.$$('#historyBody tr.row');
+  assert.ok(rows.length >= 1);
+  // 结果行里确实出现过号码 07（平码或特码）
+  assert.ok(rows.every(tr => /\b0?7\b/.test(tr.querySelector('td:nth-child(2)').textContent) || tr.textContent.includes('07')));
+  // 按日期搜
+  await p.type('historySearch', '11-22');
+  assert.match(p.text('filterCount'), /日期 \d+ 期/);
+  assert.ok(p.$$('#historyBody tr.row').length >= 1);
+  // 期号搜索仍然有效
+  await p.type('historySearch', '2026-320');
+  assert.match(p.text('filterCount'), /期号 1 期/);
+  assert.equal(p.$$('#historyBody tr.row').length, 1);
+  await p.type('historySearch', '');
+  assert.deepEqual(p.errors, []);
+  p.window.close();
+});
+
+test('跟号账本：选起点后按自己的区间累计投入、返奖与回本缺口', { skip }, async () => {
+  const p = await boot(snapshot);
+  assert.match(p.text('ledgerBody'), /选一个开始跟号的日期/);
+  const input = p.$('followSince');
+  input.value = '2026-01-01';
+  input.dispatchEvent(new p.window.Event('change', { bubbles: true }));
+  await p.until(() => /累计投入/.test(p.text('ledgerBody')));
+  const body = p.text('ledgerBody');
+  assert.match(body, /2026-001 ~ 2026-326/);
+  assert.match(body, /326 期 · 自 2026-01-01/);
+  assert.match(body, /¥22,820/, '累计投入 = 326 × 70');
+  assert.match(body, /同期期望 ¥17,340/);
+  // 起点要落盘，刷新后还在
+  assert.equal(p.storage().followSince, '2026-01-01');
+  const saved = JSON.stringify(p.storage());
+  p.window.close();
+  const p2 = await boot(snapshot, { three_in_three_sync_v1: saved });
+  assert.equal(p2.$('followSince').value, '2026-01-01');
+  assert.match(p2.text('ledgerBody'), /累计投入/);
+  // 起点晚于全部数据时说明原因，不留空
+  const input2 = p2.$('followSince');
+  input2.value = '2030-01-01';
+  input2.dispatchEvent(new p2.window.Event('change', { bubbles: true }));
+  await p2.until(() => /还没有开奖记录/.test(p2.text('ledgerBody')));
+  await p2.click('#followClear');
+  assert.equal(p2.$('followSince').value, '');
+  assert.match(p2.text('ledgerBody'), /选一个开始跟号的日期/);
+  assert.deepEqual(p2.errors, []);
+  p2.window.close();
+});
+
+test('修改上条手动记录：录错一个号不必整条撤销重来', { skip }, async () => {
+  const p = await boot(snapshot);
+  assert.equal(p.$('manualEdit').disabled, true, '没有手动记录时不该能点「修改」');
+  await p.type('manualLabel', '2026-327');
+  const nums = [3, 11, 22, 35, 41, 48, 7];
+  for (let i = 1; i <= 7; i++) await p.type('manualNum' + i, String(nums[i - 1]).padStart(2, '0'));
+  await p.click('#manualSubmit');
+  await p.until(() => p.text('latestIssue') === '2026-327');
+  assert.equal(p.$('manualEdit').disabled, false);
+  // 读回输入框
+  await p.click('#manualEdit');
+  await p.until(() => /正在修改 2026-327/.test(p.$('manualFlash').textContent));
+  assert.equal(p.$('manualNum7').value, '07');
+  assert.equal(p.$('manualSubmit').textContent, '✏️ 保存修改');
+  // 只改特码
+  await p.type('manualNum7', '09');
+  await p.click('#manualSubmit');
+  await p.until(() => /已修改 2026-327/.test(p.$('manualFlash').textContent));
+  assert.equal(p.text('latestIssue'), '2026-327', '期号不变');
+  assert.equal(p.text('totalCount'), '1787', '不会多出一期');
+  assert.match(p.text('latestMeta'), /第 7 位特码 09/);
+  assert.equal(p.$('manualSubmit').textContent, '💾 保存本期开奖', '保存后按钮文字复位');
+  assert.deepEqual(p.errors, []);
+  p.window.close();
+});
+
+test('粘贴官网整行不会把号码填错，号码不够时明确报错', { skip }, async () => {
+  const p = await boot(snapshot);
+  // 带期号与日期的整行：旧实现会把 2026-327 切成 20/26/32/07 顶掉真正的号码
+  await p.type('manualPaste', '第2026327期 开奖日期 2026-11-23 平码 19 04 14 12 21 34 特码 43');
+  for (let i = 1; i <= 6; i++) assert.equal(p.$('manualNum' + i).value, ['19', '04', '14', '12', '21', '34'][i - 1]);
+  assert.equal(p.$('manualNum7').value, '43');
+  assert.match(p.$('manualFlash').textContent, /已按粘贴内容填入/);
+  // 工具自己的「一键复制」文案粘回来也要取对
+  await p.click('#manualClear');
+  await p.type('manualPaste', '三中三 2026-327期 · 7码复式（35组）：05、08、17、21、32、38、43');
+  assert.equal(p.$('manualNum1').value, '05');
+  assert.equal(p.$('manualNum7').value, '43');
+  // 号码不够 7 个：离开输入框时必须报错，不能什么都不发生
+  await p.click('#manualClear');
+  await p.type('manualPaste', '19 04 14 12 21 34 60');
+  assert.doesNotMatch(p.$('manualFlash').textContent, /只认出/, '逐字输入阶段不弹提示');
+  p.$('manualPaste').dispatchEvent(new p.window.Event('change', { bubbles: true }));
+  await p.until(() => /只认出 6 个号码/.test(p.$('manualFlash').textContent));
+  assert.match(p.$('manualFlash').textContent, /还差 1 个/);
+  assert.deepEqual(p.errors, []);
+  p.window.close();
+});
+
+test('上游一期坏号码不再永久卡死同步', { skip }, async () => {
+  const bad = {
+    ...snapshot, updatedAt: '2026-11-24T22:00:00.000Z', latestId: '2026-328',
+    draws: [
+      { id: '2026-328', date: '2026-11-24', numbers: [2, 9, 18, 27, 36, 45], special: 11 },
+      { id: '2026-327', date: '2026-11-23', numbers: [7, 7, 7, 7, 7, 7], special: 3 }, // 上游开出重号
+      ...snapshot.draws
+    ]
+  };
+  const p = await boot(bad);
+  await p.click('#syncBtn');
+  await p.until(() => /同步完成/.test(p.text('syncStatus')));
+  assert.match(p.text('syncStatus'), /新增 1 期（2026-328）/);
+  assert.match(p.text('syncStatus'), /2026-327 号码无效已跳过/);
+  assert.equal(p.text('latestIssue'), '2026-328');
+  assert.equal(p.text('totalCount'), '1787', '坏期不入库，合法期次照常写入');
+  // 再同步一次不应再报错
+  await p.click('#syncBtn');
+  await p.until(() => /已是最新/.test(p.text('syncStatus')));
+  assert.deepEqual(p.errors, []);
+  p.window.close();
+});
+
+test('指标卡给出置信区间、期望值与连错理论分布，不再只报一个百分数', { skip }, async () => {
+  const p = await boot(snapshot);
+  const special = p.text('summary');
+  assert.match(special, /95% 置信区间/);
+  assert.match(special, /随机跟号的连错中位数 \d+ 期/);
+  assert.match(special, /样本内核对/);
+  await p.click('#viewTabs .seg-btn[data-view="pick3"]');
+  const pick3 = p.text('summary');
+  assert.match(pick3, /95% 区间/);
+  assert.match(pick3, /这套赔率下的期望值/);
+  assert.match(pick3, /-¥16\.81/, '要精确写出每期期望亏损');
+  assert.match(pick3, /若特码也算开奖号/);
+  assert.match(pick3, /133\.0%/, '并排给出另一种结算口径，结论会翻号');
+  assert.match(pick3, /期望奖金/);
+  assert.deepEqual(p.errors, []);
+  p.window.close();
 });

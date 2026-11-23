@@ -2,21 +2,26 @@
 const SOURCE_URL = 'https://whitworthbassalips894-crypto.github.io/Number-selection-tool/data/draws.json';
 const STORAGE_KEY = 'three_in_three_sync_v1';
 // 版本号与 sw.js 缓存名一起提升，避免旧缓存与新代码混用。
-const APP_BUILD = '2026.11.23-r8';
+const APP_BUILD = '2026.11.23-r9';
 const HISTORY_PAGE = 50, SPECIAL_PAGE = 30, RECENT_WINDOW = 100;
 // 检查更新只取上游文件开头一小段，读出 latestId / updatedAt 即可判断差几期。
 const SOURCE_PROBE_RANGE = 'bytes=0-1023';
+// 一位数号码输入后等待这么久没有继续输入，就自动跳到下一格（手机上省掉每格再点一次）。
+const SINGLE_DIGIT_ADVANCE_MS = 700;
 
 let records = [], replay = [], excluded = [], sourceUpdated = '', recommendation = null;
 let historyView = 'special', selectedScope = 'recent', expanded = '', query = '', onlyHit = false;
 let historyLimit = HISTORY_PAGE, specialLimit = SPECIAL_PAGE;
 let lastSync = null, upstream = null, rangeProbeOk = false, builtinLabel = '', builtinUpdated = '', initNote = '';
+let followSince = '', editingManual = null;
 
 const el = id => document.getElementById(id);
 const esc = text => String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const wave = n => (typeof WAVE_MAP !== 'undefined' && WAVE_MAP[n]) || 'blue';
 const WAVE_LABEL = { red: '红波', blue: '蓝波', green: '绿波' };
 const money = n => { const v = Number(n || 0); return (v < 0 ? '-' : '') + '¥' + Math.abs(v).toLocaleString('en-US'); };
+// 每期期望值要精确到分：四舍五入成整数会把 -16.81 说成 -17，长期累计差很多。
+const money2 = n => { const v = Number(n || 0); return (v < 0 ? '-' : '') + '¥' + Math.abs(v).toFixed(2); };
 
 /* ---------------- 号码渲染 ---------------- */
 function ballHtml(n, opts) {
@@ -68,6 +73,32 @@ function flash(kind, message) {
   if (!box) return;
   box.innerHTML = `<div class="info-box ${kind === 'ok' ? 'flash-ok' : 'flash-bad'}" role="status">${esc(message)}</div>`;
 }
+// 本机数据是否已经落后于今天。目标期号的日期早于今天，说明本机停在过去的期次，
+// 照着首屏的「下期目标期」去买就会买错期。这件事必须在首屏说，不能只写在页面最底部的同步卡里。
+function staleness() {
+  if (!records.length) return null;
+  const last = records.at(-1);
+  const p = parseLabel(nextLabelOf(last.label));
+  if (!p) return null;
+  const nextDate = periodToDate(p.year, p.periodNum);
+  const days = daysBetween(nextDate, todayUTC());
+  if (days == null) return null;
+  return { stale: days > 0, days, nextDate, nextLabel: p.label, lastLabel: last.label, lastDate: last.date };
+}
+function renderStaleBanner() {
+  const banner = el('staleBanner');
+  if (!banner) return;
+  const s = staleness();
+  const stale = s && s.stale;
+  const rec = el('recommendStale');
+  banner.hidden = !stale;
+  if (rec) rec.hidden = !stale;
+  if (!stale) return;
+  banner.innerHTML = `<b>⚠️ 本机数据已落后约 ${s.days} 天</b>：最新只到 ${esc(s.lastLabel)}（${esc(s.lastDate)}），`
+    + `下面显示的「下期目标期 ${esc(s.nextLabel)}」是 ${esc(s.nextDate)} 那一期，早就开过了。`
+    + `请先点<a href="#sync">数据同步</a>，核对期号后再购买。`;
+  if (rec) rec.textContent = `⚠️ 目标期号 ${s.nextLabel} 对应 ${s.nextDate}，已过期约 ${s.days} 天。号码本身固定不变，但请先同步确认当前真正的期号。`;
+}
 function renderSyncStrip() {
   const strip = el('syncStrip');
   if (!strip) return;
@@ -100,7 +131,7 @@ function describeState(extra) {
   status(withNote(parts.join('\n')));
 }
 function persist() {
-  const payload = storagePayload(records, sourceUpdated, excluded);
+  const payload = storagePayload(records, sourceUpdated, excluded, { followSince });
   // 附加信息：上次同步结果与「上游是否支持分段请求」，normalizeSource 会忽略这两个键。
   payload.lastSync = lastSync;
   payload.rangeOk = rangeProbeOk;
@@ -172,11 +203,37 @@ function annotateStreaks() {
   }
 }
 function scopeRows() {
+  if (selectedScope === 'all') return replay.slice();
   return selectedScope === 'recent' ? replay.slice(-RECENT_WINDOW) : replay.filter(r => String(r.year) === selectedScope);
 }
+// 搜索支持三种口径：期号、开奖日期、开奖号码（平码或特码）。
+// 旧实现只匹配期号字符串，于是搜「07」会返回期号里含 "07" 的那一期——结果看着合理、含义完全错，
+// 用户根本没机会怀疑。现在三种口径都匹配，并把各自命中几期写清楚。
+function searchBreakdown(rows, q) {
+  const text = q.trim();
+  if (!text) return { rows: rows.slice(), label: '', byLabel: 0, byNumber: 0, byDate: 0 };
+  const isNum = /^\d{1,2}$/.test(text);
+  const want = isNum ? Number(text) : null;
+  // 只有查询里带分隔符才当日期搜：否则搜「07」会把 07 月、07 日的期次一起捞进来，
+  // 看着像号码命中，其实是日期命中。
+  const looksLikeDate = /[-/年月]/.test(text);
+  const slash = text.replaceAll('-', '/').replaceAll('年', '-').replaceAll('月', '-').replace(/日$/, '');
+  let byLabel = 0, byNumber = 0, byDate = 0;
+  const hit = rows.filter(r => {
+    let matched = false;
+    if (r.label.includes(text)) { byLabel++; matched = true; }
+    if (looksLikeDate && r.date && (r.date.includes(text) || r.date.replaceAll('-', '/').includes(slash))) { byDate++; matched = true; }
+    if (want != null && (r.numbers.includes(want) || r.special === want)) { byNumber++; matched = true; }
+    return matched;
+  });
+  const parts = [];
+  if (byLabel) parts.push(`期号 ${byLabel} 期`);
+  if (byNumber) parts.push(`开出号码 ${String(want).padStart(2, '0')} 共 ${byNumber} 期`);
+  if (byDate) parts.push(`日期 ${byDate} 期`);
+  return { rows: hit, label: parts.join(' · '), byLabel, byNumber, byDate };
+}
 function filteredRows(base) {
-  const q = query.trim();
-  let rows = q ? base.filter(r => r.label.includes(q)) : base.slice();
+  let rows = searchBreakdown(base, query).rows;
   if (onlyHit) rows = rows.filter(r => (historyView === 'special' ? r.specialHit === true : r.triples > 0));
   return rows;
 }
@@ -195,9 +252,11 @@ function render() {
   recommendation = createRecommendation(records);
   replay = buildReplay(records);
   annotateStreaks();
+  renderStaleBanner();
   renderStatStrip();
   renderRecommendation();
   renderHistory();
+  renderLedger();
   renderSpecialList();
   renderManualState();
   renderSyncStrip();
@@ -233,7 +292,7 @@ function renderSpecialList() {
   el('specialList').innerHTML = shown.map(r => {
     const hit = hitLabels.has(r.label);
     const ball = r.special == null ? '<span class="ball sm ghost">--</span>' : ballHtml(r.special, { size: 'sm' });
-    const meta = r.special == null ? '未记录' : `${esc((r.date || '').slice(5))}<br>${esc(zodiacOfNumber(r.special, r.date))}${hit ? '<br><b>7码中特</b>' : ''}`;
+    const meta = r.special == null ? '未记录' : `<span class="sp-date">${esc((r.date || '').slice(5))}<br></span>${esc(zodiacOfNumber(r.special, r.date))}${hit ? '<br><b>7码中特</b>' : ''}`;
     return `<div class="special-item${hit ? ' hit' : ''}" title="${esc(r.label)} 第7位特码${r.special == null ? '未记录' : ' ' + pad2(r.special)}${hit ? ' · 主推7码命中' : ''}">
       <span class="sp-period">${esc(r.label)}</span>${ball}<span class="sp-meta">${meta}</span></div>`;
   }).join('') || '<p class="note">暂无有效开奖数据。</p>';
@@ -248,6 +307,9 @@ function renderManualState() {
   const manual = manualRecords(records);
   el('manualCount').textContent = `手动记录 ${manual.length} 条`;
   el('manualUndo').disabled = !manual.length;
+  const editBtn = el('manualEdit');
+  // 只有当最后一条就是手动记录时才能改：中间的手动记录后面已经接了新期次，改动会对不上账。
+  if (editBtn) editBtn.disabled = !manual.length || records.at(-1).label !== manual.at(-1).label;
   const labelInput = el('manualLabel');
   if (labelInput && !String(labelInput.value || '').trim()) {
     labelInput.value = records.length ? nextLabelOf(records.at(-1).label) : '';
@@ -257,10 +319,14 @@ function renderManualState() {
 function renderHistory() {
   if (!replay.length) return;
   const years = [...new Set(replay.map(r => String(r.year)))].sort().reverse();
-  if (selectedScope !== 'recent' && !years.includes(selectedScope)) selectedScope = 'recent';
-  const scopes = ['recent', ...years];
-  el('yearTabs').innerHTML = scopes.map(s =>
-    `<button type="button" class="tab${s === selectedScope ? ' active' : ''}" data-scope="${esc(s)}" aria-pressed="${s === selectedScope}">${s === 'recent' ? `近${RECENT_WINDOW}期` : esc(s) + '年'}</button>`).join('');
+  if (selectedScope !== 'recent' && selectedScope !== 'all' && !years.includes(selectedScope)) selectedScope = 'recent';
+  // 「全部」是必须的：只有近 100 期时抽样噪声极大（命中率 95% 区间宽达 ±7pp），
+  // 全样本才看得出这组号与随机没有差别。
+  const scopes = ['recent', 'all', ...years];
+  el('yearTabs').innerHTML = scopes.map(s => {
+    const text = s === 'recent' ? `近${RECENT_WINDOW}期` : s === 'all' ? `全部${replay.length}期` : esc(s) + '年';
+    return `<button type="button" class="tab${s === selectedScope ? ' active' : ''}" data-scope="${esc(s)}" aria-pressed="${s === selectedScope}">${text}</button>`;
+  }).join('');
   el('yearTabs').querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
     selectedScope = btn.dataset.scope; expanded = ''; historyLimit = HISTORY_PAGE; renderHistory();
   }));
@@ -270,16 +336,19 @@ function renderHistory() {
     btn.setAttribute('aria-pressed', String(active));
   });
   el('onlyHitLabel').textContent = historyView === 'special' ? '仅看命中特码' : '仅看有奖期';
-  el('historyScopeTag').textContent = selectedScope === 'recent' ? `近${RECENT_WINDOW}期` : selectedScope + '年';
+  el('historyScopeTag').textContent = selectedScope === 'recent' ? `近${RECENT_WINDOW}期` : selectedScope === 'all' ? `全部${replay.length}期` : selectedScope + '年';
   el('historyNote').innerHTML = historyView === 'special'
-    ? '每期主推为<b>同一组固定 7 码</b>，此处核对开奖<b>第 7 位特码</b>是否落在 7 码内。特码命中只做记录与命中率统计，<b>不折算金额</b>，也不并入三中三奖金；随机基线 7/49 ≈ 14.3%。回放为事后模拟，不代表当时实际投注。'
-    : '每期主推为<b>同一组固定 7 码</b>，核对<b>前 6 位平码</b>：命中组数 = C(命中平码数, 3)。理论口径：随机 7 码命中 ≥3 个平码 3.10%/期（平均 32.3 期一次）；每期 35 组、每组 2 元、中奖组总返奖 700 倍（1,400 元，含本金）模拟，未计税费。表中「7码中特」一列始终显示，切到本视图也不会丢失特码命中记录。';
+    ? '每期主推为<b>同一组固定 7 码</b>，此处核对开奖<b>第 7 位特码</b>是否落在 7 码内。特码命中只做记录与命中率统计，<b>不折算金额</b>，也不并入三中三奖金；随机基线 7/49 ≈ 14.3%。<b>样本小时波动很大</b>：近 100 期的 95% 区间是 7.4%~21.1%，看结论请切到「全部」。这组号是模型读完整段历史后挑出来的，回放属<b>样本内核对</b>，不代表未来成绩。'
+    : '每期主推为<b>同一组固定 7 码</b>，核对<b>前 6 位平码</b>：命中组数 = C(命中平码数, 3)。理论口径：随机 7 码命中 ≥3 个平码 3.10%/期（平均 32.3 期一次）；每期 35 组、每组 2 元、中奖组总返奖 700 倍（1,400 元，含本金）模拟，未计税费。<b>该赔率下每期期望 −¥16.81（返奖 76%）</b>，实测盈亏请先与期望对照再看。表中「7码中特」一列始终显示，切到本视图也不会丢失特码命中记录。';
 
   const base = scopeRows();
   const rows = filteredRows(base);
   const shown = rows.slice().reverse().slice(0, historyLimit);
   const s3 = summarizeReplay(base), sp = summarizeSpecial(base);
-  el('filterCount').textContent = rows.length === base.length ? `${base.length} 期` : `筛出 ${rows.length} / ${base.length} 期`;
+  const sb = searchBreakdown(base, query);
+  el('filterCount').textContent = sb.label
+    ? `筛出 ${rows.length} / ${base.length} 期${onlyHit ? '（已叠加「仅看命中」）' : ''} · ${sb.label}`
+    : `${base.length} 期`;
   el('summary').innerHTML = historyView === 'special' ? specialMetricsHtml(sp, s3) : pick3MetricsHtml(s3, sp);
   el('historyHead').innerHTML = historyView === 'special'
     ? '<tr><th>期号 / 日期</th><th>开奖号码（末位特码）</th><th>主推 7 码</th><th>7码中特</th><th>连错期数</th></tr>'
@@ -324,45 +393,114 @@ function detailRowHtml(r) {
 }
 function specialMetricsHtml(sp, s3) {
   const rate = sp.rate.toFixed(1), baseline = sp.baseline.toFixed(1);
-  const diff = (sp.rate - sp.baseline).toFixed(1);
-  const diffText = sp.rate >= sp.baseline ? `高于随机基线 ${diff}pp` : `低于随机基线 ${Math.abs(Number(diff)).toFixed(1)}pp`;
+  const sig = significance(sp.wins, sp.periods, sp.baseline);
+  const ci = sig ? `${sig.ci95[0].toFixed(1)}%~${sig.ci95[1].toFixed(1)}%` : '—';
+  const verdictClass = !sig ? 'subtle' : sig.verdict === 'noise' ? 'subtle' : 'warn';
+  const verdictText = sig
+    ? (sig.verdict === 'noise'
+      ? `与随机基线无显著差异（z=${sig.z.toFixed(2)}，n=${sp.periods}）`
+      : `${sig.verdict === 'above' ? '高于' : '低于'}随机基线（z=${sig.z.toFixed(2)}，n=${sp.periods}）`)
+    : '样本不足';
+  // 连错的理论分布：号码固定、开奖独立，随机跟号本来就会有这么长的连错。
+  const pSp = sp.baseline / 100;
+  const missMedian = missRunQuantile(pSp, 0.5), missP95 = missRunQuantile(pSp, 0.05);
   return `<div class="metric hero">
     <div class="metric-head">7码中特 · 命中率<span class="pill subtle">随机基线 ${baseline}%</span></div>
-    <div><span class="metric-val">${rate}%</span><span class="metric-label">${sp.wins} / ${sp.periods} 期命中</span></div>
+    <div><span class="metric-val">${rate}%</span><span class="metric-label">${sp.wins} / ${sp.periods} 期命中（期望 ${sig ? sig.expected.toFixed(1) : '—'} 期）</span></div>
     <div class="metric-bar"><div class="metric-fill" style="width:${Math.min(100, sp.rate / (sp.baseline * 2) * 100)}%"></div></div>
-    <div class="metric-sub">${diffText}；平均间隔 <b>${sp.interval == null ? '—' : sp.interval.toFixed(1) + ' 期'}</b> · 当前连错 <b>${sp.currentMiss} 期</b> · 最长连错 ${sp.maxMiss} 期<br>近 ${sp.recentPeriods} 期命中 <b>${sp.recentWins}</b> 期${sp.unknown ? ` · 特码未记录 ${sp.unknown} 期不计入` : ''}</div>
+    <div class="metric-sub"><b>${verdictText}</b><br>95% 置信区间 <b>${ci}</b>（基线 ${baseline}%）· 平均间隔 <b>${sp.interval == null ? '—' : sp.interval.toFixed(1) + ' 期'}</b>（理论 7.0 期）<br>近 ${sp.recentPeriods} 期命中 <b>${sp.recentWins}</b> 期${sp.unknown ? ` · 特码未记录 ${sp.unknown} 期不计入` : ''}</div>
+  </div><div class="metric ${verdictClass}">
+    <div class="metric-head">连错期数 · 对照理论分布</div>
+    <div><span class="metric-val">${sp.currentMiss} 期</span><span class="metric-label">当前连错</span></div>
+    <div class="metric-sub">最长连错 <b>${sp.maxMiss} 期</b><br>随机跟号的连错<b>中位数 ${missMedian} 期</b>、<b>95 分位 ${missP95} 期</b>——「已经很多期没中」不构成「快出了」，每期仍是 ${baseline}%。</div>
   </div><div class="metric gold">
     <div class="metric-head">同范围三中三（对照）</div>
     <div><span class="metric-val">${s3.winningRate.toFixed(1)}%</span><span class="metric-label">有奖期 ${s3.winningPeriods} / ${s3.periods}</span></div>
-    <div class="metric-sub">累计命中 <b>${s3.groups} 组</b> · 模拟奖金 ${money(s3.prize)} / 投入 ${money(s3.cost)}<br>特码与三中三是同一份 7 码的两种口径，互不折算。</div>
+    <div class="metric-sub">累计命中 <b>${s3.groups} 组</b> · 模拟奖金 ${money(s3.prize)} / 投入 ${money(s3.cost)}（期望奖金 ${money(Math.round(s3.expectedPrize))}）<br>特码与三中三是同一份 7 码的两种口径，互不折算。</div>
   </div><div class="metric">
     <div class="metric-head">统计口径</div>
     <div class="calc-line"><span>判定</span><b>主推7码是否含当期特码</b></div>
-    <div class="calc-line"><span>选号依据</span><b>固定 7 码</b></div>
+    <div class="calc-line"><span>选号依据</span><b>固定 7 码（样本内）</b></div>
     <div class="calc-line"><span>金额</span><b>不模拟、不并入</b></div>
-    <div class="metric-sub">特码不进入评分，因此加入特码统计不会改变任何一期的 7 码方案。</div>
+    <div class="metric-sub">这组号是模型读完整段历史后挑出来的，所以回放是<b>样本内核对</b>；未来每期的命中率在数学上就等于 ${baseline}%。</div>
   </div>`;
 }
 function pick3MetricsHtml(s3, sp) {
   const winRate = s3.winningRate.toFixed(1), returnRate = s3.returnRate.toFixed(1);
   const net = (s3.net >= 0 ? '+' : '') + s3.net;
+  const sig = significance(s3.winningPeriods, s3.periods, s3.baselineWinningRate);
+  const ci = sig ? `${sig.ci95[0].toFixed(2)}%~${sig.ci95[1].toFixed(2)}%` : '—';
+  const verdictText = sig
+    ? (sig.verdict === 'noise'
+      ? `与随机理论无显著差异（z=${sig.z.toFixed(2)}，n=${s3.periods}）`
+      : `${sig.verdict === 'above' ? '高于' : '低于'}随机理论（z=${sig.z.toFixed(2)}，n=${s3.periods}）`)
+    : '样本不足';
+  const p3 = s3.baselineWinningRate / 100;
+  const missMedian = missRunQuantile(p3, 0.5), missP95 = missRunQuantile(p3, 0.05);
+  // 期望奖金：固定 7 码与随机等价，所以这段区间的期望只由赔率口径决定，与号码好坏无关。
+  const expPrize = Math.round(s3.expectedPrize);
+  const devGroups = s3.groups - s3.periods * EXPECTED_GROUPS_PER_PERIOD;
   return `<div class="metric hero">
-    <div class="metric-head">7码复式 · 有奖期占比</div>
+    <div class="metric-head">7码复式 · 有奖期占比<span class="pill subtle">随机理论 ${s3.baselineWinningRate.toFixed(2)}%</span></div>
     <div><span class="metric-val">${winRate}%</span><span class="metric-label">${s3.winningPeriods} / ${s3.periods} 期有奖</span></div>
     <div class="metric-bar"><div class="metric-fill" style="width:${Math.min(100, s3.winningRate)}%"></div></div>
-    <div class="metric-sub">平均每期命中 <b>${s3.avgHits.toFixed(3)}</b> 个平码（随机基线 ${s3.baselineAvgHits.toFixed(3)}），有奖率 ${s3.winningRate.toFixed(2)}%（随机理论 ${s3.baselineWinningRate.toFixed(2)}%）<br>模拟奖金 <b>${money(s3.prize)}</b> / 投入 ${money(s3.cost)}（返奖比 ${returnRate}%）<br>模拟盈亏 ${money(net)} · 累计命中 <b>${s3.groups} 组</b></div>
+    <div class="metric-sub"><b>${verdictText}</b> · 95% 区间 <b>${ci}</b><br>平均每期命中 <b>${s3.avgHits.toFixed(3)}</b> 个平码（随机基线 ${s3.baselineAvgHits.toFixed(3)}）<br>模拟奖金 <b>${money(s3.prize)}</b> / 投入 ${money(s3.cost)}（返奖比 ${returnRate}%）· <b>期望奖金 ${money(expPrize)}</b><br>模拟盈亏 ${money(net)} · 累计命中 <b>${s3.groups} 组</b>（期望 ${(s3.periods * EXPECTED_GROUPS_PER_PERIOD).toFixed(1)} 组，${devGroups >= 0 ? '多' : '少'} ${Math.abs(devGroups).toFixed(1)} 组）</div>
+  </div><div class="metric warn">
+    <div class="metric-head">这套赔率下的期望值</div>
+    <div><span class="metric-val">${money2(s3.evPerPeriod)}</span><span class="metric-label">每期期望盈亏（${money(COST_PER_PERIOD)} 投入）</span></div>
+    <div class="calc-line"><span>只算前6平码</span><b>返奖 ${THEORY_RETURN_RATE.toFixed(1)}%</b></div>
+    <div class="calc-line"><span>若特码也算开奖号</span><b>返奖 ${ALT_RETURN_RATE.toFixed(1)}%（+${money2(ALT_EV_PER_PERIOD).slice(1)}/期）</b></div>
+    <div class="calc-line"><span>打平所需倍数</span><b>${Math.round(FAIR_PAYOUT_MULTIPLIER)} 倍（现按 ${PAYOUT_MULTIPLIER} 倍）</b></div>
+    <div class="metric-sub">同一份数据，只因「特码算不算开奖号」，每期期望就从 <b>${money2(s3.evPerPeriod)}</b> 翻成 <b>+${money2(ALT_EV_PER_PERIOD).slice(1)}</b>。请以你实际下注的销售方规则为准。</div>
   </div><div class="metric gold">
     <div class="metric-head">7码中特 · 常驻记录<span class="pill warn">切换视图不丢失</span></div>
     <div><span class="metric-val">${sp.rate.toFixed(1)}%</span><span class="metric-label">${sp.wins} / ${sp.periods} 期命中</span></div>
-    <div class="metric-sub">当前连错 <b>${sp.currentMiss} 期</b> · 平均间隔 ${sp.interval == null ? '—' : sp.interval.toFixed(1) + ' 期'} · 随机基线 ${sp.baseline.toFixed(1)}%<br>特码命中只记录，不计入上面的模拟奖金。</div>
+    <div class="metric-sub">当前连错 <b>${sp.currentMiss} 期</b> · 最长连错 ${sp.maxMiss} 期（随机中位 ${missRunQuantile(sp.baseline / 100, 0.5)} 期、95 分位 ${missRunQuantile(sp.baseline / 100, 0.05)} 期）<br>随机基线 ${sp.baseline.toFixed(1)}% · 特码命中只记录，不计入上面的模拟奖金。</div>
   </div><div class="metric">
     <div class="metric-head">回放核算说明</div>
-    <div class="calc-line"><span>选号内核</span><b>固定 7 码</b></div>
+    <div class="calc-line"><span>选号内核</span><b>固定 7 码（样本内）</b></div>
     <div class="calc-line"><span>每期投入</span><b>35 组 × 2 元 = 70 元</b></div>
-    <div class="calc-line"><span>每组模拟奖金</span><b>2 元 × 700 = 1,400 元</b></div>
+    <div class="calc-line"><span>每组模拟奖金</span><b>2 元 × ${PAYOUT_MULTIPLIER} = ${money(PRIZE_PER_GROUP)}</b></div>
     <div class="calc-line"><span>命中组数</span><b>C(命中平码数, 3)</b></div>
-    <div class="metric-sub">按 700 倍为含本金的总返奖计算，未计税费；有奖不等于当期盈利。实际规则请以销售方为准。</div>
+    <div class="calc-line"><span>连错参考</span><b>中位 ${missMedian} 期 · 95 分位 ${missP95} 期</b></div>
+    <div class="metric-sub">按 ${PAYOUT_MULTIPLIER} 倍为含本金的总返奖计算，未计税费；有奖不等于当期盈利。实际规则请以销售方为准。</div>
   </div>`;
+}
+
+/* ---------------- 跟号账本 ---------------- */
+// 号码固定就意味着「长期押同一注」。用户真正想知道的是「我从哪天开始跟、跟到现在赚还是亏、
+// 还差几组回本」，而不是一个滚动的近 100 期窗口。这张卡就是把这件事直接算给他看。
+function renderLedger() {
+  const body = el('ledgerBody');
+  if (!body) return;
+  const input = el('followSince');
+  if (input && input.value !== followSince) input.value = followSince;
+  const first = replay.length ? replay[0].date : '';
+  const last = replay.length ? replay.at(-1).date : '';
+  if (input) { input.min = first; input.max = last; }
+  if (!followSince) {
+    body.innerHTML = `<p class="note">选一个开始跟号的日期，这里会按你的实际跟号区间累计投入、返奖与盈亏——比「近 100 期」更贴近你自己的账。数据覆盖 ${first} ~ ${last}。</p>`;
+    return;
+  }
+  const led = followLedger(replay, followSince);
+  if (!led || !led.active) {
+    body.innerHTML = `<p class="note">该日期之后还没有开奖记录（数据覆盖 ${first} ~ ${last}），请改一个更早的日期。</p>`;
+    return;
+  }
+  const netText = `${led.net >= 0 ? '+' : ''}${money(led.net).replace('-', '-')}`;
+  const expectedText = money(Math.round(led.expectedPrize));
+  const gap = led.prize - led.expectedPrize;
+  body.innerHTML = `
+    <div class="ledger-grid">
+      <div class="stat-cell accent"><div class="k">跟号区间</div><div class="v">${esc(led.firstLabel)} ~ ${esc(led.lastLabel)}</div><div class="s">${led.periods} 期 · 自 ${esc(led.since)}</div></div>
+      <div class="stat-cell"><div class="k">累计投入</div><div class="v">${money(led.cost)}</div><div class="s">${led.periods} 期 × ${money(COST_PER_PERIOD)}</div></div>
+      <div class="stat-cell"><div class="k">累计返奖</div><div class="v">${money(led.prize)}</div><div class="s">命中 ${led.groups} 组 · 有奖 ${led.winningPeriods} 期</div></div>
+      <div class="stat-cell${led.net >= 0 ? ' win' : ''}"><div class="k">累计盈亏</div><div class="v">${netText}</div><div class="s">同期期望 ${expectedText}，${gap >= 0 ? '比期望多' : '比期望少'} ${money(Math.abs(Math.round(gap)))}</div></div>
+    </div>
+    <p class="note">${led.groupsToBreakEven > 0
+      ? `距回本还差 <b>${led.groupsToBreakEven} 组</b>三中三（每组 ${money(PRIZE_PER_GROUP)}）。按每期 3.10% 的有奖率、每期期望命中 ${EXPECTED_GROUPS_PER_PERIOD.toFixed(4)} 组算，平均还要再跟 <b>${Math.round(led.groupsToBreakEven / EXPECTED_GROUPS_PER_PERIOD)}</b> 期——这个数字本身就说明了长期跟号的代价。`
+      : `这段区间已经回本，累计比投入多 <b>${money(led.net)}</b>。注意这是抽样结果：同期期望返奖只有 ${expectedText}，跑赢期望属于运气，不代表下期还会赢。`}
+      7 码中特 <b>${led.specialWins} / ${led.specialPeriods}</b> 期（基线 14.3%）。</p>`;
 }
 
 /* ---------------- 手动补录 ---------------- */
@@ -379,12 +517,19 @@ function renderManualInputs() {
   cells.push(manualCellHtml(7, '第7位特码', true));
   el('manualBalls').innerHTML = cells.join('');
   el('manualBalls').querySelectorAll('input').forEach(inp => {
+    const advance = () => {
+      const next = el('manualNum' + (Number(inp.id.replace('manualNum', '')) + 1));
+      if (next) next.focus();
+    };
     inp.addEventListener('input', () => {
-      if (String(inp.value || '').trim().length >= 2) {
-        const next = el('manualNum' + (Number(inp.id.replace('manualNum', '')) + 1));
-        if (next) next.focus();
-      }
+      const v = String(inp.value || '').trim();
+      clearTimeout(inp._advanceTimer);
+      // 两位数直接跳格；一位数（想填 05 这类）等一会儿没继续输入也跳，
+      // 否则手机上 7 个号码要点 14 次。
+      if (v.length >= 2) { advance(); return; }
+      if (v.length === 1) inp._advanceTimer = setTimeout(advance, SINGLE_DIGIT_ADVANCE_MS);
     });
+    inp.addEventListener('blur', () => clearTimeout(inp._advanceTimer));
   });
 }
 function readManualSeven() {
@@ -404,23 +549,50 @@ function syncManualDate() {
   box.placeholder = p ? '--' : '期号格式无效';
 }
 function resetManualInputs(keepLabel) {
-  for (let i = 1; i <= 7; i++) { const input = el('manualNum' + i); if (input) input.value = ''; }
+  for (let i = 1; i <= 7; i++) { const input = el('manualNum' + i); if (input) { input.value = ''; clearTimeout(input._advanceTimer); } }
   const paste = el('manualPaste'); if (paste) paste.value = '';
+  editingManual = null;
+  const submit = el('manualSubmit');
+  if (submit) submit.textContent = '💾 保存本期开奖';
   const label = el('manualLabel');
   if (label && !keepLabel) label.value = records.length ? nextLabelOf(records.at(-1).label) : '';
   syncManualDate();
 }
 function submitManual() {
-  const result = validateManualDraw(el('manualLabel').value, readManualSeven(), records);
+  const replacing = !!editingManual;
+  const result = validateManualDraw(el('manualLabel').value, readManualSeven(), records, { mode: replacing ? 'replace' : 'append' });
   if (result.error) { flash('bad', '❌ ' + result.error); return; }
   try {
-    records = appendManualDraw(records, result.record);
+    if (replacing) {
+      const done = replaceLastManual(records, result.record);
+      records = done.records;
+    } else {
+      records = appendManualDraw(records, result.record);
+    }
   } catch (e) { flash('bad', '❌ 保存失败：' + (e.message || e)); return; }
   const warning = safePersist();
+  const wasEditing = replacing;
   render();
   resetManualInputs();
-  flash('ok', `✅ 已保存 ${result.record.label}（${result.record.date}）：正码 ${result.record.numbers.map(pad2).join('、')} · 特码 ${pad2(result.record.special)}。仅存于当前浏览器。${warning}`);
-  describeState('已写入手动补录期次。');
+  flash('ok', `${wasEditing ? '✏️ 已修改' : '✅ 已保存'} ${result.record.label}（${result.record.date}）：正码 ${result.record.numbers.map(pad2).join('、')} · 特码 ${pad2(result.record.special)}。仅存于当前浏览器。${warning}`);
+  describeState(wasEditing ? '已修改手动补录期次。' : '已写入手动补录期次。');
+}
+// 把最后一条手动记录读回输入框，改完保存即覆盖——录错一个号不必整条撤销重来。
+function editLastManual() {
+  const manual = manualRecords(records);
+  if (!manual.length) { flash('bad', '❌ 本机没有可修改的手动补录记录。'); return; }
+  const last = manual.at(-1);
+  if (records.at(-1).label !== last.label) {
+    flash('bad', `❌ 手动记录 ${last.label} 之后已有新期次，改它会造成对不上账；请先撤销后面的期次。`);
+    return;
+  }
+  editingManual = last.label;
+  el('manualLabel').value = last.label;
+  last.numbers.concat([last.special]).forEach((n, i) => { const input = el('manualNum' + (i + 1)); if (input) input.value = pad2(n); });
+  syncManualDate();
+  const btn = el('manualSubmit');
+  if (btn) btn.textContent = '✏️ 保存修改';
+  flash('ok', `✏️ 正在修改 ${last.label}（原特码 ${pad2(last.special)}）。改好后点「保存修改」，或点「清空输入」取消。`);
 }
 function undoManual() {
   const result = undoLastManual(records);
@@ -432,13 +604,23 @@ function undoManual() {
   flash('ok', `↩️ 已撤销手动记录 ${result.removed.label}（特码 ${pad2(result.removed.special)}）。${warning}`);
   describeState('已撤销最近一条手动补录。');
 }
-function onPasteInput() {
+function onPasteInput(reportShort) {
   const box = el('manualPaste');
-  const nums = parsePastedNumbers(box.value);
-  if (nums.length < 7) return;
-  for (let i = 1; i <= 7; i++) { const input = el('manualNum' + i); if (input) input.value = pad2(nums[i - 1]); }
+  const res = pickPastedSeven(box.value);
+  if (res.error) {
+    // 认出号码但不够 7 个时必须说出来。旧实现在这里直接 return，用户粘完什么都没发生，
+    // 会以为输入框坏了。逐字输入时不弹，避免每敲一个字都报错。
+    if (reportShort && res.found && res.found.length) flash('bad', '⚠️ ' + res.error);
+    else if (!reportShort && !res.found) flash('bad', '⚠️ ' + res.error);
+    return;
+  }
+  for (let i = 1; i <= 7; i++) { const input = el('manualNum' + i); if (input) input.value = pad2(res.seven[i - 1]); }
   box.value = '';
-  flash('ok', `已按粘贴内容填入：正码 ${nums.slice(0, 6).map(pad2).join('、')} · 特码 ${pad2(nums[6])}。请核对后保存。`);
+  const notes = [];
+  if (res.dropped) notes.push(`已自动忽略 ${res.dropped} 个非开奖数字（${res.droppedHead}），它们多半来自期号或日期`);
+  if (res.duplicate) notes.push(`⚠️ 其中 ${res.duplicate} 重复，保存前请改正`);
+  flash(res.duplicate ? 'bad' : 'ok',
+    `已按粘贴内容填入：正码 ${res.seven.slice(0, 6).map(pad2).join('、')} · 特码 ${pad2(res.seven[6])}。${notes.length ? notes.join('；') + '。' : ''}请核对后保存。`);
 }
 
 /* ---------------- 复制 / 同步 ---------------- */
@@ -468,13 +650,18 @@ function applySource(payload, opts) {
   if (merged.confirmed) notes.push(`${merged.confirmed} 期手动记录已被数据源确认`);
   // 先记下这次同步结果，再落盘：刷新后状态条仍能显示「上次同步 新增 N 期 / 已是最新」。
   lastSync = { at: new Date().toISOString(), text: merged.added ? `新增 ${merged.added} 期` : '已是最新' };
-  persist();
+  // 写盘失败不能抛出去：此时 records 已经换成新数据，异常冒到 sync() 的 catch 会变成
+  // 「同步失败，未更改现有数据」——数据其实已经改了，而且 render() 也不会执行。
+  const storeWarning = safePersist();
   render();
   setSyncHint('');
   const last = records.at(-1);
   const specialText = last.special == null ? '特码未记录' : '特码 ' + pad2(last.special);
   const prefix = o.viaCheck ? '（检查更新时上游直接返回了完整数据，已顺手完成同步）\n' : '';
-  const tail = `${notes.length ? '\n' + notes.join('；') + '。' : ''}${excludedNote()}`;
+  if (merged.skippedInvalid && merged.skippedInvalid.length) {
+    notes.push(`上游 ${merged.skippedInvalid.join('、')} 号码无效已跳过，未影响后续期次`);
+  }
+  const tail = `${notes.length ? '\n' + notes.join('；') + '。' : ''}${excludedNote()}${storeWarning}`;
   if (merged.added) {
     status(withNote(`${prefix}✅ 同步完成：新增 ${merged.added} 期（${addedLabels.join('、')}）。本机最新 ${last.label}（${last.date}），${specialText}；上游更新于 ${fmtStamp(upstream.updatedAt)}。${tail}`));
   } else {
@@ -488,12 +675,17 @@ function reportSyncFailure(e) {
   lastSync = { at: new Date().toISOString(), text: '失败' };
   renderSyncStrip();
   persistMeta(); // 失败也记下来，刷新后仍能看到「上次同步 失败」
-  if (/落后于当前记录/.test(msg)) {
+  // 按错误类型分流，不再靠正则匹配中文提示文案（文案一改分流就静默失效）。
+  if (e && e.code === 'STALE_SOURCE') {
     const last = records.at(-1);
     status(withNote(`ℹ️ 无需同步：本机最新期 ${last.label} 已超前上游${upstream ? ' ' + upstream.label : ''}，未写入任何数据。\n若这是你手动补录的期次，等上游发布同一期后会自动核对；号码与官方不一致时会提示冲突，可用「撤销上条手动」回退。`));
     return;
   }
-  status(withNote(`❌ 同步失败，未更改现有数据：${msg}。\n请检查网络、数据源或期号后重试；若提示与手动补录冲突，可先撤销该条手动记录。`));
+  // 网络问题和数据校验问题是两回事，提示不该混在一起：断网时提「撤销手动记录」只会让人更糊涂。
+  const network = /Failed to fetch|NetworkError|Load failed|HTTP \d{3}/i.test(msg);
+  status(withNote(network
+    ? `❌ 同步失败（网络问题），未更改现有数据：${msg}。\n页面仍可正常使用内置快照（${builtinLabel || '--'}）。请检查网络后重试；急着核对可先用「开奖录入」手动补录本期。`
+    : `❌ 同步失败，未更改现有数据：${msg}。\n请核对数据源与期号后重试；若提示与手动补录冲突，可先「撤销上条手动」或「修改上条手动」。`));
 }
 async function sync() {
   const btn = el('syncBtn'), check = el('checkBtn');
@@ -578,7 +770,24 @@ function bindStaticEvents() {
   el('manualUndo').addEventListener('click', undoManual);
   el('manualClear').addEventListener('click', () => { resetManualInputs(); flash('ok', '已清空输入框。'); });
   el('manualLabel').addEventListener('input', syncManualDate);
-  el('manualPaste').addEventListener('input', onPasteInput);
+  // 逐字输入时只在凑够 7 个号码后自动填入；离开输入框还没凑够，才明确报错，
+  // 免得每敲一个字符都弹一次提示。
+  el('manualPaste').addEventListener('input', () => onPasteInput(false));
+  el('manualPaste').addEventListener('change', () => onPasteInput(true));
+  const editBtn = el('manualEdit');
+  if (editBtn) editBtn.addEventListener('click', editLastManual);
+  const since = el('followSince');
+  if (since) since.addEventListener('change', () => {
+    followSince = since.value || '';
+    renderLedger();
+    persistMeta();
+  });
+  const followClear = el('followClear');
+  if (followClear) followClear.addEventListener('click', () => {
+    followSince = '';
+    renderLedger();
+    persistMeta();
+  });
 }
 async function init() {
   // 经用户确认，仅删除此浏览器本工具的旧快乐8数据，不清除其他站点数据。
@@ -607,6 +816,8 @@ async function init() {
         sourceUpdated = base.updatedAt || saved.updatedAt || '';
         if (saved.lastSync && typeof saved.lastSync === 'object') lastSync = saved.lastSync;
         rangeProbeOk = saved.rangeOk === true;
+        // 跟号账本起点：纯附加信息，格式不对就当没设过，不影响数据。
+        followSince = /^\d{4}-\d{2}-\d{2}$/.test(saved.followSince || '') ? saved.followSince : '';
         if (merged.specialFilled) savedNotes.push(`本机备份补全了 ${merged.specialFilled} 期内置数据缺失的特码`);
         if (merged.manualKept) savedNotes.push(`本机手动补录 ${merged.manualKept} 条已恢复（最新 ${records.at(-1).label}）`);
         if (merged.manualConfirmed) savedNotes.push(`${merged.manualConfirmed} 条手动记录已被内置快照收录，按官方数据计`);

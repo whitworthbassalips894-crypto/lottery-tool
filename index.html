@@ -172,6 +172,24 @@ h2{margin:0;font-size:16.5px;font-weight:800;letter-spacing:.2px}
 .metric-sub{font-size:12px;color:var(--muted);line-height:1.75}
 .metric-sub b{color:var(--brand-deep)}
 .metric.gold .metric-sub b{color:var(--hit)}
+/* 期望值卡：用琥珀色，因为这一栏讲的是「长期一定亏」，不该和「命中」用同一种暖色 */
+.metric.warn{background:linear-gradient(135deg,#fffaf0,#fff5e0);border-color:var(--hit-line)}
+.metric.warn .metric-val{color:var(--hit)}
+.metric.warn .metric-sub b{color:var(--hit)}
+/* 数据落后提示：这是唯一会让用户买错期的状态，必须比任何卡片都显眼 */
+.stale-banner{margin:0 0 14px;padding:12px 15px;background:#fff3f2;border:1px solid #f4c7c3;border-left:5px solid var(--danger);border-radius:11px;font-size:13px;line-height:1.8;color:#8b1f16}
+.stale-banner b{color:#7a1b13}
+.stale-banner a{color:#8b1f16;font-weight:800}
+.stale-line{margin:10px 0 0;padding:9px 12px;background:var(--danger-soft);border:1px solid #f4c7c3;border-radius:9px;font-size:12px;font-weight:700;color:#8b1f16;line-height:1.7}
+/* 跟号账本 */
+.ledger{border:1px dashed var(--brand-line);border-radius:12px;padding:13px 14px;background:#fbfdff;margin:0 0 14px}
+.ledger-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--ink);margin-bottom:10px}
+.ledger-since{font-size:12px;font-weight:700;color:var(--muted)}
+.ledger-input{width:auto;flex:0 0 auto;padding:6px 9px;font-size:12.5px}
+.ledger-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+.ledger .note{margin:10px 0 0}
+.stat-cell.win{background:linear-gradient(135deg,#f0fbf8,#e7f6f3);border-color:#bfe4dc}
+.stat-cell.win .v{color:var(--ok)}
 .calc-line{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--line);padding:5px 0;font-size:12px}
 .calc-line:last-of-type{border-bottom:none}
 .calc-line span{color:var(--muted)}
@@ -278,7 +296,11 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
   .scroll-hint{display:block}
   .special-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
   .special-item{padding:7px 8px;gap:6px}
-  .special-item .sp-meta{display:none}
+  /* 手机上省掉日期，但保留生肖——对看生肖的用户，生肖才是这一栏的重点 */
+  .special-item .sp-meta{font-size:9.5px}
+  .special-item .sp-meta .sp-date{display:none}
+  .ledger-head{font-size:12px}
+  .ledger-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .manual-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .manual-cell.special{grid-column:span 3}
   .field-row .field{flex:1 1 100%}
@@ -312,6 +334,8 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
 </header>
 
 <main class="page">
+  <!-- 本机数据落后于今天时，必须在首屏就说：否则用户照着过期的「下期目标期」去买会买错期 -->
+  <div class="stale-banner" id="staleBanner" role="alert" hidden></div>
   <!-- ① 最新开奖（含第 7 位特码） -->
   <section class="draw-hero on-dark" id="draw" aria-labelledby="drawTitle">
     <div class="hero-top">
@@ -345,6 +369,7 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
         <span class="pill warn" id="recommendCost">35 组 × 2 元 = 70 元</span>
       </div>
       <div class="balls" id="recommendBalls"></div>
+      <p class="stale-line" id="recommendStale" hidden></p>
       <div class="composition" id="recommendComposition"></div>
       <div class="composition" id="recommendPicks"></div>
     </div>
@@ -366,11 +391,21 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
     <p class="note" id="historyNote"></p>
     <div class="tabs" id="yearTabs" role="group" aria-label="选择统计范围"></div>
     <div class="filters">
-      <input type="search" class="input" id="historySearch" placeholder="搜索期号，例如 2026-320" aria-label="搜索期号">
+      <input type="search" class="input" id="historySearch" placeholder="搜期号 / 日期 / 号码，如 2026-320、11-22、07" aria-label="按期号、日期或开奖号码搜索">
       <label class="check"><input type="checkbox" id="onlyHit"> <span id="onlyHitLabel">仅看命中特码</span></label>
       <span class="pill subtle" id="filterCount">--</span>
     </div>
     <div class="metrics" id="summary"></div>
+    <div class="ledger" id="ledger">
+      <div class="ledger-head">
+        <b>我的跟号账本</b>
+        <label class="ledger-since" for="followSince">从</label>
+        <input type="date" class="input mono ledger-input" id="followSince">
+        <label class="ledger-since" for="followSince">起算</label>
+        <button class="btn ghost sm" id="followClear" type="button">清除</button>
+      </div>
+      <div id="ledgerBody"></div>
+    </div>
     <p class="scroll-hint">表格可左右滑动 →</p>
     <div class="table-wrap">
       <table class="hist">
@@ -417,6 +452,7 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
     <div class="manual-grid" id="manualBalls"></div>
     <div class="actions">
       <button class="btn primary" id="manualSubmit" type="button">💾 保存本期开奖</button>
+      <button class="btn ghost" id="manualEdit" type="button" disabled>✏️ 修改上条手动</button>
       <button class="btn ghost" id="manualUndo" type="button">↩️ 撤销上条手动</button>
       <button class="btn ghost" id="manualClear" type="button">🧹 清空输入</button>
     </div>
