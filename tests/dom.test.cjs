@@ -67,7 +67,8 @@ async function boot(remote, storage, builtin) {
       node.dispatchEvent(new window.Event('change', { bubbles: true }));
       return wait(140);
     },
-    storage: () => JSON.parse(window.localStorage.getItem('three_in_three_sync_v1') || 'null')
+    storage: () => JSON.parse(window.localStorage.getItem('three_in_three_sync_v1') || 'null'),
+    get: name => window.eval(name)
   };
   assert.deepEqual(errors, [], '页面脚本执行报错');
   return api;
@@ -126,6 +127,9 @@ test('首屏渲染：开奖栏含第7位特码、指标条、推荐、特码记�
   assert.equal(p.text('targetIssue'), '2026-325');
   assert.equal(p.$$('#recommendBalls .ball').length, 7);
   assert.equal(p.$$('#recommendComposition .chip').length, 4);
+  assert.match(p.text('recommendPicks'), /反命中 · 冷门/);
+  assert.equal(p.$$('#recommendPicks .chip').length, 7);
+  assert.match(p.$('recommendPicks').textContent, /遗漏/);
   assert.equal(p.$$('#specialList .special-item').length, 30);
   assert.match(p.text('specialCount'), /共 1784 期 · 已记录特码 1784 期 · 显示 30 期/);
   assert.equal(p.$$('#historyBody tr.row').length, 50);
@@ -243,8 +247,13 @@ test('特码开奖记录按期展示：期号、波色球、日期、生肖与�
   assert.ok(first.querySelector('.ball').classList.contains('green'), '特码球应带波色');
   assert.match(first.querySelector('.sp-meta').textContent, /11-20/);
   assert.match(first.querySelector('.sp-meta').textContent, /鼠/);
-  assert.ok(first.classList.contains('hit'), '2026-324 的 7 码命中特码，应高亮');
-  assert.match(first.querySelector('.sp-meta').textContent, /7码中特/);
+  // 是否高亮完全取决于当期主推 7 码是否含特码：与回放结果逐期一致，不写死某一期
+  const firstRow = p.$$('#specialList .special-item')[0];
+  const firstLabel = firstRow.querySelector('.sp-period').textContent;
+  const replayRow = p.get('replay').find(r => r.label === firstLabel);
+  assert.equal(firstRow.classList.contains('hit'), replayRow.specialHit === true, firstLabel + ' 的特码命中高亮与回放不一致');
+  if (replayRow.specialHit) assert.match(first.querySelector('.sp-meta').textContent, /7码中特/);
+  else assert.doesNotMatch(first.querySelector('.sp-meta').textContent, /7码中特/);
   // 由近到远排列
   const labels = items.map(i => i.querySelector('.sp-period').textContent);
   assert.deepEqual(labels, [...labels].sort().reverse());
