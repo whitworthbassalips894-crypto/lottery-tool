@@ -30,7 +30,7 @@ function setup(remote, builtin) {
     navigator: { clipboard: { writeText: async text => clipboard.push(text) } },
     location: { protocol: 'http:' },
     fetch: async url => ({ ok: true, status: 200, json: async () => (String(url).startsWith('http') ? remote : local) }),
-    setTimeout: () => 0, console
+    setTimeout: () => 0, clearTimeout: () => {}, console
   };
   vm.createContext(sandbox);
   for (const f of ['src/engine.js', 'src/data.js', 'src/app.js']) vm.runInContext(fs.readFileSync(f, 'utf8'), sandbox, { filename: f });
@@ -152,7 +152,7 @@ test('切换到三中三视图：金额口径不变，且「7码中特」列与�
   const summary = ctx.get('summary').innerHTML;
   assert.match(summary, /有奖期占比/);
   assert.match(summary, /35 组 × 2 元 = 70 元/);
-  assert.match(summary, /2 元 × 700 = 1,400 元/);
+  assert.match(summary, /2 元 × 700 = ¥1,400/);
   assert.match(summary, /模拟盈亏/);
   assert.match(summary, /7码中特 · 常驻记录/);
   assert.match(summary, /切换视图不丢失/);
@@ -410,4 +410,81 @@ test('同步辅助：期数差、时间格式与状态条四格内容', async ()
   assert.match(ahead, /本机已超前上游[\s\S]{0,80}?新增 1 期/);
   assert.match(ahead, /2026-11-24 10:00 UTC/);
   assert.ok(!ahead.includes('stat-cell alert'), '本机超前不是待同步状态');
+});
+
+test('数据落后判断与搜索口径：首屏警示、按期号/日期/号码搜索', async () => {
+  const ctx = setup(remoteWithNext);
+  await flush();
+  // staleness()：目标期日期早于今天才算落后
+  const s = ctx.call('staleness()');
+  assert.equal(s.nextLabel, '2026-327');
+  assert.equal(s.nextDate, '2026-11-23');
+  assert.equal(typeof s.stale, 'boolean');
+  assert.equal(typeof s.days, 'number');
+  // 落后时首屏横幅与推荐区提示都要出现（把最新一期改成很久以前，下一期自然是过去的日期）
+  ctx.call('records[records.length - 1] = { ...records.at(-1), year: 2025, periodNum: 1, label: "2025-001" }; renderStaleBanner()');
+  const stale = ctx.call('staleness()');
+  assert.equal(stale.nextLabel, '2025-002');
+  assert.equal(stale.stale, true);
+  assert.ok(stale.days > 100);
+  assert.equal(ctx.get('staleBanner').hidden, false);
+  assert.match(ctx.get('staleBanner').innerHTML, /本机数据已落后约 \d+ 天/);
+  assert.equal(ctx.get('recommendStale').hidden, false);
+  // 没落后时两处都隐藏
+  ctx.call('renderStaleBanner()');
+  const ctx2 = setup(remoteWithNext);
+  await flush();
+  if (!ctx2.call('staleness()').stale) {
+    assert.equal(ctx2.get('staleBanner').hidden, true);
+    assert.equal(ctx2.get('recommendStale').hidden, true);
+  }
+  // 搜索三种口径各自计数，短查询不再只匹配期号字符串
+  const b = ctx2.call('searchBreakdown(replay.slice(-100), "07")');
+  assert.ok(b.byNumber >= 1, '搜 07 必须按开奖号码匹配');
+  assert.match(b.label, /开出号码 07 共 \d+ 期/);
+  const byDate = ctx2.call('searchBreakdown(replay.slice(-100), "11-22")');
+  assert.ok(byDate.byDate >= 1, '搜 11-22 必须按日期匹配');
+  const byLabel = ctx2.call('searchBreakdown(replay.slice(-100), "2026-320")');
+  assert.equal(byLabel.byLabel, 1);
+  assert.equal(ctx2.call('searchBreakdown(replay, "").label'), '');
+});
+
+test('同步失败按原因分流：网络问题不再提「撤销手动记录」', async () => {
+  const ctx = setup(remoteWithNext);
+  await flush();
+  // 网络失败
+  ctx.call('reportSyncFailure(new Error("Failed to fetch"))');
+  assert.match(ctx.get('syncStatus').textContent, /❌ 同步失败（网络问题）/);
+  assert.match(ctx.get('syncStatus').textContent, /页面仍可正常使用内置快照/);
+  assert.equal(/撤销上条手动/.test(ctx.get('syncStatus').textContent), false);
+  // 数据校验失败才提撤销/修改
+  const ctx2 = setup(remoteWithNext);
+  await flush();
+  ctx2.call('reportSyncFailure(new Error("期号 2026-320 与本地记录冲突，未写入"))');
+  assert.match(ctx2.get('syncStatus').textContent, /未更改现有数据/);
+  assert.match(ctx2.get('syncStatus').textContent, /撤销上条手动|修改上条手动/);
+  // 本机超前上游走 code 分流，不再靠正则匹配中文文案
+  const ctx3 = setup(remoteWithNext);
+  await flush();
+  ctx3.call('const e = new Error("来源数据最新期 2026-326 落后于当前记录 2026-327，未写入"); e.code = "STALE_SOURCE"; reportSyncFailure(e)');
+  assert.match(ctx3.get('syncStatus').textContent, /ℹ️ 无需同步：本机最新期 2026-326 已超前上游/);
+  assert.equal(/未更改现有数据/.test(ctx3.get('syncStatus').textContent), false);
+});
+
+test('跟号账本渲染：未设起点时说明用途，设了起点给出累计与回本缺口', async () => {
+  const ctx = setup(remoteWithNext);
+  await flush();
+  assert.match(ctx.get('ledgerBody').innerHTML, /选一个开始跟号的日期/);
+  ctx.call('followSince = "2026-01-01"; renderLedger()');
+  const html = ctx.get('ledgerBody').innerHTML;
+  assert.match(html, /2026-001 ~ 2026-326/);
+  assert.match(html, /累计投入/);
+  assert.match(html, /¥22,820/);
+  assert.match(html, /同期期望 ¥17,340/);
+  // 起点晚于全部数据：说明原因，不留空
+  ctx.call('followSince = "2030-01-01"; renderLedger()');
+  assert.match(ctx.get('ledgerBody').innerHTML, /该日期之后还没有开奖记录/);
+  // followSince 要写进本机载荷
+  ctx.call('followSince = "2026-01-01"; persist()');
+  assert.equal(JSON.parse(ctx.store.get('three_in_three_sync_v1')).followSince, '2026-01-01');
 });
