@@ -2,7 +2,7 @@
 const SOURCE_URL = 'https://whitworthbassalips894-crypto.github.io/Number-selection-tool/data/draws.json';
 const STORAGE_KEY = 'three_in_three_sync_v1';
 // 版本号与 sw.js 缓存名一起提升，避免旧缓存与新代码混用。
-const APP_BUILD = '2026.11.23-r6';
+const APP_BUILD = '2026.11.23-r7';
 const HISTORY_PAGE = 50, SPECIAL_PAGE = 30, RECENT_WINDOW = 100;
 // 检查更新只取上游文件开头一小段，读出 latestId / updatedAt 即可判断差几期。
 const SOURCE_PROBE_RANGE = 'bytes=0-1023';
@@ -239,7 +239,10 @@ function renderSpecialList() {
   }).join('') || '<p class="note">暂无有效开奖数据。</p>';
   const withSpecial = records.filter(r => r.special != null).length;
   el('specialCount').textContent = `共 ${records.length} 期 · 已记录特码 ${withSpecial} 期 · 显示 ${shown.length} 期`;
-  el('specialMore').hidden = specialLimit >= rows.length;
+  const specialDone = rows.length > 0 && specialLimit >= rows.length;
+  el('specialMore').hidden = specialDone;
+  el('specialAll').hidden = !specialDone;
+  el('specialAll').textContent = specialDone ? `已全部加载 ${rows.length} 期` : '';
 }
 function renderManualState() {
   const manual = manualRecords(records);
@@ -284,7 +287,11 @@ function renderHistory() {
   el('historyBody').innerHTML = shown.length
     ? shown.map((r, i) => historyRowHtml(r, i) + (expanded === r.label ? detailRowHtml(r) : '')).join('')
     : `<tr class="empty-row"><td colspan="${historyView === 'special' ? 5 : 7}">暂无符合条件的记录，请调整范围、搜索或「仅看命中」。</td></tr>`;
+  // 加载到底：按钮隐藏并给出「已全部加载」，避免用户以为按钮失灵
+  const historyDone = rows.length > 0 && rows.length <= historyLimit && historyLimit > HISTORY_PAGE;
   el('historyMore').hidden = rows.length <= historyLimit;
+  el('historyAll').hidden = !historyDone;
+  el('historyAll').textContent = historyDone ? `已显示全部 ${rows.length} 期` : '';
   el('historyBody').querySelectorAll('tr.row').forEach(tr => {
     const toggle = () => { const label = shown[Number(tr.dataset.idx)].label; expanded = expanded === label ? '' : label; renderHistory(); };
     tr.addEventListener('click', toggle);
