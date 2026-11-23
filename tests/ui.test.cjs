@@ -70,16 +70,20 @@ test('页面初始化：清除旧快乐8数据、展示最新一期含第7位特
   // 推荐 7 码与关键指标条
   assert.equal((ctx.get('recommendBalls').innerHTML.match(/class="ball (?:red|blue|green) lg"/g) || []).length, 7);
   assert.equal(count(ctx.get('recommendComposition').innerHTML, 'chip'), 4);
-  // 冷门反命中口径：7 个号码各自的出现次数/遗漏明细，且与主推 7 码一一对应
+  // 每日随机口径：号码由目标期号决定（种子），明细给出波色与生肖，不再有热冷/遗漏指标
   const picks = ctx.get('recommendPicks').innerHTML;
-  assert.match(picks, /反命中 · 冷门/);
-  assert.match(picks, /目标是最低命中率/);
-  assert.equal(count(picks, ' 期</span>'), 7); // 7 个号码各自的明细 chip
-  assert.equal(picks.match(/· 遗漏 <b>\d+<\/b> 期/g).length, 7);
+  assert.match(picks, /每日随机/);
+  assert.match(picks, /同一期永远同一组/);
+  assert.equal(count(picks, 'chip'), 7);
+  assert.doesNotMatch(picks, /遗漏|出现次数/);
   const recommend = ctx.call('recommendation');
   assert.equal(recommend.picks.length, 7);
   assert.deepEqual(recommend.picks.map(x => x.num).sort((a, b) => a - b), recommend.numbers);
-  assert.ok(recommend.picks.every(x => Number.isInteger(x.freq) && x.omit >= 0 && x.freq <= recommend.window));
+  assert.ok(Number.isInteger(recommend.seed));
+  // 同一期号刷新页面（重跑初始化）必须得到同一组号码
+  const again = setup(remoteWithNext);
+  await flush();
+  assert.deepEqual(Array.from(again.call('recommendation').numbers), Array.from(recommend.numbers));
   const strip = ctx.get('statStrip').innerHTML;
   assert.match(strip, /有效期开奖/);
   assert.match(strip, /下期目标期/);
@@ -152,10 +156,10 @@ test('切换到三中三视图：金额口径不变，且「7码中特」列与�
   assert.match(summary, /模拟盈亏/);
   assert.match(summary, /7码中特 · 常驻记录/);
   assert.match(summary, /切换视图不丢失/);
-  // 反命中策略的效果必须直接写在指标卡上：平均命中低于随机基线
-  assert.match(summary, /平均每期命中 <b>0\.8\d\d<\/b> 个平码（随机基线 0\.857）/);
-  assert.match(summary, /有奖率对照随机 3\.10%/);
-  assert.match(summary, /反命中 · 冷门 7 码/);
+  // 随机策略的长期口径必须写在指标卡上：平均命中与有奖率对照随机理论值
+  assert.match(summary, /平均每期命中 <b>0\.\d\d\d<\/b> 个平码（随机基线 0\.857）/);
+  assert.match(summary, /随机理论 3\.10%/);
+  assert.match(summary, /每日随机（期号定种子）/);
   const body = ctx.get('historyBody').innerHTML;
   assert.match(body, /¥(?:0|1,400|5,600|14,000|28,000)/);
   assert.ok(count(body, '✓ 7码中特') >= 1, '三中三视图必须继续显示特码命中');

@@ -1,5 +1,5 @@
 'use strict';
-// 选号内核 v4（反命中/冷门策略），仅使用前六个平码；第 7 位特码只做记录与命中统计，不进入评分。
+// 选号内核 v5（每日随机）：按期号做种子的均匀随机 7 码，仅使用前六个平码；第 7 位特码只做记录与命中统计，不参与选号。
 const WAVE_MAP = (() => {
   const m = new Array(50).fill('green');
   for (const n of [1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46]) m[n] = 'red';
@@ -82,86 +82,90 @@ function buildAll35Triples(seven) {
 }
 
 // ---------------------------------------------------------------------------
-// 选号内核 v4：反命中（冷门）策略
+// 选号内核 v5：每日随机 7 码
 //
-// 旧内核（v3）把「连庄强热 / 回马旺尾 / 滞冷断档」三套互相矛盾的手调权重叠在一起，
-// 又有 7 个不同周期的统计窗口 + 抖动 + 杀号 + 波色/区间/尾数配额，共 20 多个自由度。
-// 回放显示它在 1782 期里的有奖率 4.26%、平均命中 0.939 个，都高于随机基线
-// （3.10% / 0.857），前半段 4.49% 后半段 4.04%，属于「在同一份历史上反复调参」的
-// 结果：号码频次前后半段的 Spearman 相关只有 -0.025，热号下期出现率 12.28% ≈ 冷号
-// 11.95% ≈ 理论 12.24%，没有任何可外推的信号。因此 v4 不再追热，改为明确的反向目标：
+// 为什么不再用任何"统计规律"：v3 的三套热/冷评分与 v4 的冷门排序，在同一份历史上
+// 都能被调出"比随机好"或"比随机差"的结果（v3 有奖率 4.26%、v4 2.69%，随机 3.10%），
+// 但号码频次前后半段 Spearman 只有 -0.025、热号下期出现率 12.28% ≈ 冷号 11.95% ≈
+// 理论 12.24%，没有任何可外推的信息。既然信号不存在，任何"算法"只是在拟合噪声，
+// 于是直接采信随机：每期从 1~49 均匀不放回抽 7 个号码。
 //
-//   在最近 COLD_WINDOW 期里出现次数最少的 7 个号码 → 同频时取更久未出（遗漏更大）的
-//   → 再同则取近 COLD_HISTORY 期出现更少的 → 最后按号码升序。
-//
-// 参数只有 2 个（36 期主窗口、500 期校验窗口），无抖动、无杀号、无形态配额，
-// 回放（1784 期，逐期只用当期之前的数据）：有奖率 2.69%、平均命中 0.814 个，
-// 都低于随机基线；前后半段 0.796 / 0.830、5 个连续 300 期窗口全部低于随机基线，
-// 表现比旧内核稳定得多（窗口标准差 0.023 vs 0.045）。
-// 注意：这是「主动选择命中率最低的组合」，并不提高中奖概率，也不改变单注期望。
+// 随机也必须"可复现"，否则同一期每次打开页面都换一组，票就没法照着买。
+// 做法：按期号（如 2026-325）做种子 → xmur3 混洗 + mulberry32 → 部分 Fisher–Yates
+// 从 1~49 抽出 7 个 → 升序输出。因此：
+//   · 同一期号永远得到同一组号码（刷新、重开、换设备都一致）；
+//   · 不同期号互相独立，等于每期独立随机；
+//   · 完全不读取历史开奖与特码，7 码与"热/冷/遗漏"再无关系。
+// 长期口径（数学期望，不随选号方法改变）：命中 ≥3 个平码 3.095%/期（平均 32.3 期一次）、
+// 平均命中 0.857 个平码、每期 70 元投入的期望返奖 53.2 元 ≈ 76%。
 // ---------------------------------------------------------------------------
-const COLD_WINDOW = 36;       // 主窗口：近 36 期出现次数最少者优先
-const COLD_HISTORY = 500;     // 校验窗口：主窗口同频同遗漏时，看近 500 期是否也偏冷
+const DAILY_SALT = 'three-in-three-daily-v5';
 const RANDOM_AVG_HITS = 7 * 6 / 49;                     // 随机 7 码每期平均命中 ≈ 0.857
-const RANDOM_WIN_RATE = (() => {                        // 随机 7 码命中 >=3 个平码的概率
+const RANDOM_AVG_INTERVAL = 1 / (() => {                // 平均多少期出现一次三中三
   const c = (n, k) => { if (k < 0 || k > n) return 0; let v = 1; for (let i = 0; i < k; i++) v = v * (n - i) / (i + 1); return v; };
   let p = 0;
   for (let k = 3; k <= 6; k++) p += c(6, k) * c(43, 7 - k) / c(49, 7);
-  return p * 100;
+  return p;
 })();
+const RANDOM_WIN_RATE = 100 / RANDOM_AVG_INTERVAL;      // ≈ 3.095%
 
-// 逐期统计：近 COLD_WINDOW 期出现次数、全量遗漏（不含当期）、近 COLD_HISTORY 期出现次数
-function coldStatsAt(usableAsc, P) {
-  const freq = new Int16Array(50);
-  const hist = new Int32Array(50);
-  const omit = new Int16Array(50).fill(-1);
-  const winF = Math.min(COLD_WINDOW, P);
-  const winH = Math.min(COLD_HISTORY, P);
-  for (let k = 1; k <= P; k++) {
-    const nums = usableAsc[P - k].numbers;
-    for (let i = 0; i < 6; i++) {
-      const n = nums[i];
-      if (omit[n] === -1) omit[n] = k - 1;
-      if (k <= winH) hist[n]++;
-      if (k <= winF) freq[n]++;
-    }
+// 字符串 → 32 位种子（xmur3）
+function seedFromString(str) {
+  const text = String(str || '');
+  let h = 1779033703 ^ text.length;
+  for (let i = 0; i < text.length; i++) {
+    h = Math.imul(h ^ text.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
   }
-  for (let n = 1; n <= 49; n++) if (omit[n] === -1) omit[n] = P; // 从未出现：遗漏按全历史计
-  return { freq, hist, omit, window: winF, history: winH };
+  h = Math.imul(h ^ (h >>> 16), 2246822507);
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  return (h ^= h >>> 16) >>> 0;
 }
 
-// 排序键完全确定：冷 → 久未出 → 长周期也冷 → 号码小
-function coldOrder(stats) {
-  const nums = Array.from({ length: 49 }, (_, i) => i + 1);
-  return nums.sort((a, b) =>
-    stats.freq[a] - stats.freq[b] ||
-    stats.omit[b] - stats.omit[a] ||
-    stats.hist[a] - stats.hist[b] ||
-    a - b);
+// 32 位种子 → [0,1) 均匀随机数（mulberry32）
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function next() {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
+// 按期号做种子，从 1~49 均匀不放回抽 7 个（部分 Fisher–Yates），升序返回
+function dailyRandomSeven(label) {
+  const key = String(label || '').trim();
+  if (!/^\d{4}-\d{3}$/.test(key)) throw new Error('期号格式无效：' + label);
+  const rand = mulberry32(seedFromString(`${DAILY_SALT}|${key}`));
+  const pool = Array.from({ length: 49 }, (_, i) => i + 1);
+  for (let i = 0; i < 7; i++) {
+    const j = i + Math.floor(rand() * (49 - i));
+    const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+  }
+  return pool.slice(0, 7).sort((a, b) => a - b);
+}
+
+// 与 run3in3At 相同的签名：仍只用历史条数定位期号，不读取任何开奖号码
 function run3in3At(usableAsc, P, year, periodNum, dateStr) {
-  const effDate = dateStr || (P > 0 ? usableAsc[P - 1].date : `${year}-01-01`);
-  const stats = coldStatsAt(usableAsc, P);
-  const order = coldOrder(stats);
-  const opt = order.slice(0, 7).sort((a, b) => a - b);
+  const label = `${year}-${String(periodNum).padStart(3, '0')}`;
+  const effDate = dateStr || (P > 0 ? usableAsc[P - 1].date : periodToDate(year, periodNum));
+  const opt = dailyRandomSeven(label);
   const baseZ = yearZodiacBaseIdx(effDate);
   const picks = opt.map(n => ({
     num: n,
-    freq: stats.freq[n],
-    hist: stats.hist[n],
-    omit: stats.omit[n],
     wave: WAVE_MAP[n],
     zodiac: ZODIACS[((baseZ - (n - 1)) % 12 + 12) % 12]
   }));
-
   return {
     opt,
-    method: 'coldest',
-    window: stats.window,
-    history: stats.history,
+    method: 'daily-random',
+    label,
+    date: effDate,
+    seed: seedFromString(`${DAILY_SALT}|${label}`),
     picks,
-    normMeta: picks.reduce((acc, p) => (acc[p.num] = { zodiac: p.zodiac, omit: p.omit, f10: p.freq }, acc), new Array(50))
+    normMeta: picks.reduce((acc, p) => (acc[p.num] = { zodiac: p.zodiac }, acc), new Array(50))
   };
 }
 
@@ -171,8 +175,9 @@ function zodiacOfNumber(num, dateStr) {
 }
 
 if (typeof module !== 'undefined') module.exports = {
-  run3in3At, coldStatsAt, coldOrder, validSixNums, parseLabel, nextLabelOf, periodToDate, countTriples, buildAll35Triples,
-  COLD_WINDOW, COLD_HISTORY, RANDOM_AVG_HITS, RANDOM_WIN_RATE,
+  run3in3At, dailyRandomSeven, seedFromString, mulberry32, validSixNums, parseLabel, nextLabelOf,
+  periodToDate, countTriples, buildAll35Triples,
+  DAILY_SALT, RANDOM_AVG_HITS, RANDOM_AVG_INTERVAL, RANDOM_WIN_RATE,
   pad2, escapeHtml, zoneOf, maxPeriodOfYear, zodiacOfNumber, yearZodiacBaseIdx, zodiacByBase,
   WAVE_MAP, WAVE_COLOR, ZODIACS, LUNAR_NEW_YEAR_DATES
 };

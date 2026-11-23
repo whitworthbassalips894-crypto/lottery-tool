@@ -139,14 +139,13 @@ function safePersist() {
 function createRecommendation(rows) {
   const label = nextLabelOf(rows.at(-1).label), p = parseLabel(label);
   const plan = run3in3At(rows, rows.length, p.year, p.periodNum, periodToDate(p.year, p.periodNum));
-  // 冷门策略：主推 7 码就是近 COLD_WINDOW 期出现最少的一组，明细直接列出出现次数与遗漏
-  return { label, numbers: plan.opt, picks: plan.picks, window: plan.window, history: plan.history };
+  // 每日随机：号码只由目标期号决定（种子固定），与历史开奖、特码、热冷状态完全无关
+  return { label, numbers: plan.opt, picks: plan.picks, seed: plan.seed, date: plan.date };
 }
 function recommendDetailHtml(rec) {
   if (!rec.picks || rec.picks.length !== 7) return '';
-  const worst = Math.max(...rec.picks.map(x => x.freq));
-  return `<p class="note" style="margin:12px 0 0">选号口径（反命中 · 冷门）：取近 <b>${rec.window}</b> 期出现次数最少的 7 个平码；同频取遗漏更久者，再同则看近 <b>${rec.history}</b> 期。本组最多只出现过 <b>${worst}</b> 次，是被历史「看得最少」的号码组合，<b>目标是最低命中率</b>，不是提高中奖率。</p>
-  <div class="composition">${rec.picks.map(x => `<span class="chip">${pad2(x.num)} · ${rec.window}期 <b>${x.freq}</b> 次 · 遗漏 <b>${x.omit}</b> 期</span>`).join('')}</div>`;
+  return `<p class="note" style="margin:12px 0 0">选号口径（<b>每日随机</b>）：以目标期号 <b>${esc(rec.label)}</b> 为种子（seed <code>${rec.seed}</code>），从 1~49 均匀不放回抽 7 个号码。<b>同一期永远同一组</b>，刷新、重开、换设备都不变；不同期互相独立。不参考任何历史开奖或热冷数据。</p>
+  <div class="composition">${rec.picks.map(x => `<span class="chip">${pad2(x.num)} · ${WAVE_LABEL[x.wave]} · 生肖${esc(x.zodiac)}</span>`).join('')}</div>`;
 }
 function compositionHtml(nums) {
   if (!nums || nums.length !== 7) return '';
@@ -270,8 +269,8 @@ function renderHistory() {
   el('onlyHitLabel').textContent = historyView === 'special' ? '仅看命中特码' : '仅看有奖期';
   el('historyScopeTag').textContent = selectedScope === 'recent' ? `近${RECENT_WINDOW}期` : selectedScope + '年';
   el('historyNote').innerHTML = historyView === 'special'
-    ? '按当期之前的有效历史逐期重现 <b>7 码主推</b>，核对开奖<b>第 7 位特码</b>是否落在 7 码内。特码命中只做记录与命中率统计，<b>不折算金额</b>，也不并入三中三奖金；随机基线 7/49 ≈ 14.3%。回放为事后模拟，不代表当时实际投注。'
-    : '按当期之前的有效历史逐期重现 <b>7 码主推</b>（35 组三中三，选号内核为<b>反命中/冷门</b>策略），核对<b>前 6 位平码</b>：命中组数 = C(命中平码数, 3)。按每期 35 组、每组 2 元、中奖组总返奖 700 倍（1,400 元，含本金）模拟，未计税费。表中「7码中特」一列始终显示，切到本视图也不会丢失特码命中记录。';
+    ? '每期主推为<b>该期期号决定的一组随机 7 码</b>（每日随机，同一期固定不变），此处核对开奖<b>第 7 位特码</b>是否落在 7 码内。特码命中只做记录与命中率统计，<b>不折算金额</b>，也不并入三中三奖金；随机基线 7/49 ≈ 14.3%。回放为事后模拟，不代表当时实际投注。'
+    : '每期主推为<b>该期期号决定的一组随机 7 码</b>（每日随机，同一期固定不变），核对<b>前 6 位平码</b>：命中组数 = C(命中平码数, 3)。理论口径：命中 ≥3 个平码 3.10%/期，平均 32.3 期一次；每期 35 组、每组 2 元、中奖组总返奖 700 倍（1,400 元，含本金）模拟，未计税费。表中「7码中特」一列始终显示，切到本视图也不会丢失特码命中记录。';
 
   const base = scopeRows();
   const rows = filteredRows(base);
@@ -332,7 +331,7 @@ function specialMetricsHtml(sp, s3) {
   </div><div class="metric">
     <div class="metric-head">统计口径</div>
     <div class="calc-line"><span>判定</span><b>主推7码是否含当期特码</b></div>
-    <div class="calc-line"><span>选号依据</span><b>仅前6位平码 · 冷门 7 码</b></div>
+    <div class="calc-line"><span>选号依据</span><b>期号种子随机 7 码</b></div>
     <div class="calc-line"><span>金额</span><b>不模拟、不并入</b></div>
     <div class="metric-sub">特码不进入评分，因此加入特码统计不会改变任何一期的 7 码方案。</div>
   </div>`;
@@ -344,14 +343,14 @@ function pick3MetricsHtml(s3, sp) {
     <div class="metric-head">7码复式 · 有奖期占比</div>
     <div><span class="metric-val">${winRate}%</span><span class="metric-label">${s3.winningPeriods} / ${s3.periods} 期有奖</span></div>
     <div class="metric-bar"><div class="metric-fill" style="width:${Math.min(100, s3.winningRate)}%"></div></div>
-    <div class="metric-sub">平均每期命中 <b>${s3.avgHits.toFixed(3)}</b> 个平码（随机基线 ${s3.baselineAvgHits.toFixed(3)}），有奖率对照随机 ${s3.baselineWinningRate.toFixed(2)}%<br>模拟奖金 <b>${money(s3.prize)}</b> / 投入 ${money(s3.cost)}（返奖比 ${returnRate}%）<br>模拟盈亏 ${money(net)} · 累计命中 <b>${s3.groups} 组</b></div>
+    <div class="metric-sub">平均每期命中 <b>${s3.avgHits.toFixed(3)}</b> 个平码（随机基线 ${s3.baselineAvgHits.toFixed(3)}），有奖率 ${s3.winningRate.toFixed(2)}%（随机理论 ${s3.baselineWinningRate.toFixed(2)}%）<br>模拟奖金 <b>${money(s3.prize)}</b> / 投入 ${money(s3.cost)}（返奖比 ${returnRate}%）<br>模拟盈亏 ${money(net)} · 累计命中 <b>${s3.groups} 组</b></div>
   </div><div class="metric gold">
     <div class="metric-head">7码中特 · 常驻记录<span class="pill warn">切换视图不丢失</span></div>
     <div><span class="metric-val">${sp.rate.toFixed(1)}%</span><span class="metric-label">${sp.wins} / ${sp.periods} 期命中</span></div>
     <div class="metric-sub">当前连错 <b>${sp.currentMiss} 期</b> · 平均间隔 ${sp.interval == null ? '—' : sp.interval.toFixed(1) + ' 期'} · 随机基线 ${sp.baseline.toFixed(1)}%<br>特码命中只记录，不计入上面的模拟奖金。</div>
   </div><div class="metric">
     <div class="metric-head">回放核算说明</div>
-    <div class="calc-line"><span>选号内核</span><b>反命中 · 冷门 7 码</b></div>
+    <div class="calc-line"><span>选号内核</span><b>每日随机（期号定种子）</b></div>
     <div class="calc-line"><span>每期投入</span><b>35 组 × 2 元 = 70 元</b></div>
     <div class="calc-line"><span>每组模拟奖金</span><b>2 元 × 700 = 1,400 元</b></div>
     <div class="calc-line"><span>命中组数</span><b>C(命中平码数, 3)</b></div>
