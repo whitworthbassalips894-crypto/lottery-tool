@@ -1,0 +1,42 @@
+name: test
+
+# 63 个用例只能在本地手动跑等于没有测试。每次推送与 PR 都跑一遍，
+# 顺带做一次语法检查，避免把跑不起来的代码合进 main。
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      # jsdom 只有端到端 DOM 测试需要；装上才能跑满 tests/dom.test.cjs，
+      # 不装的话那一组会自动跳过（不会失败），覆盖会悄悄变少。
+      - run: npm ci
+
+      - name: 语法检查
+        run: |
+          node --check src/engine.js
+          node --check src/data.js
+          node --check src/app.js
+          node --check sw.js
+
+      - name: 单元测试 + 端到端 DOM 测试
+        run: npm test
+
+      - name: 确认 DOM 测试没有被跳过
+        run: |
+          node -e "require('jsdom'); console.log('jsdom 可用，端到端测试已实际执行')"
