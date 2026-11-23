@@ -148,9 +148,11 @@ test('首屏渲染：开奖栏含第7位特码、指标条、推荐、特码记�
   assert.equal(p.text('targetIssue'), '2026-327');
   assert.equal(p.$$('#recommendBalls .ball').length, 7);
   assert.equal(p.$$('#recommendComposition .chip').length, 4);
-  assert.match(p.text('recommendPicks'), /每日随机/);
+  assert.match(p.text('recommendPicks'), /固定 7 码/);
   assert.equal(p.$$('#recommendPicks .chip').length, 7);
-  assert.match(p.$('recommendPicks').textContent, /同一期永远同一组/);
+  assert.match(p.$('recommendPicks').textContent, /号码固定/);
+  // 固定号码：与引擎常量一致，且与历史数据无关
+  assert.deepEqual(Array.from(p.get('recommendation').numbers), Array.from(p.get('FIXED_SEVEN')));
   assert.equal(p.$$('#specialList .special-item').length, 30);
   assert.match(p.text('specialCount'), /共 1786 期 · 已记录特码 1786 期 · 显示 30 期/);
   assert.equal(p.$$('#historyBody tr.row').length, 50);
@@ -656,8 +658,8 @@ test('刷新后：记住上次同步结果，上游支持分段请求时自动�
 test('离线打包：sw.js 缓存版本随数据提升，且上游开奖数据始终直连不吃缓存', { skip }, () => {
   const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
   const app = fs.readFileSync(path.join(ROOT, 'src/app.js'), 'utf8');
-  assert.match(sw, /const CACHE_NAME='three-in-three-v5'/);
-  assert.match(app, /const APP_BUILD = '2026\.11\.23-r5'/);
+  assert.match(sw, /const CACHE_NAME='three-in-three-v6'/);
+  assert.match(app, /const APP_BUILD = '2026\.11\.23-r6'/);
   // 缓存清单包含数据与三个脚本
   for (const asset of ['./index.html', './src/app.js', './src/data.js', './src/engine.js', './data/draws.json']) {
     assert.ok(sw.includes(`'${asset}'`), 'sw.js 预缓存清单缺少 ' + asset);

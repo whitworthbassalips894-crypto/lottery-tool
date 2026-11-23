@@ -87,51 +87,40 @@ test('特码只做记录：无效特码归为未记录，且不影响 7 码方�
   }
 });
 
-test('每日随机内核：期号定种子、均匀抽样、同期同号、跨期独立、不看历史', () => {
+test('固定 7 码内核：号码与历史、期号无关，且只改一处即可换号', () => {
   const next = engine.nextLabelOf(records.at(-1).label);
   const p = engine.parseLabel(next);
   const rec = engine.run3in3At(records, records.length, p.year, p.periodNum, engine.periodToDate(p.year, p.periodNum));
+  assert.equal(rec.method, 'fixed');
+  assert.equal(rec.label, next);
+  assert.deepEqual(rec.opt, Array.from(engine.FIXED_SEVEN));
   assert.equal(rec.opt.length, 7);
   assert.equal(new Set(rec.opt).size, 7);
   assert.ok(rec.opt.every(n => n >= 1 && n <= 49));
-  assert.equal(rec.method, 'daily-random');
-  assert.equal(rec.label, next);
-  // 同一期号永远同一组：不同历史长度、不同特码、历史上限都得到同样 7 码
+  assert.deepEqual(rec.opt, rec.opt.slice().sort((a, b) => a - b), '固定号码应按升序展示');
+  // 与历史完全无关：换历史长度、换特码、空历史都得到同一组
   const again = engine.run3in3At(records.slice(0, 100).map(r => ({ ...r, special: 1 })), 100, p.year, p.periodNum, '2026-11-21');
   assert.deepEqual(again.opt, rec.opt);
-  assert.deepEqual(engine.dailyRandomSeven(next), rec.opt);
-  assert.equal(again.seed, rec.seed);
-  // 不读取历史开奖：只给期号就能算出同一组
-  assert.deepEqual(engine.run3in3At([], 0, p.year, p.periodNum).opt, rec.opt);
-  // 不同期号互相独立：连续 200 期不重复出现相同组合
+  assert.deepEqual(engine.run3in3At([], 0, 2030, 1).opt, rec.opt);
+  // 任意 30 期都得到同一组（不会因为期号不同而变号）
   const seen = new Set();
-  for (let i = 1; i <= 200; i++) {
-    const seven = engine.dailyRandomSeven(`2026-${String(i).padStart(3, '0')}`);
-    assert.equal(new Set(seven).size, 7);
-    seen.add(seven.join(','));
-  }
-  assert.equal(seen.size, 200);
-  // 非法期号直接报错，不悄悄给一组号码
-  assert.throws(() => engine.dailyRandomSeven('2026-32'), /期号格式无效/);
-  // 均匀性：每个号码被抽中的频率应接近 7/49
-  const counts = new Array(50).fill(0);
-  for (let y = 0; y < 6; y++) for (let i = 1; i <= 900; i++) {
-    for (const n of engine.dailyRandomSeven(`${2030 + y}-${String(i).padStart(3, '0')}`)) counts[n]++;
-  }
-  const total = counts.reduce((a, b) => a + b, 0), expect = total / 49;
-  const chi = counts.slice(1).reduce((sum, c) => sum + (c - expect) ** 2 / expect, 0);
-  assert.ok(chi < 90, '随机抽样卡方 ' + chi + ' 偏大（df=48，p=0.001 约为 82）');
-  // 随机基线常量与理论值一致
+  for (let i = 1; i <= 30; i++) seen.add(engine.run3in3At(records, records.length, 2027, i).opt.join(','));
+  assert.equal(seen.size, 1);
+  // fixedSeven 返回副本：调用方修改不会污染常量
+  const copy = engine.fixedSeven();
+  copy[0] = 49;
+  assert.deepEqual(Array.from(engine.FIXED_SEVEN), Array.from(rec.opt));
+  // 随机基线常量与理论值一致（仅用于指标卡对照）
   assert.ok(Math.abs(engine.RANDOM_WIN_RATE - 3.095178) < 1e-5);
   assert.ok(Math.abs(engine.RANDOM_AVG_INTERVAL - 32.3083) < 1e-3);
   assert.ok(Math.abs(engine.RANDOM_AVG_HITS - 0.857143) < 1e-5);
-  assert.ok(engine.buildAll35Triples(rec.opt).length === 35);
+  assert.equal(engine.buildAll35Triples(rec.opt).length, 35);
   assert.equal(engine.zodiacOfNumber(43, '2026-11-20'), '鼠');
   assert.equal(engine.WAVE_MAP[43], 'green');
 });
 
 test('回放逐期只使用同期之前的记录，并同时给出三中三与特码命中', () => {
-  // 每日随机内核总能给出 7 码，因此每条有效记录都有一行回放：
+  // 固定 7 码总能给出 7 码，因此每条有效记录都有一行回放：
   // 1786 = 1787 期原始数据 - 1 期无效（2022-132 前 6 码重复）
   assert.equal(replay.length, 1786);
   assert.equal(replay.length, records.length);
@@ -162,21 +151,22 @@ test('回放逐期只使用同期之前的记录，并同时给出三中三与�
   assert.equal(lastRow.recommended.length, 7);
 });
 
-test('随机策略的回放口径：实测命中率与理论随机一致（不再追求高或低）', () => {
+test('固定 7 码的回放口径：与随机基线同一水平，不做任何「更准」的暗示', () => {
   const stats = summarizeReplay(replay);
   assert.equal(stats.periods, replay.length);
   assert.equal(stats.periods, 1786);
-  // 1786 期的随机波动：有奖率标准差约 0.41pp、平均命中的标准差约 0.024
+  // 每一期推荐的都必须是同一组固定号码
+  assert.ok(replay.every(r => r.recommended.join(',') === Array.from(engine.FIXED_SEVEN).join(',')));
+  // 1786 期的随机波动：平均命中标准差约 0.024、有奖率标准差约 0.41pp
   assert.ok(Math.abs(stats.avgHits - stats.baselineAvgHits) < 0.06, `平均命中 ${stats.avgHits} 偏离随机 ${stats.baselineAvgHits} 过多`);
   assert.ok(Math.abs(stats.winningRate - stats.baselineWinningRate) < 1.5, `有奖率 ${stats.winningRate} 偏离随机 ${stats.baselineWinningRate} 过多`);
-  // 前后半段都应落在理论值附近，不应出现「某一段特别神」
-  const half = Math.floor(replay.length / 2);
-  for (const part of [replay.slice(0, half), replay.slice(half)]) {
-    assert.ok(Math.abs(summarizeReplay(part).avgHits - 0.857) < 0.09);
-  }
   // 特码命中也应贴近 7/49 ≈ 14.29%
   const sp = summarizeSpecial(replay);
   assert.ok(Math.abs(sp.rate - sp.baseline) < 2.2, `特码命中率 ${sp.rate} 偏离基线 ${sp.baseline} 过多`);
+  // 金额口径仍按 35 组 × 2 元，中奖组 1,400 元
+  const groups = replay.reduce((sum, r) => sum + r.triples, 0);
+  assert.equal(stats.cost, stats.periods * 70);
+  assert.equal(stats.prize, groups * 1400);
 });
 
 test('三中三金额口径不变：每注2元、中奖总返奖700倍', () => {
