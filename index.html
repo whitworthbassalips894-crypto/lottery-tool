@@ -107,7 +107,10 @@ h2{margin:0;font-size:16.5px;font-weight:800;letter-spacing:.2px}
 .stat-cell .k{font-size:11.5px;color:var(--muted);font-weight:700}
 .stat-cell .v{font:800 19px/1.3 var(--mono);color:var(--brand-deep);margin-top:2px}
 .stat-cell .v small{font-size:11px;font-weight:700;color:var(--muted);font-family:inherit}
+.stat-cell .s{font-size:11px;color:var(--muted);line-height:1.5;margin-top:2px;word-break:break-word}
 .stat-cell.accent{background:linear-gradient(135deg,#f4f8ff,#eaf1ff);border-color:var(--brand-line)}
+.stat-cell.alert{background:linear-gradient(135deg,#fffaf0,#fff4e2);border-color:var(--hit-line)}
+.stat-cell.alert .v{color:var(--hit)}
 
 /* ---------------- ② 推荐 ---------------- */
 .ticket{border:1px solid var(--brand-line);border-left:4px solid var(--brand);border-radius:12px;padding:16px;background:linear-gradient(180deg,#fbfdff,#f5f9ff)}
@@ -130,6 +133,9 @@ h2{margin:0;font-size:16.5px;font-weight:800;letter-spacing:.2px}
 .btn.primary:hover{background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-color:var(--brand-deep)}
 .btn.ghost{background:#f6f9fe;border-color:var(--line);color:var(--ink-soft)}
 .btn.sm{padding:6px 11px;font-size:12px;border-radius:8px}
+.btn.attention{border-color:var(--brand);color:var(--brand-deep);animation:pulse-blue 1.8s ease-in-out 3}
+@keyframes pulse-blue{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.45)}50%{box-shadow:0 0 0 8px rgba(37,99,235,0)}}
+@media (prefers-reduced-motion:reduce){.btn.attention{animation:none}}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .seg-group{display:inline-flex;gap:2px;background:#e9eff8;border:1px solid var(--line);border-radius:999px;padding:3px}
 .seg-btn{border:none;border-radius:999px;background:transparent;padding:6px 14px;font-size:12.5px;font-weight:800;color:var(--muted);cursor:pointer;white-space:nowrap}
@@ -415,9 +421,14 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
   <section class="card" id="sync" aria-labelledby="syncTitle">
     <div class="card-head">
       <div class="card-title"><span class="sec-bar"></span><h2 id="syncTitle">5. 数据同步</h2><span class="pill subtle" id="sourceTag">上游数据源</span></div>
-      <div class="card-tools"><button class="btn primary" id="syncBtn" type="button">🔄 一键同步</button></div>
+      <div class="card-tools">
+        <span class="pill warn" id="syncHint" hidden></span>
+        <button class="btn ghost" id="checkBtn" type="button">🔎 检查更新</button>
+        <button class="btn primary" id="syncBtn" type="button">🔄 一键同步</button>
+      </div>
     </div>
-    <p class="note">读取你提供的网站开奖数据（含每期第 7 位特码），保存到当前浏览器。同步前会检查号码、期号缺口和历史冲突，异常时不写入；本机旧数据缺少特码时会自动回填，不改动已有平码。</p>
+    <p class="note"><b>检查更新</b>只向上游要文件开头一小段（约 1 KB），读出上游最新期号与更新时间，告诉你差几期，<b>不写入任何数据</b>；<b>一键同步</b>才下载完整开奖数据（含每期第 7 位特码）并校验后写入本机。同步前会检查号码、期号缺口和历史冲突，异常时不写入；本机旧数据缺少特码时会自动回填，不改动已有平码。上游一般每天开奖后更新一期（近期多在 UTC 22:00 前后，即新加坡时间次日 06:00 前后发布当天开奖）。</p>
+    <div class="stat-strip" id="syncStrip"></div>
     <p class="status" id="syncStatus" role="status" aria-live="polite">正在加载内置数据…</p>
   </section>
 
