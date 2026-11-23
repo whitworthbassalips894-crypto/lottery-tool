@@ -88,7 +88,8 @@ async function boot(remote, storage, builtin, opts) {
       return wait(140);
     },
     storage: () => JSON.parse(window.localStorage.getItem('three_in_three_sync_v1') || 'null'),
-    flat: id => (document.getElementById(id) ? document.getElementById(id).textContent.replace(/\s+/g, ' ').trim() : null)
+    flat: id => (document.getElementById(id) ? document.getElementById(id).textContent.replace(/\s+/g, ' ').trim() : null),
+    get: name => window.eval(name)
   };
   assert.deepEqual(errors, [], '页面脚本执行报错');
   return api;
@@ -147,6 +148,9 @@ test('首屏渲染：开奖栏含第7位特码、指标条、推荐、特码记�
   assert.equal(p.text('targetIssue'), '2026-327');
   assert.equal(p.$$('#recommendBalls .ball').length, 7);
   assert.equal(p.$$('#recommendComposition .chip').length, 4);
+  assert.match(p.text('recommendPicks'), /反命中 · 冷门/);
+  assert.equal(p.$$('#recommendPicks .chip').length, 7);
+  assert.match(p.$('recommendPicks').textContent, /遗漏/);
   assert.equal(p.$$('#specialList .special-item').length, 30);
   assert.match(p.text('specialCount'), /共 1786 期 · 已记录特码 1786 期 · 显示 30 期/);
   assert.equal(p.$$('#historyBody tr.row').length, 50);
@@ -264,14 +268,20 @@ test('特码开奖记录按期展示：期号、波色球、日期、生肖与�
   assert.ok(first.querySelector('.ball').classList.contains('red'), '特码球应带波色');
   assert.match(first.querySelector('.sp-meta').textContent, /11-22/);
   assert.match(first.querySelector('.sp-meta').textContent, /猴/);
-  assert.ok(!first.classList.contains('hit'), '2026-326 的 7 码未含特码 23，不应高亮');
-  assert.ok(!first.querySelector('.sp-meta').textContent.includes('7码中特'));
-  // 2026-324 的 7 码命中特码 43，应高亮并标注
-  const hitItem = items.find(i => i.querySelector('.sp-period').textContent === '2026-324');
-  assert.ok(hitItem, '应能找到 2026-324');
-  assert.equal(hitItem.querySelector('.ball').textContent, '43');
-  assert.ok(hitItem.classList.contains('hit'), '2026-324 的 7 码命中特码，应高亮');
-  assert.match(hitItem.querySelector('.sp-meta').textContent, /7码中特/);
+  // 是否高亮完全取决于当期主推 7 码是否含特码：与回放结果逐期一致，不写死某一期
+  const replay = p.get('replay');
+  const shown = items.map(i => ({
+    label: i.querySelector('.sp-period').textContent,
+    hit: i.classList.contains('hit'),
+    meta: i.querySelector('.sp-meta').textContent
+  }));
+  for (const item of shown) {
+    const row = replay.find(r => r.label === item.label);
+    assert.ok(row, '特码记录 ' + item.label + ' 应在回放中');
+    assert.equal(item.hit, row.specialHit === true, item.label + ' 的特码命中高亮与回放不一致');
+    assert.equal(item.meta.includes('7码中特'), item.hit, item.label + ' 的「7码中特」标注与高亮不一致');
+  }
+  assert.ok(shown.some(i => i.hit) && shown.some(i => !i.hit), '最近 30 期应同时存在命中与未中');
   // 由近到远排列
   const labels = items.map(i => i.querySelector('.sp-period').textContent);
   assert.deepEqual(labels, [...labels].sort().reverse());
@@ -646,8 +656,8 @@ test('刷新后：记住上次同步结果，上游支持分段请求时自动�
 test('离线打包：sw.js 缓存版本随数据提升，且上游开奖数据始终直连不吃缓存', { skip }, () => {
   const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
   const app = fs.readFileSync(path.join(ROOT, 'src/app.js'), 'utf8');
-  assert.match(sw, /const CACHE_NAME='three-in-three-v4'/);
-  assert.match(app, /const APP_BUILD = '2026\.11\.23-r3'/);
+  assert.match(sw, /const CACHE_NAME='three-in-three-v5'/);
+  assert.match(app, /const APP_BUILD = '2026\.11\.23-r5'/);
   // 缓存清单包含数据与三个脚本
   for (const asset of ['./index.html', './src/app.js', './src/data.js', './src/engine.js', './data/draws.json']) {
     assert.ok(sw.includes(`'${asset}'`), 'sw.js 预缓存清单缺少 ' + asset);

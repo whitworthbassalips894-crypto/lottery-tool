@@ -76,7 +76,7 @@ function mergeSource(current, source) {
 function buildReplay(records) {
   return records.flatMap((r, i) => {
     const plan = run3in3At(records, i, r.year, r.periodNum, r.date);
-    // 数据极少时附件算法可能无法凑满7码，不能将不足7码伪装成复式方案。
+    // 理论上冷门策略总能凑满 7 码；仍保留兜底，避免把不足 7 码伪装成复式方案。
     if (plan.opt.length !== 7) return [];
     const actual = new Set(r.numbers), hits = plan.opt.filter(n => actual.has(n));
     const triples = countTriples(hits.length);
@@ -95,7 +95,11 @@ function summarizeReplay(rows) {
   const cost = periods * COST_PER_PERIOD, prize = groups * PRIZE_PER_GROUP;
   return { periods, winningPeriods, groups, cost, prize, net: prize - cost,
     winningRate: periods ? winningPeriods / periods * 100 : 0,
-    returnRate: cost ? prize / cost * 100 : 0 };
+    returnRate: cost ? prize / cost * 100 : 0,
+    // 平均每期命中平码数：低于随机 7 码的 0.857 才说明「命中率最低」策略确实成立
+    avgHits: periods ? rows.reduce((total, r) => total + (r.hits ? r.hits.length : 0), 0) / periods : 0,
+    baselineAvgHits: 7 * 6 / 49,
+    baselineWinningRate: 3.0951780258 };
 }
 // 特码命中：当期主推 7 码里是否包含开奖第 7 位特码。只记录命中与命中率，不折算金额。
 function summarizeSpecial(rows) {

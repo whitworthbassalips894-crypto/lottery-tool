@@ -118,6 +118,7 @@ h2{margin:0;font-size:16.5px;font-weight:800;letter-spacing:.2px}
 .ticket-name{font-size:14.5px;font-weight:800}
 .ticket-top .spacer{margin-left:auto}
 .composition{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.composition .chip{white-space:nowrap}
 .chip{font-size:11.5px;font-weight:700;color:var(--ink-soft);background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 10px}
 .chip b{color:var(--brand);font-family:var(--mono)}
 .info-box{margin:14px 0 0;padding:11px 14px;background:#f4f8ff;border:1px solid var(--brand-line);border-left:4px solid var(--brand-mid);border-radius:10px;font-size:12.5px;color:#1e3a5f;line-height:1.75}
@@ -318,7 +319,7 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
     </div>
     <h2 id="drawTitle" class="sr-only" style="position:absolute;left:-9999px">最新开奖号码</h2>
     <div class="hero-balls balls" id="latestBalls" aria-label="最新开奖号码，末位为特码"></div>
-    <p class="hero-note">前 6 位平码用于三中三选号与命中核对；第 7 位特码单独记录、单独统计命中，不参与选号评分。</p>
+    <p class="hero-note">前 6 位平码用于三中三选号与命中核对（选号内核：反命中/冷门）；第 7 位特码单独记录、单独统计命中，不参与选号。</p>
   </section>
 
   <div class="stat-strip" id="statStrip"></div>
@@ -334,16 +335,17 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
     </div>
     <div class="ticket">
       <div class="ticket-top">
-        <span class="ticket-name">🏆 提纯主推 · 7码复式</span>
+        <span class="ticket-name">🧊 冷门反命中 · 7码复式</span>
         <span class="pill subtle">前6平码口径</span>
         <span class="spacer"></span>
         <span class="pill warn" id="recommendCost">35 组 × 2 元 = 70 元</span>
       </div>
       <div class="balls" id="recommendBalls"></div>
       <div class="composition" id="recommendComposition"></div>
+      <div class="composition" id="recommendPicks"></div>
     </div>
-    <div class="info-box">推荐仅参考附件的历史统计规则，开奖具有随机性，无法保证中奖或盈利。7码复式包含 35 组，按每组 2 元计共 70 元；回放按中奖组返奖 700 倍（1,400 元，含本金）模拟。实际售价、奖金、开奖时间及玩法请以当地合法销售机构规则为准。购买前请同步并核对期号。</div>
-    <p class="note" style="margin:10px 0 0">7中3＝1组 · 7中4＝4组 · 7中5＝10组 · 7中6＝20组（指组合数量，不代表奖金）。7 码是否含当期特码另见「历史命中 · 特码」视图。</p>
+    <div class="info-box">选号口径为<b>反命中（冷门）</b>：取近 36 期出现次数最少的 7 个平码，目标是让命中率尽量低，<b>不会</b>让中奖更容易。开奖具有随机性，任何方法都无法保证中奖或盈利。7码复式包含 35 组，按每组 2 元计共 70 元；回放按中奖组返奖 700 倍（1,400 元，含本金）模拟。实际售价、奖金、开奖时间及玩法请以当地合法销售机构规则为准。购买前请同步并核对期号。</div>
+    <p class="note" style="margin:10px 0 0">选号顺序：近 36 期出现最少 → 同频取遗漏更久 → 仍相同比近 500 期 → 最后按号码升序，结果完全确定、可复现。7中3＝1组 · 7中4＝4组 · 7中5＝10组 · 7中6＝20组（指组合数量，不代表奖金）。7 码是否含当期特码另见「历史命中 · 特码」视图。</p>
   </section>
 
   <!-- ③ 历史命中：特码 / 三中三 分别展示 -->

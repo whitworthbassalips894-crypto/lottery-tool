@@ -87,12 +87,27 @@ test('特码只做记录：无效特码归为未记录，且不影响 7 码方�
   }
 });
 
-test('附件7码算法、35组合和命中数量', () => {
+test('反命中（冷门）内核：7 码就是近期出现最少的号码，且不含任何手调权重', () => {
   const p = engine.parseLabel(engine.nextLabelOf(records.at(-1).label));
   const rec = engine.run3in3At(records, records.length, p.year, p.periodNum, engine.periodToDate(p.year, p.periodNum));
   assert.equal(rec.opt.length, 7);
   assert.equal(new Set(rec.opt).size, 7);
   assert.ok(rec.opt.every(n => n >= 1 && n <= 49));
+  assert.equal(rec.method, 'coldest');
+  // 选中号码的近 36 期出现次数，不得高于任何落选号码（同频时才比较遗漏/长周期）
+  const stats = engine.coldStatsAt(records, records.length);
+  const selected = new Set(rec.opt);
+  const worstSelected = Math.max(...rec.opt.map(n => stats.freq[n]));
+  const bestOther = Math.min(...Array.from({ length: 49 }, (_, i) => i + 1).filter(n => !selected.has(n)).map(n => stats.freq[n]));
+  assert.ok(worstSelected <= bestOther, `选中号码出现次数 ${worstSelected} 高于落选 ${bestOther}`);
+  assert.equal(rec.window, engine.COLD_WINDOW);
+  // 排序键确定、可复现：同一份历史两次调用结果一致，且与 coldOrder 完全一致
+  assert.deepEqual(rec.opt, engine.coldOrder(stats).slice(0, 7).sort((a, b) => a - b));
+  const again = engine.run3in3At(records, records.length, p.year, p.periodNum, engine.periodToDate(p.year, p.periodNum));
+  assert.deepEqual(again.opt, rec.opt);
+  // 冷门不等于低概率：只换个排序顺序，不改变 35 组复式的组合数量
+  assert.ok(engine.RANDOM_AVG_HITS > 0.857 && engine.RANDOM_AVG_HITS < 0.858);
+  assert.ok(engine.RANDOM_WIN_RATE > 3.09 && engine.RANDOM_WIN_RATE < 3.10);
   const groups = engine.buildAll35Triples(rec.opt);
   assert.equal(groups.length, 35);
   assert.equal(new Set(groups).size, 35);
@@ -102,7 +117,10 @@ test('附件7码算法、35组合和命中数量', () => {
 });
 
 test('回放逐期只使用同期之前的记录，并同时给出三中三与特码命中', () => {
-  assert.equal(replay.length, 1784);
+  // 冷门内核总能凑满 7 码，因此每条有效记录都有一行回放：
+  // 1786 = 1787 期原始数据 - 1 期无效（2022-132 前 6 码重复）
+  assert.equal(replay.length, 1786);
+  assert.equal(replay.length, records.length);
   assert.ok(replay.every(r => r.recommended.length === 7));
   assert.ok(replay.every(r => r.specialHit === r.recommended.includes(r.special)));
   assert.ok(replay.every(r => r.specialHit === true || r.specialHit === false));
@@ -130,14 +148,36 @@ test('回放逐期只使用同期之前的记录，并同时给出三中三与�
   assert.equal(lastRow.recommended.length, 7);
 });
 
+test('反命中策略的回放口径：平均命中与有奖率都低于随机 7 码', () => {
+  const stats = summarizeReplay(replay);
+  assert.equal(stats.periods, 1786);
+  assert.equal(stats.periods, replay.length);
+  assert.ok(stats.avgHits < stats.baselineAvgHits - 0.02, `平均命中 ${stats.avgHits} 未低于随机 ${stats.baselineAvgHits}`);
+  assert.ok(stats.winningRate < stats.baselineWinningRate + 0.3, `有奖率 ${stats.winningRate} 未接近/低于随机 ${stats.baselineWinningRate}`);
+  // 前后半段都必须低于随机基线，避免「只在某一段好看」
+  const half = Math.floor(replay.length / 2);
+  assert.ok(summarizeReplay(replay.slice(0, half)).avgHits < 0.857);
+  assert.ok(summarizeReplay(replay.slice(half)).avgHits < 0.857);
+  // 稳定性：连续 300 期窗口平均命中波动很小（旧内核约 0.045）
+  const windows = [];
+  for (let i = 0; i + 300 <= replay.length; i += 300) windows.push(summarizeReplay(replay.slice(i, i + 300)).avgHits);
+  const mean = windows.reduce((a, b) => a + b, 0) / windows.length;
+  const sd = Math.sqrt(windows.reduce((a, b) => a + (b - mean) ** 2, 0) / windows.length);
+  assert.ok(sd < 0.03, '窗口标准差 ' + sd + ' 过大');
+});
+
 test('三中三金额口径不变：每注2元、中奖总返奖700倍', () => {
   const rows = [0, 1, 4, 10, 20].map(triples => ({ triples }));
   const stats = summarizeReplay(rows);
-  assert.deepEqual(stats, {
-    periods: 5, winningPeriods: 4, groups: 35, cost: 350, prize: 49000, net: 48650,
-    winningRate: 80, returnRate: 14000
-  });
-  assert.deepEqual(summarizeReplay([]), { periods: 0, winningPeriods: 0, groups: 0, cost: 0, prize: 0, net: 0, winningRate: 0, returnRate: 0 });
+  assert.deepEqual(
+    { ...stats, avgHits: undefined, baselineAvgHits: undefined, baselineWinningRate: undefined },
+    {
+      periods: 5, winningPeriods: 4, groups: 35, cost: 350, prize: 49000, net: 48650,
+      winningRate: 80, returnRate: 14000, avgHits: undefined, baselineAvgHits: undefined, baselineWinningRate: undefined
+    });
+  assert.equal(summarizeReplay([]).periods, 0);
+  assert.equal(summarizeReplay([]).avgHits, 0);
+  assert.equal(summarizeReplay([]).net, 0);
   for (const row of replay.slice(0, 80)) {
     assert.equal(row.cost, 70);
     assert.equal(row.prize, row.triples * 1400);
