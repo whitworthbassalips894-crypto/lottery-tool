@@ -127,9 +127,9 @@ test('首屏渲染：开奖栏含第7位特码、指标条、推荐、特码记�
   assert.equal(p.text('targetIssue'), '2026-325');
   assert.equal(p.$$('#recommendBalls .ball').length, 7);
   assert.equal(p.$$('#recommendComposition .chip').length, 4);
-  assert.match(p.text('recommendPicks'), /反命中 · 冷门/);
+  assert.match(p.text('recommendPicks'), /每日随机/);
   assert.equal(p.$$('#recommendPicks .chip').length, 7);
-  assert.match(p.$('recommendPicks').textContent, /遗漏/);
+  assert.match(p.$('recommendPicks').textContent, /同一期永远同一组/);
   assert.equal(p.$$('#specialList .special-item').length, 30);
   assert.match(p.text('specialCount'), /共 1784 期 · 已记录特码 1784 期 · 显示 30 期/);
   assert.equal(p.$$('#historyBody tr.row').length, 50);
