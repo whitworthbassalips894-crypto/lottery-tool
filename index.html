@@ -319,7 +319,7 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
     </div>
     <h2 id="drawTitle" class="sr-only" style="position:absolute;left:-9999px">最新开奖号码</h2>
     <div class="hero-balls balls" id="latestBalls" aria-label="最新开奖号码，末位为特码"></div>
-    <p class="hero-note">前 6 位平码用于三中三命中核对；第 7 位特码单独记录、单独统计命中。下期 7 码为「每日随机」（按期号定种子），不读取任何历史号码。</p>
+    <p class="hero-note">前 6 位平码用于三中三命中核对；第 7 位特码单独记录、单独统计命中。下期 7 码为「固定 7 码」，每期使用同一组号码。</p>
   </section>
 
   <div class="stat-strip" id="statStrip"></div>
@@ -335,8 +335,8 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
     </div>
     <div class="ticket">
       <div class="ticket-top">
-        <span class="ticket-name">🎲 每日随机 · 7码复式</span>
-        <span class="pill subtle">期号定种 · 同期同号</span>
+        <span class="ticket-name">📌 固定 7 码 · 复式</span>
+        <span class="pill subtle">每期同一组号码</span>
         <span class="spacer"></span>
         <span class="pill warn" id="recommendCost">35 组 × 2 元 = 70 元</span>
       </div>
@@ -344,8 +344,8 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
       <div class="composition" id="recommendComposition"></div>
       <div class="composition" id="recommendPicks"></div>
     </div>
-    <div class="info-box">选号口径为<b>每日随机</b>：以目标期号为种子，从 1~49 均匀抽取 7 个号码，同一期永远同一组，不同期互相独立；<b>不参考任何历史热冷数据</b>。长期命中率就是随机水平：命中 ≥3 个平码 3.10%/期（平均 32.3 期一次），每期 70 元的期望返奖约 53 元（≈76%），任何选号方法都改变不了。开奖随机，无法保证中奖或盈利。7码复式包含 35 组，按每组 2 元计共 70 元；回放按中奖组返奖 700 倍（1,400 元，含本金）模拟。实际售价、奖金、开奖时间及玩法请以当地合法销售机构规则为准。购买前请同步并核对期号。</div>
-    <p class="note" style="margin:10px 0 0">复现方式：期号 → 种子 → 洗牌抽样，任何人用同一期号都能得到同一组号码；号码与「热/冷/遗漏」无关。7中3＝1组 · 7中4＝4组 · 7中5＝10组 · 7中6＝20组（指组合数量，不代表奖金）。7 码是否含当期特码另见「历史命中 · 特码」视图。</p>
+    <div class="info-box">选号口径为<b>固定 7 码</b>：每期使用同一组号码，不随开奖结果或历史数据调整。长期命中率与随机 7 码相同（命中 ≥3 个平码约 3.10%/期、平均 32.3 期一次），每期 70 元的期望返奖约 53 元（≈76%）；开奖随机，固定号码同样无法保证中奖或盈利。7码复式包含 35 组，按每组 2 元计共 70 元；回放按中奖组返奖 700 倍（1,400 元，含本金）模拟。实际售价、奖金、开奖时间及玩法请以当地合法销售机构规则为准。购买前请同步并核对期号。</div>
+    <p class="note" style="margin:10px 0 0">号码固定写在 <code>src/engine.js</code> 的 <code>FIXED_SEVEN</code>，需要换号时改这一处即可，回放与指标卡会自动跟随。7中3＝1组 · 7中4＝4组 · 7中5＝10组 · 7中6＝20组（指组合数量，不代表奖金）。7 码是否含当期特码另见「历史命中 · 特码」视图。</p>
   </section>
 
   <!-- ③ 历史命中：特码 / 三中三 分别展示 -->

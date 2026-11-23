@@ -1,5 +1,5 @@
 'use strict';
-const CACHE_NAME='three-in-three-v5'; // 与 app.js 的 APP_BUILD 一起提升
+const CACHE_NAME='three-in-three-v6'; // 与 app.js 的 APP_BUILD 一起提升
 const assets=['./','./index.html','./src/engine.js','./src/data.js','./src/app.js','./data/draws.json','./manifest.json','./icon-192.png','./icon-512.png','./icon-180.png','./favicon-32.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(assets)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('kl8-tool-cache-')||k.startsWith('three-in-three-')&&k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

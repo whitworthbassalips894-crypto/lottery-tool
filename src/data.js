@@ -76,7 +76,7 @@ function mergeSource(current, source) {
 function buildReplay(records) {
   return records.flatMap((r, i) => {
     const plan = run3in3At(records, i, r.year, r.periodNum, r.date);
-    // 每日随机总能给出 7 码；仍保留兜底，避免把不足 7 码伪装成复式方案。
+    // 固定 7 码总能给出 7 码；仍保留兜底，避免把不足 7 码伪装成复式方案。
     if (plan.opt.length !== 7) return [];
     const actual = new Set(r.numbers), hits = plan.opt.filter(n => actual.has(n));
     const triples = countTriples(hits.length);

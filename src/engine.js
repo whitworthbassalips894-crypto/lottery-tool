@@ -1,5 +1,5 @@
 'use strict';
-// 选号内核 v5（每日随机）：按期号做种子的均匀随机 7 码，仅使用前六个平码；第 7 位特码只做记录与命中统计，不参与选号。
+// 选号内核 v6（固定 7 码）：主推号码为人工指定的固定一组 7 码，不随历史数据变化；第 7 位特码只做记录与命中统计，不参与选号。
 const WAVE_MAP = (() => {
   const m = new Array(50).fill('green');
   for (const n of [1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46]) m[n] = 'red';
@@ -82,24 +82,20 @@ function buildAll35Triples(seven) {
 }
 
 // ---------------------------------------------------------------------------
-// 选号内核 v5：每日随机 7 码
+// 选号内核 v6：固定 7 码
 //
-// 为什么不再用任何"统计规律"：v3 的三套热/冷评分与 v4 的冷门排序，在同一份历史上
-// 都能被调出"比随机好"或"比随机差"的结果（v3 有奖率 4.26%、v4 2.69%，随机 3.10%），
-// 但号码频次前后半段 Spearman 只有 -0.025、热号下期出现率 12.28% ≈ 冷号 11.95% ≈
-// 理论 12.24%，没有任何可外推的信息。既然信号不存在，任何"算法"只是在拟合噪声，
-// 于是直接采信随机：每期从 1~49 均匀不放回抽 7 个号码。
+// 按用户要求：主推号码固定为下面这一组，不再由任何算法（随机、冷门、饱和度、
+// 频次、遗漏等）生成，也不随历史开奖变化——同一组号一直用，便于长期跟号与对账。
 //
-// 随机也必须"可复现"，否则同一期每次打开页面都换一组，票就没法照着买。
-// 做法：按期号（如 2026-325）做种子 → xmur3 混洗 + mulberry32 → 部分 Fisher–Yates
-// 从 1~49 抽出 7 个 → 升序输出。因此：
-//   · 同一期号永远得到同一组号码（刷新、重开、换设备都一致）；
-//   · 不同期号互相独立，等于每期独立随机；
-//   · 完全不读取历史开奖与特码，7 码与"热/冷/遗漏"再无关系。
-// 长期口径（数学期望，不随选号方法改变）：命中 ≥3 个平码 3.095%/期（平均 32.3 期一次）、
-// 平均命中 0.857 个平码、每期 70 元投入的期望返奖 53.2 元 ≈ 76%。
+// 这组号的来源：附件《7码版纯净版.html》v3.3 模型（饱和度 U 型曲线 + 频次 + 波色，
+// 只读第 7 位特码）在 2026-326 之前全部历史上的当期输出。移植版本已与原版逐期比对
+// 1175 期，选号完全一致；之后是否换号由用户决定，代码不再自动变更。
+//
+// 需要换号时只改 FIXED_SEVEN 一处，回放、指标卡与复制文案会自动跟随。
 // ---------------------------------------------------------------------------
-const DAILY_SALT = 'three-in-three-daily-v5';
+const FIXED_SEVEN = Object.freeze([5, 8, 17, 21, 32, 38, 43]);
+
+// 随机基线常量：仅用于指标卡对照，与实际选号无关
 const RANDOM_AVG_HITS = 7 * 6 / 49;                     // 随机 7 码每期平均命中 ≈ 0.857
 const RANDOM_AVG_INTERVAL = 1 / (() => {                // 平均多少期出现一次三中三
   const c = (n, k) => { if (k < 0 || k > n) return 0; let v = 1; for (let i = 0; i < k; i++) v = v * (n - i) / (i + 1); return v; };
@@ -109,49 +105,16 @@ const RANDOM_AVG_INTERVAL = 1 / (() => {                // 平均多少期出现
 })();
 const RANDOM_WIN_RATE = 100 / RANDOM_AVG_INTERVAL;      // ≈ 3.095%
 
-// 字符串 → 32 位种子（xmur3）
-function seedFromString(str) {
-  const text = String(str || '');
-  let h = 1779033703 ^ text.length;
-  for (let i = 0; i < text.length; i++) {
-    h = Math.imul(h ^ text.charCodeAt(i), 3432918353);
-    h = (h << 13) | (h >>> 19);
-  }
-  h = Math.imul(h ^ (h >>> 16), 2246822507);
-  h = Math.imul(h ^ (h >>> 13), 3266489909);
-  return (h ^= h >>> 16) >>> 0;
+// 固定 7 码的副本（升序），调用方随意修改也不会污染常量
+function fixedSeven() {
+  return FIXED_SEVEN.slice().sort((a, b) => a - b);
 }
 
-// 32 位种子 → [0,1) 均匀随机数（mulberry32）
-function mulberry32(seed) {
-  let a = seed >>> 0;
-  return function next() {
-    a = (a + 0x6D2B79F5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-// 按期号做种子，从 1~49 均匀不放回抽 7 个（部分 Fisher–Yates），升序返回
-function dailyRandomSeven(label) {
-  const key = String(label || '').trim();
-  if (!/^\d{4}-\d{3}$/.test(key)) throw new Error('期号格式无效：' + label);
-  const rand = mulberry32(seedFromString(`${DAILY_SALT}|${key}`));
-  const pool = Array.from({ length: 49 }, (_, i) => i + 1);
-  for (let i = 0; i < 7; i++) {
-    const j = i + Math.floor(rand() * (49 - i));
-    const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
-  }
-  return pool.slice(0, 7).sort((a, b) => a - b);
-}
-
-// 与 run3in3At 相同的签名：仍只用历史条数定位期号，不读取任何开奖号码
+// 兼容旧签名：P/year/periodNum 仍用于定位期号与日期，但不再影响号码
 function run3in3At(usableAsc, P, year, periodNum, dateStr) {
   const label = `${year}-${String(periodNum).padStart(3, '0')}`;
   const effDate = dateStr || (P > 0 ? usableAsc[P - 1].date : periodToDate(year, periodNum));
-  const opt = dailyRandomSeven(label);
+  const opt = fixedSeven();
   const baseZ = yearZodiacBaseIdx(effDate);
   const picks = opt.map(n => ({
     num: n,
@@ -160,10 +123,9 @@ function run3in3At(usableAsc, P, year, periodNum, dateStr) {
   }));
   return {
     opt,
-    method: 'daily-random',
+    method: 'fixed',
     label,
     date: effDate,
-    seed: seedFromString(`${DAILY_SALT}|${label}`),
     picks,
     normMeta: picks.reduce((acc, p) => (acc[p.num] = { zodiac: p.zodiac }, acc), new Array(50))
   };
@@ -175,9 +137,9 @@ function zodiacOfNumber(num, dateStr) {
 }
 
 if (typeof module !== 'undefined') module.exports = {
-  run3in3At, dailyRandomSeven, seedFromString, mulberry32, validSixNums, parseLabel, nextLabelOf,
+  run3in3At, fixedSeven, FIXED_SEVEN, validSixNums, parseLabel, nextLabelOf,
   periodToDate, countTriples, buildAll35Triples,
-  DAILY_SALT, RANDOM_AVG_HITS, RANDOM_AVG_INTERVAL, RANDOM_WIN_RATE,
+  RANDOM_AVG_HITS, RANDOM_AVG_INTERVAL, RANDOM_WIN_RATE,
   pad2, escapeHtml, zoneOf, maxPeriodOfYear, zodiacOfNumber, yearZodiacBaseIdx, zodiacByBase,
   WAVE_MAP, WAVE_COLOR, ZODIACS, LUNAR_NEW_YEAR_DATES
 };
