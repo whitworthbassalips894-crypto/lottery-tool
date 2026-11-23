@@ -252,8 +252,13 @@ test('历史命中交互：展开明细、年份范围、搜索、仅看命中�
   assert.equal(p.$$('#historyBody tr.row').length, 50);
   await p.click('#historyMore');
   assert.equal(p.$$('#historyBody tr.row').length, 100);
+  // 加载到底后按钮必须真正隐藏（作者样式 display:inline-flex 会覆盖 [hidden]，曾导致「点了没反应」）
   assert.equal(p.$('historyMore').hidden, true);
+  assert.equal(p.window.getComputedStyle(p.$('historyMore')).display, 'none', '加载到底后「加载更多」仍可见');
+  assert.equal(p.$('historyAll').hidden, false);
+  assert.match(p.text('historyAll'), /已显示全部 100 期/);
   const before = p.$$('#specialList .special-item').length;
+  assert.notEqual(p.window.getComputedStyle(p.$('specialMore')).display, 'none');
   await p.click('#specialMore');
   assert.equal(p.$$('#specialList .special-item').length, before + 30);
   assert.deepEqual(p.errors, []);
@@ -658,8 +663,8 @@ test('刷新后：记住上次同步结果，上游支持分段请求时自动�
 test('离线打包：sw.js 缓存版本随数据提升，且上游开奖数据始终直连不吃缓存', { skip }, () => {
   const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
   const app = fs.readFileSync(path.join(ROOT, 'src/app.js'), 'utf8');
-  assert.match(sw, /const CACHE_NAME='three-in-three-v6'/);
-  assert.match(app, /const APP_BUILD = '2026\.11\.23-r6'/);
+  assert.match(sw, /const CACHE_NAME='three-in-three-v7'/);
+  assert.match(app, /const APP_BUILD = '2026\.11\.23-r7'/);
   // 缓存清单包含数据与三个脚本
   for (const asset of ['./index.html', './src/app.js', './src/data.js', './src/engine.js', './data/draws.json']) {
     assert.ok(sw.includes(`'${asset}'`), 'sw.js 预缓存清单缺少 ' + asset);

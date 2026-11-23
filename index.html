@@ -208,6 +208,10 @@ tr.detail .dg{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:2px 
 tr.detail .dg b{color:var(--brand-deep)}
 .empty-row td{padding:22px 12px;text-align:center;color:var(--muted);font-size:12.5px}
 .more{margin-top:12px;text-align:center}
+.more .note{display:inline-block;margin:0 0 0 8px}
+/* 作者样式里的 display 会覆盖浏览器默认的 [hidden]{display:none}，必须显式声明，
+   否则「加载更多」在加载完最后一页后只改属性、按钮仍然可见，继续点就没有反应。 */
+[hidden]{display:none !important}
 .scroll-hint{display:none;font-size:11px;color:var(--faint);margin:6px 0 0;text-align:right}
 
 /* ---------------- ④ 特码开奖记录 ---------------- */
@@ -374,7 +378,7 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
         <tbody id="historyBody"></tbody>
       </table>
     </div>
-    <div class="more"><button type="button" class="btn ghost sm" id="historyMore" hidden>加载更多 50 期</button></div>
+    <div class="more"><button type="button" class="btn ghost sm" id="historyMore" hidden>加载更多 50 期</button><span class="note" id="historyAll" hidden></span></div>
     <p class="note" style="margin:12px 0 0">点击任意记录可展开明细。两个视图共用同一份 7 码方案：<b>「7码中特」在三中三视图里同样常驻显示</b>，切换视图、年份或筛选都不会丢失特码命中记录。无效号码期次及历史不足、无法生成完整 7 码的期次会跳过。</p>
   </section>
 
@@ -386,7 +390,7 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
     </div>
     <p class="note">按开奖期号由近到远展示每期第 7 位特码，球色对应波色，并标注开奖日期与生肖；<b>金框</b>表示当期主推 7 码命中该特码。仅显示有效开奖，特码缺失的期次标为 <span class="num unknown">--</span>。</p>
     <div class="special-grid" id="specialList"></div>
-    <div class="more"><button type="button" class="btn ghost sm" id="specialMore" hidden>加载更多 30 期</button></div>
+    <div class="more"><button type="button" class="btn ghost sm" id="specialMore" hidden>加载更多 30 期</button><span class="note" id="specialAll" hidden></span></div>
   </section>
 
   <!-- ⑤ 开奖录入（手动补录） -->
