@@ -39,8 +39,8 @@ function setup(remote, builtin) {
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
 const count = (html, needle) => String(html).split(needle).length - 1;
-const NEXT = { id: '2026-325', date: '2026-11-21', numbers: [3, 11, 22, 35, 41, 48], special: 7 };
-const remoteWithNext = { ...snapshot, updatedAt: '2026-11-21T22:00:00.000Z', latestId: '2026-325', draws: [NEXT, ...snapshot.draws] };
+const NEXT = { id: '2026-327', date: '2026-11-23', numbers: [3, 11, 22, 35, 41, 48], special: 7 };
+const remoteWithNext = { ...snapshot, updatedAt: '2026-11-23T22:00:00.000Z', latestId: '2026-327', draws: [NEXT, ...snapshot.draws] };
 
 test('页面初始化：清除旧快乐8数据、展示最新一期含第7位特码', async () => {
   const ctx = setup(remoteWithNext);
@@ -49,22 +49,22 @@ test('页面初始化：清除旧快乐8数据、展示最新一期含第7位特
   assert.equal(ctx.store.has('kl8_recommended_budget_v1'), false);
   assert.equal(ctx.store.has('kl8_pick_mode_v1'), false);
   assert.equal(ctx.store.get('other_app'), 'keep');
-  assert.equal(ctx.get('totalCount').textContent, 1784);
-  assert.equal(ctx.get('latestIssue').textContent, '2026-324');
-  assert.equal(ctx.get('latestDate').textContent, '2026-11-20');
-  assert.equal(ctx.get('targetIssue').textContent, '2026-325');
+  assert.equal(ctx.get('totalCount').textContent, 1786);
+  assert.equal(ctx.get('latestIssue').textContent, '2026-326');
+  assert.equal(ctx.get('latestDate').textContent, '2026-11-22');
+  assert.equal(ctx.get('targetIssue').textContent, '2026-327');
   assert.equal(ctx.get('copyBtn').disabled, false);
-  assert.match(ctx.get('latestMeta').textContent, /第 1~6 位平码 \+ 第 7 位特码 43/);
+  assert.match(ctx.get('latestMeta').textContent, /第 1~6 位平码 \+ 第 7 位特码 23/);
   // 最新开奖：6 个平码带「正1~正6」标签，第 7 位单独放大并标注「特码」
   const balls = ctx.get('latestBalls').innerHTML;
   assert.equal(count(balls, 'ball-label'), 7);
   for (let i = 1; i <= 6; i++) assert.ok(balls.includes(`>正${i}<`), '缺少正' + i + '标注');
   assert.equal(count(balls, '>特码<'), 1);
   assert.match(balls, /ball-label special">特码</);
-  assert.match(balls, /ball red lg">19</);
-  assert.match(balls, /ball green lg is-special">43</);
+  assert.match(balls, /ball blue lg">09</);
+  assert.match(balls, /ball red lg is-special">23</);
   assert.match(balls, /ball-plus/);
-  assert.match(ctx.get('syncStatus').textContent, /特码 43/);
+  assert.match(ctx.get('syncStatus').textContent, /特码 23/);
   assert.match(ctx.get('syncStatus').textContent, /1 期前6码无效未参与统计：2022-132/);
   assert.equal(ctx.get('buildTag').textContent, ctx.call('APP_BUILD'));
   // 推荐 7 码与关键指标条
@@ -97,11 +97,11 @@ test('特码开奖记录按期展示：期号、特码球、日期、生肖与7�
   const html = ctx.get('specialList').innerHTML;
   assert.equal(count(html, 'special-item'), 30);
   assert.equal(count(html, 'special-item hit'), count(html, '7码中特'));
-  assert.ok(html.indexOf('2026-324') < html.indexOf('2026-323'), '应按期号由近到远排列');
-  assert.match(html, /2026-324[\s\S]{0,220}?ball green sm">43</);
+  assert.ok(html.indexOf('2026-326') < html.indexOf('2026-325'), '应按期号由近到远排列');
+  assert.match(html, /2026-326[\s\S]{0,220}?ball red sm">23</);
   assert.match(html, /11-20/);
   assert.match(html, /鼠/);
-  assert.match(ctx.get('specialCount').textContent, /共 1784 期 · 已记录特码 1784 期 · 显示 30 期/);
+  assert.match(ctx.get('specialCount').textContent, /共 1786 期 · 已记录特码 1786 期 · 显示 30 期/);
   assert.equal(ctx.get('specialMore').hidden, false);
   ctx.get('specialMore').events.click();
   assert.equal(count(ctx.get('specialList').innerHTML, 'special-item'), 60);
@@ -199,7 +199,7 @@ test('一键复制 7 码格式不变', async () => {
   const ctx = setup(remoteWithNext);
   await flush();
   await ctx.get('copyBtn').events.click();
-  assert.match(ctx.clipboard[0], /^三中三 2026-325期 · 7码复式（35组）：\d{2}、\d{2}、\d{2}、\d{2}、\d{2}、\d{2}、\d{2}$/);
+  assert.match(ctx.clipboard[0], /^三中三 2026-327期 · 7码复式（35组）：\d{2}、\d{2}、\d{2}、\d{2}、\d{2}、\d{2}、\d{2}$/);
   assert.equal(ctx.get('copyBtn').textContent, '✅ 已复制');
 });
 
@@ -212,68 +212,68 @@ test('手动补录开奖：校验、写入本机、刷新页面数据，并可�
   };
   assert.equal(ctx.get('manualBalls').innerHTML.split('manual-cell').length - 1, 7);
   assert.match(ctx.get('manualBalls').innerHTML, /第7位特码/);
-  assert.equal(ctx.get('manualLabel').value, '2026-325');
-  assert.equal(ctx.get('manualDate').value, '2026-11-21');
+  assert.equal(ctx.get('manualLabel').value, '2026-327');
+  assert.equal(ctx.get('manualDate').value, '2026-11-23');
   assert.equal(ctx.get('manualCount').textContent, '手动记录 0 条');
   assert.equal(ctx.get('manualUndo').disabled, true);
 
   // 期号不连续
-  setNums([3, 11, 22, 35, 41, 48, 7], '2026-327');
+  setNums([3, 11, 22, 35, 41, 48, 7], '2026-329');
   await ctx.get('manualSubmit').events.click();
-  assert.match(ctx.get('manualFlash').innerHTML, /必须紧接最新一期 2026-324/);
-  assert.equal(ctx.get('latestIssue').textContent, '2026-324');
+  assert.match(ctx.get('manualFlash').innerHTML, /必须紧接最新一期 2026-326/);
+  assert.equal(ctx.get('latestIssue').textContent, '2026-326');
   assert.equal(ctx.store.has('three_in_three_sync_v1'), false);
   // 7 个号码重复
-  setNums([3, 11, 22, 35, 41, 48, 48], '2026-325');
+  setNums([3, 11, 22, 35, 41, 48, 48], '2026-327');
   await ctx.get('manualSubmit').events.click();
   assert.match(ctx.get('manualFlash').innerHTML, /互不重复/);
   // 特码越界
-  setNums([3, 11, 22, 35, 41, 48, 50], '2026-325');
+  setNums([3, 11, 22, 35, 41, 48, 50], '2026-327');
   await ctx.get('manualSubmit').events.click();
   assert.match(ctx.get('manualFlash').innerHTML, /第 7 位号码无效/);
   // 正常写入
-  setNums([3, 11, 22, 35, 41, 48, 7], '2026-325');
+  setNums([3, 11, 22, 35, 41, 48, 7], '2026-327');
   await ctx.get('manualSubmit').events.click();
-  assert.match(ctx.get('manualFlash').innerHTML, /已保存 2026-325（2026-11-21）：正码 03、11、22、35、41、48 · 特码 07/);
-  assert.equal(ctx.get('latestIssue').textContent, '2026-325');
-  assert.equal(ctx.get('latestDate').textContent, '2026-11-21');
+  assert.match(ctx.get('manualFlash').innerHTML, /已保存 2026-327（2026-11-23）：正码 03、11、22、35、41、48 · 特码 07/);
+  assert.equal(ctx.get('latestIssue').textContent, '2026-327');
+  assert.equal(ctx.get('latestDate').textContent, '2026-11-23');
   assert.match(ctx.get('latestMeta').textContent, /第 7 位特码 07/);
-  assert.equal(ctx.get('targetIssue').textContent, '2026-326');
-  assert.equal(ctx.get('totalCount').textContent, 1785);
+  assert.equal(ctx.get('targetIssue').textContent, '2026-328');
+  assert.equal(ctx.get('totalCount').textContent, 1787);
   assert.equal(ctx.get('manualCount').textContent, '手动记录 1 条');
   assert.equal(ctx.get('manualUndo').disabled, false);
-  assert.equal(ctx.get('manualLabel').value, '2026-326', '保存后应预填下一期期号');
+  assert.equal(ctx.get('manualLabel').value, '2026-328', '保存后应预填下一期期号');
   assert.equal(ctx.get('manualNum1').value, '', '保存后应清空号码输入');
-  assert.match(ctx.get('specialList').innerHTML, /2026-325[\s\S]{0,200}?ball red sm">07</);
+  assert.match(ctx.get('specialList').innerHTML, /2026-327[\s\S]{0,200}?ball red sm">07</);
   const saved = JSON.parse(ctx.store.get('three_in_three_sync_v1'));
   assert.equal(saved.schema, 2);
-  assert.equal(saved.latestId, '2026-325');
+  assert.equal(saved.latestId, '2026-327');
   assert.deepEqual(saved.draws.at(-1).numbers, [3, 11, 22, 35, 41, 48]);
   assert.equal(saved.draws.at(-1).special, 7);
   assert.equal(saved.draws.at(-1).manual, true);
   assert.deepEqual(saved.invalid, ['2022-132']);
-  assert.match(ctx.get('syncStatus').textContent, /本机手动补录 1 条，最新 2026-325/);
+  assert.match(ctx.get('syncStatus').textContent, /本机手动补录 1 条，最新 2026-327/);
   // 撤销
   await ctx.get('manualUndo').events.click();
-  assert.match(ctx.get('manualFlash').innerHTML, /已撤销手动记录 2026-325（特码 07）/);
-  assert.equal(ctx.get('latestIssue').textContent, '2026-324');
+  assert.match(ctx.get('manualFlash').innerHTML, /已撤销手动记录 2026-327（特码 07）/);
+  assert.equal(ctx.get('latestIssue').textContent, '2026-326');
   assert.equal(ctx.get('manualCount').textContent, '手动记录 0 条');
   assert.equal(ctx.get('manualUndo').disabled, true);
-  assert.equal(JSON.parse(ctx.store.get('three_in_three_sync_v1')).latestId, '2026-324');
+  assert.equal(JSON.parse(ctx.store.get('three_in_three_sync_v1')).latestId, '2026-326');
 });
 
 test('粘贴 7 个号码自动填入，第 7 位落到特码格', async () => {
   const ctx = setup(snapshot);
   await flush();
-  ctx.get('manualPaste').value = '19 04 14 12 21 34 + 43';
+  ctx.get('manualPaste').value = '09 16 22 36 05 47 + 23';
   ctx.get('manualPaste').events.input({ target: ctx.get('manualPaste') });
-  assert.deepEqual([1, 2, 3, 4, 5, 6, 7].map(i => ctx.get('manualNum' + i).value), ['19', '04', '14', '12', '21', '34', '43']);
+  assert.deepEqual([1, 2, 3, 4, 5, 6, 7].map(i => ctx.get('manualNum' + i).value), ['09', '16', '22', '36', '05', '47', '23']);
   assert.equal(ctx.get('manualPaste').value, '');
-  assert.match(ctx.get('manualFlash').innerHTML, /特码 43/);
+  assert.match(ctx.get('manualFlash').innerHTML, /特码 23/);
   // 不足 7 个不填入
   ctx.get('manualPaste').value = '19 04 14';
   ctx.get('manualPaste').events.input({ target: ctx.get('manualPaste') });
-  assert.equal(ctx.get('manualNum1').value, '19', '不足 7 个时保留已填内容');
+  assert.equal(ctx.get('manualNum1').value, '09', '不足 7 个时保留已填内容');
   // 期号变化时联动推算日期
   ctx.get('manualLabel').value = '2026-330';
   ctx.get('manualLabel').events.input({ target: ctx.get('manualLabel') });
@@ -285,16 +285,16 @@ test('粘贴 7 个号码自动填入，第 7 位落到特码格', async () => {
   // 清空输入
   ctx.get('manualClear').events.click();
   assert.deepEqual([1, 2, 3, 4, 5, 6, 7].map(i => ctx.get('manualNum' + i).value), ['', '', '', '', '', '', '']);
-  assert.equal(ctx.get('manualLabel').value, '2026-325');
+  assert.equal(ctx.get('manualLabel').value, '2026-327');
 });
 
 test('一键同步：新增期次并带特码，本机旧数据缺失特码时自动回填', async () => {
   const ctx = setup(remoteWithNext);
   await flush();
   await ctx.get('syncBtn').events.click();
-  assert.equal(ctx.get('latestIssue').textContent, '2026-325');
+  assert.equal(ctx.get('latestIssue').textContent, '2026-327');
   assert.match(ctx.get('latestMeta').textContent, /第 7 位特码 07/);
-  assert.equal(ctx.get('targetIssue').textContent, '2026-326');
+  assert.equal(ctx.get('targetIssue').textContent, '2026-328');
   assert.match(ctx.get('syncStatus').textContent, /新增 1 期/);
   assert.match(ctx.get('syncStatus').textContent, /特码 07/);
   assert.equal(ctx.get('syncBtn').disabled, false);
@@ -305,29 +305,38 @@ test('一键同步：新增期次并带特码，本机旧数据缺失特码时�
 });
 
 test('同步冲突或缺口时不修改本机数据、推荐与特码记录', async () => {
-  const conflict = { ...snapshot, draws: snapshot.draws.map(d => (d.id === '2026-324' ? { ...d, numbers: [1, 2, 3, 4, 5, 6] } : d)) };
+  const conflict = { ...snapshot, draws: snapshot.draws.map(d => (d.id === '2026-326' ? { ...d, numbers: [1, 2, 3, 4, 5, 6] } : d)) };
   const ctx = setup(conflict);
   await flush();
   const before = ctx.get('specialList').innerHTML;
   await ctx.get('syncBtn').events.click();
   assert.match(ctx.get('syncStatus').textContent, /冲突/);
-  assert.equal(ctx.get('latestIssue').textContent, '2026-324');
-  assert.equal(ctx.store.has('three_in_three_sync_v1'), false);
+  assert.equal(ctx.get('latestIssue').textContent, '2026-326');
+  // 失败时只记「上次同步 失败」这类元信息，绝不写入新期次（不要整体 diff 存储对象）
+  const saved = JSON.parse(ctx.store.get('three_in_three_sync_v1'));
+  assert.equal(saved.latestId, '2026-326');
+  assert.equal(saved.draws.length, 1786, '无效期 2022-132 不入库，且冲突数据未写入');
+  assert.equal(saved.lastSync.text, '失败');
   assert.equal(ctx.get('specialList').innerHTML, before);
   // 特码冲突同样不写入
-  const specialConflict = { ...snapshot, draws: snapshot.draws.map(d => (d.id === '2026-324' ? { ...d, special: 1 } : d)) };
+  const specialConflict = { ...snapshot, draws: snapshot.draws.map(d => (d.id === '2026-326' ? { ...d, special: 1 } : d)) };
   const ctx2 = setup(specialConflict);
   await flush();
   await ctx2.get('syncBtn').events.click();
   assert.match(ctx2.get('syncStatus').textContent, /特码冲突/);
-  assert.equal(ctx2.store.has('three_in_three_sync_v1'), false);
+  assert.equal(ctx2.get('latestIssue').textContent, '2026-326');
+  const saved2 = JSON.parse(ctx2.store.get('three_in_three_sync_v1'));
+  assert.equal(saved2.latestId, '2026-326');
+  assert.equal(saved2.draws.at(-1).special, 23, '本机特码不被冲突来源覆盖');
+  assert.equal(saved2.lastSync.text, '失败');
   // 期号缺口
-  const gap = { ...snapshot, latestId: '2026-326', draws: [{ ...NEXT, id: '2026-326', periodNum: 326 }, ...snapshot.draws] };
+  const gap = { ...snapshot, latestId: '2026-328', draws: [{ ...NEXT, id: '2026-328', periodNum: 328 }, ...snapshot.draws] };
   const ctx3 = setup(gap);
   await flush();
   await ctx3.get('syncBtn').events.click();
   assert.match(ctx3.get('syncStatus').textContent, /缺口/);
-  assert.equal(ctx3.get('latestIssue').textContent, '2026-324');
+  assert.equal(ctx3.get('latestIssue').textContent, '2026-326');
+  assert.equal(JSON.parse(ctx3.store.get('three_in_three_sync_v1')).latestId, '2026-326');
 });
 
 test('特码缺失的旧数据仍可正常使用，并由同步回填特码', async () => {
@@ -335,29 +344,68 @@ test('特码缺失的旧数据仍可正常使用，并由同步回填特码', as
   const legacyDraws = snapshot.draws.map(({ id, date, numbers }) => ({ id, date, numbers }));
   const legacyBuiltin = { ...snapshot, draws: legacyDraws };
   const ctx = setup(snapshot, legacyBuiltin);
-  ctx.store.set('three_in_three_sync_v1', JSON.stringify({ updatedAt: snapshot.updatedAt, latestId: '2026-324', draws: legacyDraws, invalid: ['2022-132'] }));
+  ctx.store.set('three_in_three_sync_v1', JSON.stringify({ updatedAt: snapshot.updatedAt, latestId: '2026-326', draws: legacyDraws, invalid: ['2022-132'] }));
   await flush();
-  assert.equal(ctx.get('latestIssue').textContent, '2026-324');
+  assert.equal(ctx.get('latestIssue').textContent, '2026-326');
   assert.match(ctx.get('syncStatus').textContent, /该期特码未记录/);
   assert.match(ctx.get('latestBalls').innerHTML, /ball ghost lg">--</);
   assert.equal(ctx.get('specialList').innerHTML.includes('ball sm ghost'), true);
   // 同步上游（含特码）→ 回填特码，不改动平码
   await ctx.get('syncBtn').events.click();
-  assert.match(ctx.get('syncStatus').textContent, /回填特码 1784 期/);
-  assert.match(ctx.get('latestMeta').textContent, /第 7 位特码 43/);
-  assert.equal(ctx.get('latestIssue').textContent, '2026-324');
-  assert.equal(JSON.parse(ctx.store.get('three_in_three_sync_v1')).draws.at(-1).special, 43);
+  assert.match(ctx.get('syncStatus').textContent, /回填特码 1786 期/);
+  assert.match(ctx.get('latestMeta').textContent, /第 7 位特码 23/);
+  assert.equal(ctx.get('latestIssue').textContent, '2026-326');
+  assert.equal(JSON.parse(ctx.store.get('three_in_three_sync_v1')).draws.at(-1).special, 23);
 });
 
 test('本机数据损坏或落后于内置快照时回退内置数据，不影响使用', async () => {
   const ctx = setup(snapshot);
   ctx.store.set('three_in_three_sync_v1', '{坏掉的 JSON');
   await flush();
-  assert.equal(ctx.get('latestIssue').textContent, '2026-324');
+  assert.equal(ctx.get('latestIssue').textContent, '2026-326');
   assert.match(ctx.get('syncStatus').textContent, /本机同步数据无效或有冲突，已使用内置数据/);
   const ctx2 = setup(snapshot);
   ctx2.store.set('three_in_three_sync_v1', JSON.stringify({ updatedAt: '', latestId: '2026-300', draws: [{ id: '2026-300', date: '2026-10-27', numbers: [1, 29, 23, 17, 18, 42], special: 5 }] }));
   await flush();
-  assert.equal(ctx2.get('latestIssue').textContent, '2026-324', '内置快照更新时应采用内置数据');
+  assert.equal(ctx2.get('latestIssue').textContent, '2026-326', '内置快照更新时应采用内置数据');
   assert.match(ctx2.get('syncStatus').textContent, /落后于当前记录/);
+});
+
+test('同步辅助：期数差、时间格式与状态条四格内容', async () => {
+  const ctx = setup(snapshot);
+  await flush();
+  // 期数差：同期为 0、逐期累加、跨年、倒退与空值都给出确定结果
+  assert.equal(ctx.call("countPeriodsBetween('2026-326','2026-326')"), 0);
+  assert.equal(ctx.call("countPeriodsBetween('2026-326','2026-328')"), 2);
+  assert.equal(ctx.call("countPeriodsBetween('2025-365','2026-002')"), 2, '跨年也应逐期推算');
+  assert.equal(ctx.call("countPeriodsBetween('2026-328','2026-326')"), null, '倒退返回 null');
+  assert.equal(ctx.call("countPeriodsBetween('','2026-326')"), null);
+  // 时间统一按 UTC 展示，坏值不抛错
+  assert.equal(ctx.call("fmtStamp('2026-11-22T22:07:15.558Z')"), '2026-11-22 22:07 UTC');
+  assert.equal(ctx.call("fmtStamp('')"), '未知时间');
+  assert.equal(ctx.call("fmtStamp('不是时间')"), '不是时间');
+  // 未检查上游时，状态条不假装知道上游状态
+  const strip = ctx.get('syncStrip');
+  assert.equal(count(strip.innerHTML, 'stat-cell'), 4);
+  assert.match(strip.innerHTML, /本机最新期[\s\S]{0,120}?2026-326[\s\S]{0,80}?2026-11-22 · 特码 23/);
+  assert.match(strip.innerHTML, /内置快照[\s\S]{0,120}?2026-326[\s\S]{0,80}?更新于 2026-11-22 22:07 UTC/);
+  assert.match(strip.innerHTML, /上游最新期[\s\S]{0,80}?未检查[\s\S]{0,120}?点「检查更新」或「一键同步」/);
+  assert.match(strip.innerHTML, /上次同步[\s\S]{0,80}?尚未同步[\s\S]{0,120}?本机数据来自内置快照/);
+  assert.ok(!strip.innerHTML.includes('alert'), '无待同步期次时不用告警配色');
+  // 上游更新后：第三格转告警色，提示 pill 与高亮按钮由 setSyncHint 控制
+  ctx.call("upstream = { label: '2026-328', updatedAt: '2026-11-24T22:00:00.000Z' }; renderSyncStrip(); setSyncHint('上游有 2 期可同步');");
+  assert.match(ctx.get('syncStrip').innerHTML, /stat-cell alert/);
+  assert.match(ctx.get('syncStrip').innerHTML, /上游最新期[\s\S]{0,80}?2026-328/);
+  assert.equal(ctx.get('syncHint').textContent, '上游有 2 期可同步');
+  assert.equal(ctx.get('syncHint').hidden, false);
+  assert.equal(ctx.get('syncBtn').className, 'btn primary attention');
+  ctx.call("setSyncHint('')");
+  assert.equal(ctx.get('syncHint').hidden, true);
+  assert.equal(ctx.get('syncBtn').className, 'btn primary');
+  // 本机超前上游时，第四格改标题，不再显示「上次同步」
+  ctx.call("lastSync = { at: '2026-11-24T10:00:00.000Z', text: '新增 1 期' }; upstream = { label: '2026-326', updatedAt: '' }; records.push({ year: 2026, periodNum: 327, label: '2026-327', date: '2026-11-23', numbers: [3, 11, 22, 35, 41, 48], special: 7, manual: true }); renderSyncStrip();");
+  const ahead = ctx.get('syncStrip').innerHTML;
+  assert.match(ahead, /本机已超前上游[\s\S]{0,80}?新增 1 期/);
+  assert.match(ahead, /2026-11-24 10:00 UTC/);
+  assert.ok(!ahead.includes('stat-cell alert'), '本机超前不是待同步状态');
 });

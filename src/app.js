@@ -4,10 +4,13 @@ const STORAGE_KEY = 'three_in_three_sync_v1';
 // 版本号与 sw.js 缓存名一起提升，避免旧缓存与新代码混用。
 const APP_BUILD = '2026.11.23-r5';
 const HISTORY_PAGE = 50, SPECIAL_PAGE = 30, RECENT_WINDOW = 100;
+// 检查更新只取上游文件开头一小段，读出 latestId / updatedAt 即可判断差几期。
+const SOURCE_PROBE_RANGE = 'bytes=0-1023';
 
 let records = [], replay = [], excluded = [], sourceUpdated = '', recommendation = null;
 let historyView = 'special', selectedScope = 'recent', expanded = '', query = '', onlyHit = false;
 let historyLimit = HISTORY_PAGE, specialLimit = SPECIAL_PAGE;
+let lastSync = null, upstream = null, rangeProbeOk = false, builtinLabel = '', builtinUpdated = '', initNote = '';
 
 const el = id => document.getElementById(id);
 const esc = text => String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -65,19 +68,68 @@ function flash(kind, message) {
   if (!box) return;
   box.innerHTML = `<div class="info-box ${kind === 'ok' ? 'flash-ok' : 'flash-bad'}" role="status">${esc(message)}</div>`;
 }
+function renderSyncStrip() {
+  const strip = el('syncStrip');
+  if (!strip) return;
+  const last = records.length ? records.at(-1) : null;
+  const ahead = upstream && last ? upstream.label < last.label : false;
+  const pending = upstream && last && !ahead ? countPeriodsBetween(last.label, upstream.label) : null;
+  const cells = [
+    { k: '本机最新期', v: last ? last.label : '--', s: last ? `${last.date} · 特码 ${last.special == null ? '未记录' : pad2(last.special)}` : '尚无数据', accent: true },
+    { k: '内置快照', v: builtinLabel || '--', s: '更新于 ' + fmtStamp(builtinUpdated) },
+    { k: '上游最新期', v: upstream ? upstream.label : '未检查', s: upstream ? '更新于 ' + fmtStamp(upstream.updatedAt) : '点「检查更新」或「一键同步」', alert: pending > 0 },
+    { k: ahead ? '本机已超前上游' : '上次同步', v: lastSync ? lastSync.text : '尚未同步', s: lastSync ? fmtStamp(lastSync.at) : (upstream ? '' : '本机数据来自内置快照') }
+  ];
+  strip.innerHTML = cells.map(c =>
+    `<div class="stat-cell${c.accent ? ' accent' : ''}${c.alert ? ' alert' : ''}"><div class="k">${esc(c.k)}</div><div class="v">${esc(c.v)}</div><div class="s">${esc(c.s)}</div></div>`).join('');
+}
+function setSyncHint(text) {
+  const hint = el('syncHint'), btn = el('syncBtn');
+  if (hint) { hint.textContent = text || ''; hint.hidden = !text; }
+  if (btn) btn.className = text ? 'btn primary attention' : 'btn primary';
+}
 function describeState(extra) {
   if (!records.length) return;
   const last = records.at(-1);
   const manual = manualRecords(records);
   const parts = [`当前最新有效期 ${last.label}（${last.date}）${last.special == null ? '，该期特码未记录' : '，特码 ' + pad2(last.special)}。`];
   if (manual.length) parts.push(`本机手动补录 ${manual.length} 条，最新 ${manual.at(-1).label}；可用「撤销上条手动」回退。`);
-  parts.push(`内置快照更新至 ${sourceUpdated ? new Date(sourceUpdated).toISOString().slice(0, 10) : '未知时间'}，可能已过期，请点击一键同步。`);
+  parts.push(`内置快照到 ${builtinLabel || '--'}（更新于 ${fmtStamp(builtinUpdated)}）；想确认上游有没有新期次，点「检查更新」（约 1 KB，不写入），要写入再点「一键同步」。`);
   if (excluded.length) parts.push(`${excluded.length} 期前6码无效未参与统计：${excluded.slice(0, 8).join('、')}。`);
   if (extra) parts.push(extra);
-  status(parts.join('\n'));
+  status(withNote(parts.join('\n')));
 }
 function persist() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(storagePayload(records, sourceUpdated, excluded)));
+  const payload = storagePayload(records, sourceUpdated, excluded);
+  // 附加信息：上次同步结果与「上游是否支持分段请求」，normalizeSource 会忽略这两个键。
+  payload.lastSync = lastSync;
+  payload.rangeOk = rangeProbeOk;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+function persistMeta() {
+  if (!records.length) return;
+  try { persist(); } catch (e) { /* 仅为附加信息，写不进去不影响使用 */ }
+}
+function withNote(message) { return initNote ? message + '\n' + initNote : message; }
+function fmtStamp(iso) {
+  if (!iso) return '未知时间';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso).slice(0, 16).replace('T', ' ');
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
+}
+// 从 fromLabel 逐期推到 toLabel，算出相差几期；推不到（倒退或跨年异常）返回 null。
+function countPeriodsBetween(fromLabel, toLabel, cap) {
+  const limit = cap || 400;
+  if (!fromLabel || !toLabel) return null;
+  if (fromLabel === toLabel) return 0;
+  let cur = fromLabel;
+  for (let i = 1; i <= limit; i++) {
+    cur = nextLabelOf(cur);
+    if (!cur || cur > toLabel) return null;
+    if (cur === toLabel) return i;
+  }
+  return null;
 }
 function safePersist() {
   try { persist(); return ''; } catch (e) { return '\n本机存储写入失败，改动只在当前页面有效：' + (e.message || e); }
@@ -148,6 +200,7 @@ function render() {
   renderHistory();
   renderSpecialList();
   renderManualState();
+  renderSyncStrip();
 }
 function renderStatStrip() {
   const recent = replay.slice(-RECENT_WINDOW);
@@ -391,23 +444,110 @@ async function copyRecommendation() {
     el('copyBtn').textContent = '✅ 已复制'; setTimeout(() => { el('copyBtn').textContent = '📋 一键复制7码'; }, 1500);
   } catch (e) { status('复制失败，请手动抄录页面号码。'); }
 }
+function excludedNote() {
+  return excluded.length ? `\n${excluded.length} 期前6码无效未参与统计：${excluded.slice(0, 8).join('、')}。` : '';
+}
+// 校验并写入上游数据：成功才落盘，失败保持原样并给出可读原因。
+function applySource(payload, opts) {
+  const o = opts || {};
+  const before = records.length ? records.at(-1).label : '';
+  const merged = mergeSource(records, payload);
+  records = merged.records; excluded = merged.invalid; sourceUpdated = merged.updatedAt;
+  const upstreamLabel = (parseLabel(payload && payload.latestId) || {}).label || records.at(-1).label;
+  upstream = { label: upstreamLabel, updatedAt: (payload && payload.updatedAt) || merged.updatedAt || '' };
+  const addedLabels = records.filter(r => r.label > before).map(r => r.label);
+  const notes = [];
+  if (merged.specialFilled) notes.push(`回填特码 ${merged.specialFilled} 期`);
+  if (merged.confirmed) notes.push(`${merged.confirmed} 期手动记录已被数据源确认`);
+  // 先记下这次同步结果，再落盘：刷新后状态条仍能显示「上次同步 新增 N 期 / 已是最新」。
+  lastSync = { at: new Date().toISOString(), text: merged.added ? `新增 ${merged.added} 期` : '已是最新' };
+  persist();
+  render();
+  setSyncHint('');
+  const last = records.at(-1);
+  const specialText = last.special == null ? '特码未记录' : '特码 ' + pad2(last.special);
+  const prefix = o.viaCheck ? '（检查更新时上游直接返回了完整数据，已顺手完成同步）\n' : '';
+  const tail = `${notes.length ? '\n' + notes.join('；') + '。' : ''}${excludedNote()}`;
+  if (merged.added) {
+    status(withNote(`${prefix}✅ 同步完成：新增 ${merged.added} 期（${addedLabels.join('、')}）。本机最新 ${last.label}（${last.date}），${specialText}；上游更新于 ${fmtStamp(upstream.updatedAt)}。${tail}`));
+  } else {
+    status(withNote(`${prefix}✅ 已是最新，没有新期次可加：本机与上游同为 ${last.label}（${last.date}），${specialText}。\n上游数据更新于 ${fmtStamp(upstream.updatedAt)}；上游一般每天开奖后更新一期（近期多在 UTC 22:00 前后，即新加坡时间次日 06:00 前后），等发布后再点即可。${tail}`));
+  }
+  renderSyncStrip();
+  return merged;
+}
+function reportSyncFailure(e) {
+  const msg = String((e && e.message) || e);
+  lastSync = { at: new Date().toISOString(), text: '失败' };
+  renderSyncStrip();
+  persistMeta(); // 失败也记下来，刷新后仍能看到「上次同步 失败」
+  if (/落后于当前记录/.test(msg)) {
+    const last = records.at(-1);
+    status(withNote(`ℹ️ 无需同步：本机最新期 ${last.label} 已超前上游${upstream ? ' ' + upstream.label : ''}，未写入任何数据。\n若这是你手动补录的期次，等上游发布同一期后会自动核对；号码与官方不一致时会提示冲突，可用「撤销上条手动」回退。`));
+    return;
+  }
+  status(withNote(`❌ 同步失败，未更改现有数据：${msg}。\n请检查网络、数据源或期号后重试；若提示与手动补录冲突，可先撤销该条手动记录。`));
+}
 async function sync() {
-  const btn = el('syncBtn'); btn.disabled = true; status('正在读取数据源，请稍候…');
+  const btn = el('syncBtn'), check = el('checkBtn');
+  btn.disabled = true; if (check) check.disabled = true;
+  btn.textContent = '⏳ 正在同步…';
+  status('正在下载上游完整开奖数据，请稍候…');
   try {
     const response = await fetch(SOURCE_URL, { cache: 'no-store' });
     if (!response.ok) throw new Error('HTTP ' + response.status);
-    const merged = mergeSource(records, await response.json());
-    records = merged.records; excluded = merged.invalid; sourceUpdated = merged.updatedAt;
-    // 写入成功后才替换本机存储，避免保存未生效的同步结果。
-    persist();
-    render();
-    const extra = [];
-    if (merged.specialFilled) extra.push(`回填特码 ${merged.specialFilled} 期`);
-    if (merged.confirmed) extra.push(`${merged.confirmed} 期手动记录已被数据源确认`);
-    status(`同步完成：${merged.added ? '新增 ' + merged.added + ' 期' : '没有新增期次'}${extra.length ? '；' + extra.join('；') : ''}；数据源最新有效期 ${records.at(-1).label}${records.at(-1).special == null ? '（该期特码未记录）' : '，特码 ' + pad2(records.at(-1).special)}。数据源可能延迟，请以官方开奖为准。${excluded.length ? '\n' + excluded.length + ' 期前6码无效未参与统计：' + excluded.slice(0, 8).join('、') + '。' : ''}`);
+    applySource(await response.json());
+  } catch (e) { reportSyncFailure(e); }
+  finally { btn.disabled = false; if (check) check.disabled = false; btn.textContent = '🔄 一键同步'; }
+}
+// 检查更新：只读上游文件开头，判断差几期，不写入数据。
+async function checkUpdate(auto) {
+  const btn = el('checkBtn'), syncBtn = el('syncBtn');
+  if (btn) btn.disabled = true;
+  if (syncBtn) syncBtn.disabled = true;
+  if (!auto) status('正在检查上游最新期号（只读文件开头，不写入数据）…');
+  try {
+    const response = await fetch(SOURCE_URL, { cache: 'no-store', headers: { Range: SOURCE_PROBE_RANGE } });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const text = await response.text();
+    if (response.status !== 206 && text.length > 4096) {
+      // 上游忽略分段请求、直接给了完整文件：既然已经下载，就完成一次正式同步，不浪费流量。
+      rangeProbeOk = false;
+      applySource(JSON.parse(text), { viaCheck: true });
+      return;
+    }
+    if (response.status === 206) { rangeProbeOk = true; persistMeta(); }
+    const idMatch = /"latestId"\s*:\s*"(\d{4}-\d{3})"/.exec(text);
+    const updatedMatch = /"updatedAt"\s*:\s*"([^"]+)"/.exec(text);
+    if (!idMatch) throw new Error('未能从数据源读出最新期号');
+    upstream = { label: (parseLabel(idMatch[1]) || {}).label || idMatch[1], updatedAt: updatedMatch ? updatedMatch[1] : '' };
+    const local = records.at(-1).label;
+    let message;
+    if (upstream.label < local) {
+      setSyncHint('');
+      message = `ℹ️ 本机已超前上游：本机 ${local}，上游 ${upstream.label}（更新于 ${fmtStamp(upstream.updatedAt)}），无需同步。`;
+    } else {
+      const pending = countPeriodsBetween(local, upstream.label);
+      if (pending === 0) {
+        setSyncHint('');
+        message = `✅ 已是最新：上游与本机同为 ${local}（上游更新于 ${fmtStamp(upstream.updatedAt)}），没有新期次可加。上游一般每天开奖后更新一期（近期多在 UTC 22:00 前后）。`;
+      } else if (pending == null) {
+        setSyncHint('');
+        message = `🔔 上游最新 ${upstream.label}（更新于 ${fmtStamp(upstream.updatedAt)}），本机 ${local}；期号跨度无法直接推算，请点「一键同步」核对写入。`;
+      } else {
+        setSyncHint(`上游有 ${pending} 期可同步`);
+        message = `🔔 上游已更新到 ${upstream.label}（${fmtStamp(upstream.updatedAt)}），本机停在 ${local}，差 ${pending} 期。点「一键同步」写入。`;
+      }
+    }
+    renderSyncStrip();
+    persistMeta();
+    status(withNote(message));
   } catch (e) {
-    status('同步失败，未更改现有数据：' + (e.message || e) + '。请检查网络、数据源或期号后重试；若提示与手动补录冲突，可先撤销该条手动记录。');
-  } finally { btn.disabled = false; }
+    if (!auto) status(withNote(`❌ 检查更新失败：${(e && e.message) || e}。可直接点「一键同步」，或检查网络后重试。`));
+  } finally {
+    if (btn) btn.disabled = false;
+    if (syncBtn) syncBtn.disabled = false;
+  }
 }
 
 /* ---------------- 初始化 ---------------- */
@@ -419,6 +559,9 @@ function switchView(view) {
 function bindStaticEvents() {
   el('copyBtn').addEventListener('click', copyRecommendation);
   el('syncBtn').addEventListener('click', sync);
+  // 旧缓存里的 index.html 可能还没有这个按钮，缺失时跳过绑定而不是整页报错。
+  const checkBtn = el('checkBtn');
+  if (checkBtn) checkBtn.addEventListener('click', () => checkUpdate(false));
   el('viewTabs').querySelectorAll('.seg-btn').forEach(btn => btn.addEventListener('click', () => switchView(btn.dataset.view)));
   el('historyMore').addEventListener('click', () => { historyLimit += HISTORY_PAGE; renderHistory(); });
   el('specialMore').addEventListener('click', () => { specialLimit += SPECIAL_PAGE; renderSpecialList(); });
@@ -442,6 +585,7 @@ async function init() {
     if (!response.ok) throw new Error('内置数据读取失败 HTTP ' + response.status);
     const base = normalizeSource(await response.json());
     records = base.records; excluded = base.invalid; sourceUpdated = base.updatedAt;
+    builtinLabel = base.records.at(-1).label; builtinUpdated = base.updatedAt;
     let savedWarning = '';
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -451,11 +595,16 @@ async function init() {
         records = merged.records;
         excluded = Array.isArray(saved.invalid) && saved.invalid.length ? saved.invalid : base.invalid;
         sourceUpdated = merged.updatedAt || base.updatedAt;
+        if (saved.lastSync && typeof saved.lastSync === 'object') lastSync = saved.lastSync;
+        rangeProbeOk = saved.rangeOk === true;
       }
     } catch (e) { savedWarning = '\n本机同步数据无效或有冲突，已使用内置数据：' + (e.message || e); }
     render();
     resetManualInputs();
-    describeState(savedWarning + cleanupWarning ? (savedWarning + cleanupWarning).trim() : '');
+    initNote = (savedWarning + cleanupWarning).trim();
+    describeState('');
+    // 只有在确认上游支持分段请求后才自动检查，避免每次打开页面都下载完整数据。
+    if (rangeProbeOk && /^https?:/.test(location.protocol)) checkUpdate(true);
   } catch (e) {
     el('syncBtn').disabled = true;
     status('初始化失败：' + (e.message || e) + '。请通过网站访问并检查网络。');

@@ -12,7 +12,7 @@ const snapshot = require('../data/draws.json');
 
 const source = (draws, latestId, updatedAt = '2026-11-21') => ({ updatedAt, latestId, draws });
 // 上游格式：numbers 是前 6 位平码，special 是第 7 位特码
-const sample = (id, numbers = [1, 2, 3, 4, 5, 6], special = 49, extra = {}) => ({ id, date: '2026-11-21', numbers, special, ...extra });
+const sample = (id, numbers = [1, 2, 3, 4, 5, 6], special = 49, extra = {}) => ({ id, date: '2026-11-23', numbers, special, ...extra });
 
 const base = normalizeSource(snapshot);
 const records = base.records;
@@ -20,15 +20,15 @@ const replay = buildReplay(records);
 const replayByLabel = new Map(replay.map(r => [r.label, r]));
 
 test('内置快照：前6平码保持不变，并补齐每期第7位特码', () => {
-  assert.equal(snapshot.draws.length, 1785);
-  assert.equal(snapshot.latestId, '2026-324');
-  assert.equal(records.length, 1784);
+  assert.equal(snapshot.draws.length, 1787);
+  assert.equal(snapshot.latestId, '2026-326');
+  assert.equal(records.length, 1786);
   assert.deepEqual(base.invalid, ['2022-132']);
   const last = records.at(-1);
-  assert.equal(last.label, '2026-324');
-  assert.deepEqual(last.numbers, [19, 4, 14, 12, 21, 34]);
-  assert.equal(last.special, 43);
-  assert.equal(last.date, '2026-11-20');
+  assert.equal(last.label, '2026-326');
+  assert.deepEqual(last.numbers, [9, 16, 22, 36, 5, 47]);
+  assert.equal(last.special, 23);
+  assert.equal(last.date, '2026-11-22');
   // 历史数据的平码必须与原快照逐期一致（金样抽查：取自改版前的 data/draws.json）
   const golden = {
     '2022-001': { numbers: [49, 26, 5, 28, 7, 2], date: '2022-01-01', special: 22 },
@@ -36,7 +36,10 @@ test('内置快照：前6平码保持不变，并补齐每期第7位特码', () 
     '2024-060': { numbers: [43, 45, 31, 16, 27, 38], date: '2024-02-29' }, // 闰年第 60 期
     '2025-001': { numbers: [25, 18, 6, 14, 29, 39], date: '2025-01-01' },
     '2026-001': { numbers: [27, 8, 43, 33, 42, 11], date: '2026-01-01' },
-    '2026-320': { numbers: [14, 17, 32, 34, 24, 46], date: '2026-11-16' }
+    '2026-320': { numbers: [14, 17, 32, 34, 24, 46], date: '2026-11-16' },
+    '2026-324': { numbers: [19, 4, 14, 12, 21, 34], date: '2026-11-20', special: 43 },
+    '2026-325': { numbers: [41, 37, 10, 1, 27, 17], date: '2026-11-21', special: 3 },
+    '2026-326': { numbers: [9, 16, 22, 36, 5, 47], date: '2026-11-22', special: 23 }
   };
   const rawById = new Map(snapshot.draws.map(d => [d.id, d]));
   for (const [label, g] of Object.entries(golden)) {
@@ -128,7 +131,10 @@ test('每日随机内核：期号定种子、均匀抽样、同期同号、跨�
 });
 
 test('回放逐期只使用同期之前的记录，并同时给出三中三与特码命中', () => {
-  assert.equal(replay.length, 1784);
+  // 每日随机内核总能给出 7 码，因此每条有效记录都有一行回放：
+  // 1786 = 1787 期原始数据 - 1 期无效（2022-132 前 6 码重复）
+  assert.equal(replay.length, 1786);
+  assert.equal(replay.length, records.length);
   assert.ok(replay.every(r => r.recommended.length === 7));
   assert.ok(replay.every(r => r.specialHit === r.recommended.includes(r.special)));
   assert.ok(replay.every(r => r.specialHit === true || r.specialHit === false));
@@ -158,8 +164,9 @@ test('回放逐期只使用同期之前的记录，并同时给出三中三与�
 
 test('随机策略的回放口径：实测命中率与理论随机一致（不再追求高或低）', () => {
   const stats = summarizeReplay(replay);
-  assert.equal(stats.periods, 1784);
-  // 1784 期的随机波动：有奖率标准差约 0.41pp、平均命中的标准差约 0.024
+  assert.equal(stats.periods, replay.length);
+  assert.equal(stats.periods, 1786);
+  // 1786 期的随机波动：有奖率标准差约 0.41pp、平均命中的标准差约 0.024
   assert.ok(Math.abs(stats.avgHits - stats.baselineAvgHits) < 0.06, `平均命中 ${stats.avgHits} 偏离随机 ${stats.baselineAvgHits} 过多`);
   assert.ok(Math.abs(stats.winningRate - stats.baselineWinningRate) < 1.5, `有奖率 ${stats.winningRate} 偏离随机 ${stats.baselineWinningRate} 过多`);
   // 前后半段都应落在理论值附近，不应出现「某一段特别神」
@@ -224,19 +231,19 @@ test('特码命中统计：命中率、连错、间隔与随机基线，特码�
 });
 
 test('同步只追加连续有效数据；平码或特码冲突、缺口、落后源都不写入', () => {
-  const extra = sample('2026-325', [3, 11, 22, 35, 41, 48], 7);
-  const res = mergeSource(records, source([...snapshot.draws, extra], '2026-325'));
+  const extra = sample('2026-327', [3, 11, 22, 35, 41, 48], 7);
+  const res = mergeSource(records, source([...snapshot.draws, extra], '2026-327'));
   assert.equal(res.added, 1);
-  assert.equal(res.records.at(-1).label, '2026-325');
+  assert.equal(res.records.at(-1).label, '2026-327');
   assert.equal(res.records.at(-1).special, 7);
-  assert.equal(records.at(-1).label, '2026-324');
-  assert.throws(() => mergeSource(records, source([...snapshot.draws, sample('2026-326')], '2026-326')), /缺口/);
-  const conflict = snapshot.draws.map(d => (d.id === '2026-324' ? { ...d, numbers: [1, 2, 3, 4, 5, 6] } : d));
-  assert.throws(() => mergeSource(records, source(conflict, '2026-324')), /冲突/);
-  const specialConflict = snapshot.draws.map(d => (d.id === '2026-324' ? { ...d, special: 1 } : d));
-  assert.throws(() => mergeSource(records, source(specialConflict, '2026-324')), /特码冲突/);
+  assert.equal(records.at(-1).label, '2026-326');
+  assert.throws(() => mergeSource(records, source([...snapshot.draws, sample('2026-328')], '2026-328')), /缺口/);
+  const conflict = snapshot.draws.map(d => (d.id === '2026-326' ? { ...d, numbers: [1, 2, 3, 4, 5, 6] } : d));
+  assert.throws(() => mergeSource(records, source(conflict, '2026-326')), /冲突/);
+  const specialConflict = snapshot.draws.map(d => (d.id === '2026-326' ? { ...d, special: 1 } : d));
+  assert.throws(() => mergeSource(records, source(specialConflict, '2026-326')), /特码冲突/);
   assert.throws(() => mergeSource(res.records, snapshot), /落后/);
-  assert.throws(() => mergeSource([], source([extra], '2026-325')), /基准记录/);
+  assert.throws(() => mergeSource([], source([extra], '2026-327')), /基准记录/);
 });
 
 test('同步会回填旧数据缺失的特码，并确认已被数据源收录的手动记录', () => {
@@ -264,57 +271,58 @@ test('同步会回填旧数据缺失的特码，并确认已被数据源收录�
 
 test('手动补录校验：7 个号码互不重复、期号必须紧接最新一期', () => {
   const seven = [3, 11, 22, 35, 41, 48, 7];
-  const ok = validateManualDraw('2026-325', seven, records);
+  const ok = validateManualDraw('2026-327', seven, records);
   assert.equal(ok.error, undefined);
   assert.deepEqual(ok.record, {
-    year: 2026, periodNum: 325, label: '2026-325', date: '2026-11-21',
+    year: 2026, periodNum: 327, label: '2026-327', date: '2026-11-23',
     numbers: [3, 11, 22, 35, 41, 48], special: 7, manual: true
   });
-  assert.match(validateManualDraw('2026-325', seven.slice(0, 6), records).error, /需要 7 个号码/);
-  assert.match(validateManualDraw('2026-325', [3, 11, 22, 35, 41, 48, 50], records).error, /第 7 位号码无效/);
-  assert.match(validateManualDraw('2026-325', [0, 11, 22, 35, 41, 48, 7], records).error, /第 1 位号码无效/);
-  assert.match(validateManualDraw('2026-325', [3, 3, 22, 35, 41, 48, 7], records).error, /互不重复/);
-  assert.match(validateManualDraw('2026-325', [3, 11, 22, 35, 41, 48, 48], records).error, /互不重复/);
+  assert.match(validateManualDraw('2026-327', seven.slice(0, 6), records).error, /需要 7 个号码/);
+  assert.match(validateManualDraw('2026-327', [3, 11, 22, 35, 41, 48, 50], records).error, /第 7 位号码无效/);
+  assert.match(validateManualDraw('2026-327', [0, 11, 22, 35, 41, 48, 7], records).error, /第 1 位号码无效/);
+  assert.match(validateManualDraw('2026-327', [3, 3, 22, 35, 41, 48, 7], records).error, /互不重复/);
+  assert.match(validateManualDraw('2026-327', [3, 11, 22, 35, 41, 48, 48], records).error, /互不重复/);
   assert.match(validateManualDraw('325', seven, records).error, /期号格式/);
   assert.match(validateManualDraw('2026-999', seven, records).error, /最多 365 期/);
-  assert.match(validateManualDraw('2026-327', seven, records).error, /必须紧接最新一期 2026-324/);
-  assert.match(validateManualDraw('2026-325', seven, []).error, /基准开奖数据/);
+  assert.match(validateManualDraw('2026-329', seven, records).error, /必须紧接最新一期 2026-326/);
+  assert.match(validateManualDraw('2026-327', seven, []).error, /基准开奖数据/);
   // 字符串数字（输入框取值）也可接受
-  assert.equal(validateManualDraw('2026-325', ['3', '11', '22', '35', '41', '48', '7'], records).record.special, 7);
-  assert.equal(validateManualDraw('2026-325', ['03', '11', '22', '35', '41', '48', '07'], records).record.numbers[0], 3);
+  assert.equal(validateManualDraw('2026-327', ['3', '11', '22', '35', '41', '48', '7'], records).record.special, 7);
+  assert.equal(validateManualDraw('2026-327', ['03', '11', '22', '35', '41', '48', '07'], records).record.numbers[0], 3);
 });
 
 test('手动记录写入、撤销与本机载荷', () => {
-  const { record } = validateManualDraw('2026-325', [3, 11, 22, 35, 41, 48, 7], records);
+  const { record } = validateManualDraw('2026-327', [3, 11, 22, 35, 41, 48, 7], records);
+  assert.equal(record.label, '2026-327');
   const next = appendManualDraw(records, record);
   assert.equal(next.length, records.length + 1);
-  assert.equal(next.at(-1).label, '2026-325');
-  assert.deepEqual(manualRecords(next).map(r => r.label), ['2026-325']);
+  assert.equal(next.at(-1).label, '2026-327');
+  assert.deepEqual(manualRecords(next).map(r => r.label), ['2026-327']);
   assert.throws(() => appendManualDraw(next, record), /已存在/);
-  assert.throws(() => appendManualDraw(records, { ...record, label: '2026-326', periodNum: 326 }), /不连续/);
+  assert.throws(() => appendManualDraw(records, { ...record, label: '2026-328', periodNum: 328 }), /不连续/);
   // 撤销最后一条手动记录
   const undone = undoLastManual(next);
   assert.equal(undone.error, undefined);
-  assert.equal(undone.removed.label, '2026-325');
+  assert.equal(undone.removed.label, '2026-327');
   assert.deepEqual(undone.records.map(r => r.label), records.map(r => r.label));
   assert.match(undoLastManual(records).error, /没有可撤销/);
   // 手动记录之后又同步进新期次时不允许撤销（会造成期号缺口）
   const withNewer = next.concat([{
-    year: 2026, periodNum: 326, label: '2026-326', date: '2026-11-22',
+    year: 2026, periodNum: 328, label: '2026-328', date: '2026-11-24',
     numbers: [1, 2, 3, 4, 5, 6], special: 9
   }]);
   assert.match(undoLastManual(withNewer).error, /之后已有新期次/);
   // 本机载荷：带 schema、特码、无效期与手动标记，且能被 normalizeSource 读回
-  const payload = storagePayload(next, '2026-11-21', base.invalid);
+  const payload = storagePayload(next, '2026-11-23', base.invalid);
   assert.equal(payload.schema, 2);
-  assert.equal(payload.latestId, '2026-325');
+  assert.equal(payload.latestId, '2026-327');
   assert.deepEqual(payload.invalid, ['2022-132']);
   assert.equal(payload.draws.at(-1).special, 7);
   assert.equal(payload.draws.at(-1).manual, true);
   assert.equal(payload.draws.at(-2).manual, undefined);
   assert.equal(payload.draws.at(-1).numbers.length, 6);
   const reread = normalizeSource(payload);
-  assert.equal(reread.records.at(-1).label, '2026-325');
+  assert.equal(reread.records.at(-1).label, '2026-327');
   assert.equal(reread.records.at(-1).special, 7);
   assert.equal(reread.records.at(-1).manual, true);
   assert.deepEqual(reread.invalid, []);
