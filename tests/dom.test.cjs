@@ -391,7 +391,7 @@ test('一键同步：真实点击后新增期次、带特码、写入本机并�
   p.window.close(); p2.window.close();
 });
 
-test('刷新后恢复本机数据：手动补录保留，旧备份落后时回退内置快照', { skip }, async () => {
+test('刷新后恢复本机数据：手动补录保留，本机备份与内置快照双向合并', { skip }, async () => {
   const drawItem = ({ id, date, numbers, special }) => ({ id, date, numbers, special });
   const manualPayload = JSON.stringify({
     schema: 2, updatedAt: snapshot.updatedAt, latestId: '2026-327', invalid: ['2022-132'],
@@ -413,17 +413,63 @@ test('刷新后恢复本机数据：手动补录保留，旧备份落后时回�
   assert.deepEqual(p.errors, []);
   p.window.close();
 
-  // 改版前的旧备份（无特码、期号落后于内置快照）→ 回退内置数据并提示，特码照常显示
+  // 旧备份（无特码、期号落后于内置快照）→ 以内置为准补齐，不报「数据无效」，特码照常显示
   const legacyPayload = JSON.stringify({
     updatedAt: '2026-11-17T00:38:55.875Z', latestId: '2026-320', invalid: ['2022-132'],
     draws: snapshot.draws.filter(d => d.id <= '2026-320').map(({ id, date, numbers }) => ({ id, date, numbers }))
   });
   const p2 = await boot(snapshot, { three_in_three_sync_v1: legacyPayload });
   assert.equal(p2.text('latestIssue'), '2026-326');
-  assert.match(p2.text('syncStatus'), /本机同步数据无效或有冲突，已使用内置数据/);
-  assert.match(p2.text('syncStatus'), /落后于当前记录/);
+  assert.doesNotMatch(p2.text('syncStatus'), /本机同步数据无效或有冲突/);
   assert.match(p2.text('latestMeta'), /第 7 位特码 23/);
   assert.equal(p2.text('manualCount'), '手动记录 0 条');
+  assert.deepEqual(p2.errors, []);
+  p2.window.close();
+});
+
+test('本机备份落后于内置快照时：手动补录与上次同步记录不再被静默丢弃', { skip }, async () => {
+  // 用户 11-19 同步到 2026-323 并手动补录 2026-324；站点之后把内置快照更新到 2026-326。
+  // 旧实现会让整份本机备份抛错作废（提示「落后于当前记录」），手动记录被忽略、lastSync 丢失，
+  // 再点一次同步就把本机记录永久覆盖掉。
+  const stale = JSON.stringify({
+    schema: 2, updatedAt: '2026-11-19T22:00:00.000Z', latestId: '2026-324', invalid: [], rangeOk: true,
+    lastSync: { at: '2026-11-19T22:05:00.000Z', text: '新增 3 期' },
+    draws: [
+      { id: '2026-324', date: '2026-11-20', numbers: [19, 4, 14, 12, 21, 34], special: 43, manual: true },
+      ...snapshot.draws.filter(d => d.id <= '2026-323').map(({ id, date, numbers, special }) => ({ id, date, numbers, special }))
+    ]
+  });
+  const p = await boot(snapshot, { three_in_three_sync_v1: stale });
+  // 内置快照更新，页面以内置为准
+  assert.equal(p.text('latestIssue'), '2026-326');
+  assert.equal(p.text('totalCount'), '1786');
+  // 手动记录已被官方收录（号码一致）→ 不再算手动，但必须给出说明而不是静默吞掉
+  assert.equal(p.text('manualCount'), '手动记录 0 条');
+  assert.match(p.text('syncStatus'), /1 条手动记录已被内置快照收录/);
+  // 上次同步记录必须保留，不能被当成「数据无效」丢掉
+  assert.match(p.text('syncStrip'), /新增 3 期/);
+  assert.doesNotMatch(p.text('syncStatus'), /本机同步数据无效或有冲突/);
+  assert.deepEqual(p.errors, []);
+  p.window.close();
+
+  // 同一份备份里若手动号码与官方不符，按官方数据计并明确提示
+  const wrong = JSON.stringify({
+    schema: 2, updatedAt: '2026-11-19T22:00:00.000Z', latestId: '2026-324', invalid: [],
+    draws: [
+      { id: '2026-324', date: '2026-11-20', numbers: [1, 2, 3, 4, 5, 6], special: 7, manual: true },
+      ...snapshot.draws.filter(d => d.id <= '2026-323').map(({ id, date, numbers, special }) => ({ id, date, numbers, special }))
+    ]
+  });
+  const p2 = await boot(snapshot, { three_in_three_sync_v1: wrong });
+  assert.match(p2.text('syncStatus'), /2026-324 的手动补录与官方开奖号码不一致/);
+  assert.match(p2.text('syncStatus'), /特码不一致（本机 07 \/ 官方 43）/);
+  assert.deepEqual(p2.get("records.find(r => r.label === '2026-324').numbers"), [19, 4, 14, 12, 21, 34]);
+  // 落盘后同样是官方数据，手动标记已清除
+  await p2.click('#syncBtn');
+  await p2.until(() => /已是最新/.test(p2.text('syncStatus')));
+  const row = p2.storage().draws.find(d => d.id === '2026-324');
+  assert.deepEqual(row.numbers, [19, 4, 14, 12, 21, 34]);
+  assert.equal(row.manual, undefined);
   assert.deepEqual(p2.errors, []);
   p2.window.close();
 });
@@ -663,8 +709,8 @@ test('刷新后：记住上次同步结果，上游支持分段请求时自动�
 test('离线打包：sw.js 缓存版本随数据提升，且上游开奖数据始终直连不吃缓存', { skip }, () => {
   const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
   const app = fs.readFileSync(path.join(ROOT, 'src/app.js'), 'utf8');
-  assert.match(sw, /const CACHE_NAME='three-in-three-v7'/);
-  assert.match(app, /const APP_BUILD = '2026\.11\.23-r7'/);
+  assert.match(sw, /const CACHE_NAME='three-in-three-v8'/);
+  assert.match(app, /const APP_BUILD = '2026\.11\.23-r8'/);
   // 缓存清单包含数据与三个脚本
   for (const asset of ['./index.html', './src/app.js', './src/data.js', './src/engine.js', './data/draws.json']) {
     assert.ok(sw.includes(`'${asset}'`), 'sw.js 预缓存清单缺少 ' + asset);

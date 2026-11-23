@@ -358,7 +358,7 @@ test('特码缺失的旧数据仍可正常使用，并由同步回填特码', as
   assert.equal(JSON.parse(ctx.store.get('three_in_three_sync_v1')).draws.at(-1).special, 23);
 });
 
-test('本机数据损坏或落后于内置快照时回退内置数据，不影响使用', async () => {
+test('本机数据损坏时回退内置数据；本机备份落后时与内置快照合并', async () => {
   const ctx = setup(snapshot);
   ctx.store.set('three_in_three_sync_v1', '{坏掉的 JSON');
   await flush();
@@ -368,7 +368,9 @@ test('本机数据损坏或落后于内置快照时回退内置数据，不影�
   ctx2.store.set('three_in_three_sync_v1', JSON.stringify({ updatedAt: '', latestId: '2026-300', draws: [{ id: '2026-300', date: '2026-10-27', numbers: [1, 29, 23, 17, 18, 42], special: 5 }] }));
   await flush();
   assert.equal(ctx2.get('latestIssue').textContent, '2026-326', '内置快照更新时应采用内置数据');
-  assert.match(ctx2.get('syncStatus').textContent, /落后于当前记录/);
+  // 落后不再当成错误：以官方（内置快照）为准合并，不弹「数据无效」
+  assert.doesNotMatch(ctx2.get('syncStatus').textContent, /本机同步数据无效或有冲突/);
+  assert.doesNotMatch(ctx2.get('syncStatus').textContent, /落后于当前记录/);
 });
 
 test('同步辅助：期数差、时间格式与状态条四格内容', async () => {

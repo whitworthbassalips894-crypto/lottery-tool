@@ -73,6 +73,46 @@ function mergeSource(current, source) {
   }
   return { records: base.concat(additions), invalid: next.invalid, added: additions.length, specialFilled, confirmed, updatedAt: next.updatedAt };
 }
+// 打开页面时把「本机备份」并回「内置快照」。
+// 与 mergeSource 的区别：这里两边谁新谁旧都可能发生——站点更新了内置快照（本机备份变旧）、
+// 或本机同步过更新的数据（内置快照变旧），两种情况都要能合，不能直接报错。
+// 合并口径：两边共有的期号必须一致（平码、特码冲突照旧拒绝），特码与手动标记以信息更全的一边为准，
+// 超出内置快照的期次按连续期号追加；本机备份被内置快照收录的手动记录视为已确认。
+function mergeLocal(builtin, saved) {
+  if (!Array.isArray(builtin) || !builtin.length) throw new Error('内置数据为空，无法核对本机备份');
+  const backup = normalizeSource(saved);
+  const official = new Map(builtin.map(r => [r.label, r]));
+  const savedMap = new Map(backup.records.map(r => [r.label, r]));
+  const conflicts = [];
+  let specialFilled = 0, manualKept = 0, manualConfirmed = 0, manualDropped = 0;
+  const base = builtin.map(previous => {
+    const r = savedMap.get(previous.label);
+    if (!r) return previous;
+    // 两边都有这一期：以官方（内置快照）为准，只补特码；本机手动补录此时已得到官方确认。
+    const sixSame = sameSix(previous.numbers, r.numbers);
+    const specialFight = previous.special != null && r.special != null && previous.special !== r.special;
+    if (r.manual) { if (sixSame && !specialFight) manualConfirmed++; else manualDropped++; }
+    if (!sixSame) conflicts.push(`期号 ${previous.label} 的手动补录与官方开奖号码不一致，已按官方数据计`);
+    if (specialFight) conflicts.push(`期号 ${previous.label} 特码不一致（本机 ${pad2(r.special)} / 官方 ${pad2(previous.special)}），已按官方数据计`);
+    const updated = { ...previous };
+    let changed = false;
+    if (previous.special == null && r.special != null && sixSame) { updated.special = r.special; specialFilled++; changed = true; }
+    return changed ? updated : previous;
+  });
+  let last = base.at(-1).label;
+  const additions = [];
+  for (const r of backup.records.filter(r => r.label > last)) {
+    const expected = nextLabelOf(last);
+    if (r.label !== expected) throw new Error('本机备份存在缺口：需要 ' + expected + '，未采用本机备份');
+    additions.push(r);
+    last = r.label;
+  }
+  for (const r of additions) if (r.manual) manualKept++;
+  return {
+    records: base.concat(additions), invalid: backup.invalid, conflicts,
+    added: additions.length, manualKept, manualConfirmed, manualDropped, specialFilled
+  };
+}
 function buildReplay(records) {
   return records.flatMap((r, i) => {
     const plan = run3in3At(records, i, r.year, r.periodNum, r.date);
@@ -184,7 +224,7 @@ function storagePayload(rows, updatedAt, invalid) {
   };
 }
 if (typeof module !== 'undefined') module.exports = {
-  normalizeSource, mergeSource, buildReplay, summarizeReplay, summarizeSpecial,
+  normalizeSource, mergeSource, mergeLocal, buildReplay, summarizeReplay, summarizeSpecial,
   normalizeSpecial, sameSix, parsePastedNumbers, validateManualDraw, appendManualDraw,
   undoLastManual, manualRecords, storagePayload,
   UNIT_STAKE, PAYOUT_MULTIPLIER, GROUPS_PER_PLAN, COST_PER_PERIOD, PRIZE_PER_GROUP,
