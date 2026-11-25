@@ -63,7 +63,7 @@ test('内置快照：前6平码保持不变，并补齐每期第7位特码', () 
   assert.ok(records.every(r => !('manual' in r)));
 });
 
-test('特码记录归一化：无效特码归为未记录；引擎A将特码历史作为信号', () => {
+test('特码记录归一化：无效特码归为未记录；热冷随机v1只用平码历史，特码不影响推荐', () => {
   assert.equal(normalizeSpecial(43), 43);
   assert.equal(normalizeSpecial(0), null);
   assert.equal(normalizeSpecial(50), null);
@@ -78,19 +78,19 @@ test('特码记录归一化：无效特码归为未记录；引擎A将特码历�
   assert.deepEqual(loose.invalid, []);
   // 平码无效仍然整期排除，特码不救回该期
   assert.throws(() => normalizeSource(source([sample('2026-324', [1, 1, 2, 3, 4, 5], 9)], '2026-324')), /没有有效|无效/);
-  // 引擎A使用第7位特码作为历史信号：改动特码会影响后续推荐（这是预期行为）
+  // 热冷随机v1只基于平码频次/遗漏选码：改动特码不应影响推荐
   const mutated = records.map(r => ({ ...r, special: ((r.special || 1) % 49) + 1 }));
   const mutatedReplay = buildReplay(mutated.slice(0, 400));
   const originalReplay = buildReplay(records.slice(0, 400));
   assert.equal(mutatedReplay.length, originalReplay.length);
-  assert.ok(mutatedReplay.some((r, i) => r.recommended.join(',') !== originalReplay[i].recommended.join(',')), '引擎A应受特码历史影响');
+  assert.deepEqual(mutatedReplay.map(r => r.recommended), originalReplay.map(r => r.recommended), '热冷随机v1不应受特码历史影响');
 });
 
-test('引擎A · 纯净版内核：基于历史动态计算，walk-forward 且确定性', () => {
+test('热冷随机 v1 内核：3热2冷2随机、确定性可追踪、walk-forward', () => {
   const next = engine.nextLabelOf(records.at(-1).label);
   const p = engine.parseLabel(next);
   const rec = engine.run3in3At(records, records.length, p.year, p.periodNum, engine.periodToDate(p.year, p.periodNum));
-  assert.equal(rec.method, 'engineA');
+  assert.equal(rec.method, 'hcr-v1');
   assert.equal(rec.label, next);
   assert.equal(rec.opt.length, 7);
   assert.equal(new Set(rec.opt).size, 7);
@@ -99,13 +99,21 @@ test('引擎A · 纯净版内核：基于历史动态计算，walk-forward 且�
   // 确定性：同样输入得到同样输出
   const again = engine.run3in3At(records, records.length, p.year, p.periodNum, engine.periodToDate(p.year, p.periodNum));
   assert.deepEqual(again.opt, rec.opt);
-  // 动态：历史变化时结果可以变化（不再是固定常量）
+  assert.deepEqual(again.trace, rec.trace);
+  // 可追踪：trace 包含规则、种子、热冷池与选中结果
+  assert.equal(rec.trace.ruleVersion, 'hcr-v1');
+  assert.equal(rec.trace.hotWindow, 60);
+  assert.equal(rec.trace.pickedHot.length, 3);
+  assert.equal(rec.trace.pickedCold.length, 2);
+  assert.equal(rec.trace.pickedRandom.length, 2);
+  assert.deepEqual([...rec.trace.pickedHot, ...rec.trace.pickedCold, ...rec.trace.pickedRandom].sort((a,b)=>a-b), rec.opt);
+  // 动态：历史变化时结果可以变化
   const alt = engine.run3in3At(records.slice(0, 200), 200, p.year, p.periodNum, engine.periodToDate(p.year, p.periodNum));
   assert.equal(alt.opt.length, 7);
   // 历史不足时返回空推荐，不伪造 7 码
   const short = engine.run3in3At(records.slice(0, 30), 30, p.year, p.periodNum, engine.periodToDate(p.year, p.periodNum));
   assert.deepEqual(short.opt, []);
-  assert.equal(short.method, 'engineA');
+  assert.equal(short.method, 'hcr-v1');
   // 随机基线常量与理论值一致（仅用于指标卡对照）
   assert.ok(Math.abs(engine.RANDOM_WIN_RATE - 3.095178) < 1e-5);
   assert.ok(Math.abs(engine.RANDOM_AVG_INTERVAL - 32.3083) < 1e-3);
@@ -116,7 +124,7 @@ test('引擎A · 纯净版内核：基于历史动态计算，walk-forward 且�
 });
 
 test('回放逐期只使用同期之前的记录，并同时给出三中三与特码命中', () => {
-  // 引擎A需要足够历史（>=60期）；历史不足的早期期次会跳过
+  // 热冷随机v1需要足够历史（>=60期）；历史不足的早期期次会跳过
   assert.ok(replay.length > 1700 && replay.length <= records.length);
   assert.ok(replay.length < records.length, '早期历史不足时应跳过，而不是伪造推荐');
   assert.ok(replay.every(r => r.recommended.length === 7));
@@ -146,11 +154,11 @@ test('回放逐期只使用同期之前的记录，并同时给出三中三与�
   assert.equal(lastRow.recommended.length, 7);
 });
 
-test('引擎A回放口径：动态推荐、walk-forward、统计口径正确', () => {
+test('热冷随机v1回放口径：动态推荐、walk-forward、统计口径正确', () => {
   const stats = summarizeReplay(replay);
   assert.equal(stats.periods, replay.length);
   assert.ok(stats.periods > 1700);
-  // 引擎A是动态的：不应所有期都同一组号码
+  // 动态推荐：不应所有期都同一组号码
   const uniq = new Set(replay.map(r => r.recommended.join(',')));
   assert.ok(uniq.size > 100, `推荐应随历史变化，实际只有 ${uniq.size} 种`);
   // 统计量应在合理范围内（模型不保证跑赢随机）
