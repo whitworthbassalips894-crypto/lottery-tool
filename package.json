@@ -9,6 +9,6 @@
     "start": "python3 -m http.server 8000"
   },
   "devDependencies": {
-    "jsdom": "^31.0.1"
+    "jsdom": "^26.1.0"
   }
 }
