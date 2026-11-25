@@ -2,7 +2,7 @@
 const SOURCE_URL = 'https://whitworthbassalips894-crypto.github.io/Number-selection-tool/data/draws.json';
 const STORAGE_KEY = 'three_in_three_sync_v1';
 // 版本号与 sw.js 缓存名一起提升，避免旧缓存与新代码混用。
-const APP_BUILD = '2026.11.23-r9';
+const APP_BUILD = '2026.11.25-r10';
 const HISTORY_PAGE = 50, SPECIAL_PAGE = 30, RECENT_WINDOW = 100;
 // 检查更新只取上游文件开头一小段，读出 latestId / updatedAt 即可判断差几期。
 const SOURCE_PROBE_RANGE = 'bytes=0-1023';
@@ -176,7 +176,7 @@ function createRecommendation(rows) {
 function recommendDetailHtml(rec) {
   if (!rec.picks || rec.picks.length !== 7) return '';
   return `<p class="note" style="margin:12px 0 0">选号口径（<b>固定 7 码</b>）：每期都用同一组号码，不随开奖结果调整。<b>号码固定</b>，刷新、换期号都不变，方便长期跟号与对账。</p>
-  <div class="composition">${rec.picks.map(x => `<span class="chip">${pad2(x.num)} · ${WAVE_LABEL[x.wave]} · 生肖${esc(x.zodiac)}</span>`).join('')}</div>`;
+  <div class="composition">${rec.picks.map(x => `<span class="chip"><span class="ball ${wave(x.num)}">${pad2(x.num)}</span><small>${WAVE_LABEL[x.wave]} · 生肖${esc(x.zodiac)}</small></span>`).join('')}</div>`;
 }
 function compositionHtml(nums) {
   if (!nums || nums.length !== 7) return '';
@@ -284,6 +284,8 @@ function renderRecommendation() {
     : '<span class="note">有效历史不足，暂无法生成完整 7 码，请同步更多数据。</span>';
   el('recommendComposition').innerHTML = compositionHtml(nums);
   el('recommendPicks').innerHTML = recommendDetailHtml(recommendation);
+  const copyText = el('recommendCopyText');
+  if (copyText) copyText.textContent = nums.length === 7 ? nums.map(pad2).join('，') : '--';
 }
 function renderSpecialList() {
   const rows = records.slice().reverse();
