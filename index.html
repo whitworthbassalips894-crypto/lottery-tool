@@ -131,11 +131,12 @@ h2::before{content:"";width:4px;height:16px;border-radius:99px;background:var(--
 .composition .chip{white-space:nowrap}
 .chip{font-size:11.5px;font-weight:700;color:var(--ink-soft);background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 10px}
 .chip b{color:var(--brand);font-family:var(--mono)}
-/* 主推 7 码：参考站点的 pick-grid 卡片样式，每码一张小卡 */
-#recommendPicks .composition{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:9px;margin-top:10px}
-#recommendPicks .chip{display:flex;flex-direction:column;align-items:center;gap:6px;white-space:normal;text-align:center;border-radius:11px;padding:10px 4px 8px;background:#fff;border-color:var(--line)}
-#recommendPicks .chip .ball{width:34px;height:34px;font-size:13px;border-width:1.5px}
-#recommendPicks .chip small{font-size:10.5px;font-weight:700;line-height:1.3;color:var(--ink-soft)}
+/* 主推 7 码逐号信息：紧凑 inline，默认收在折叠面板内，避免占据首屏 */
+#recommendPicks .pick-compact{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+#recommendPicks .pick-compact .chip{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:12px;color:var(--ink-soft);white-space:nowrap}
+.pick-n{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 5px;border-radius:999px;color:#fff;font:800 11px/1 var(--mono)}
+.pick-n.red{background:#dc2626}.pick-n.blue{background:#2563eb}.pick-n.green{background:#059669}
+.pick-meta{font-size:11.5px;font-weight:700;color:var(--muted)}
 .copy-preview{margin-top:12px;padding:8px 11px;border-radius:8px;background:var(--surface);border:1px dashed var(--line-strong);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
 .copy-preview code{font:700 13px/1.4 var(--mono);color:var(--ink);word-break:break-all}
 .info-box{margin:14px 0 0;padding:11px 14px;background:var(--brand-soft);border:1px solid var(--brand-line);border-radius:10px;font-size:12.5px;color:#1e3a5f;line-height:1.75}

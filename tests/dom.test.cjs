@@ -714,9 +714,9 @@ test('刷新后：记住上次同步结果，上游支持分段请求时自动�
 test('离线打包：sw.js 缓存版本随数据提升，且上游开奖数据始终直连不吃缓存', { skip }, () => {
   const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
   const app = fs.readFileSync(path.join(ROOT, 'src/app.js'), 'utf8');
-  assert.match(sw, /const CACHE_NAME='three-in-three-v12'/);
+  assert.match(sw, /const CACHE_NAME='three-in-three-v13'/);
   // 这两个必须一起提升，否则旧缓存会与新代码混用——这条断言就是提醒用的绊线。
-  assert.match(app, /const APP_BUILD = '2026\.11\.25-r12'/);
+  assert.match(app, /const APP_BUILD = '2026\.11\.25-r13'/);
   // 缓存清单包含数据与三个脚本
   for (const asset of ['./index.html', './src/app.js', './src/data.js', './src/engine.js', './data/draws.json']) {
     assert.ok(sw.includes(`'${asset}'`), 'sw.js 预缓存清单缺少 ' + asset);
