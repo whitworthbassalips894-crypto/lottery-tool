@@ -151,9 +151,10 @@ test('首屏渲染：开奖栏含第7位特码、指标条、推荐、特码记�
   assert.equal(p.$$('#recommendBalls .ball').length, 7);
   assert.equal(p.$$('#recommendComposition .chip').length, 4);
   assert.equal(p.$$('#recommendPicks .chip').length, 0, '逐号波色/生肖模块已移除');
-  assert.equal(p.text('recommendCopyText'), Array.from(p.get('FIXED_SEVEN')).map(n => String(n).padStart(2, '0')).join('，'));
-  // 固定号码：与引擎常量一致，且与历史数据无关
-  assert.deepEqual(Array.from(p.get('recommendation').numbers), Array.from(p.get('FIXED_SEVEN')));
+  const recNums = Array.from(p.get('recommendation').numbers);
+  assert.equal(recNums.length, 7);
+  assert.equal(p.text('recommendCopyText'), recNums.map(n => String(n).padStart(2, '0')).join('，'));
+  assert.equal(p.get('recommendation').method, 'engineA');
   assert.equal(p.$$('#specialList .special-item').length, 30);
   assert.match(p.text('specialCount'), /共 1786 期 · 已记录特码 1786 期 · 显示 30 期/);
   assert.equal(p.$$('#historyBody tr.row').length, 50);
@@ -712,9 +713,9 @@ test('刷新后：记住上次同步结果，上游支持分段请求时自动�
 test('离线打包：sw.js 缓存版本随数据提升，且上游开奖数据始终直连不吃缓存', { skip }, () => {
   const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
   const app = fs.readFileSync(path.join(ROOT, 'src/app.js'), 'utf8');
-  assert.match(sw, /const CACHE_NAME='three-in-three-v14'/);
+  assert.match(sw, /const CACHE_NAME='three-in-three-v15'/);
   // 这两个必须一起提升，否则旧缓存会与新代码混用——这条断言就是提醒用的绊线。
-  assert.match(app, /const APP_BUILD = '2026\.11\.25-r14'/);
+  assert.match(app, /const APP_BUILD = '2026\.11\.25-r15'/);
   // 缓存清单包含数据与三个脚本
   for (const asset of ['./index.html', './src/app.js', './src/data.js', './src/engine.js', './data/draws.json']) {
     assert.ok(sw.includes(`'${asset}'`), 'sw.js 预缓存清单缺少 ' + asset);
@@ -902,7 +903,7 @@ test('指标卡给出置信区间、期望值与连错理论分布，不再只�
   const special = p.text('summary');
   assert.match(special, /95% 置信区间/);
   assert.match(special, /随机跟号的连错中位数 \d+ 期/);
-  assert.match(special, /样本内核对/);
+  assert.match(special, /walk-forward/);
   await p.click('#viewTabs .seg-btn[data-view="pick3"]');
   const pick3 = p.text('summary');
   assert.match(pick3, /95% 区间/);

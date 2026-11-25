@@ -63,7 +63,7 @@ test('内置快照：前6平码保持不变，并补齐每期第7位特码', () 
   assert.ok(records.every(r => !('manual' in r)));
 });
 
-test('特码只做记录：无效特码归为未记录，且不影响 7 码方案', () => {
+test('特码记录归一化：无效特码归为未记录；引擎A将特码历史作为信号', () => {
   assert.equal(normalizeSpecial(43), 43);
   assert.equal(normalizeSpecial(0), null);
   assert.equal(normalizeSpecial(50), null);
@@ -78,41 +78,34 @@ test('特码只做记录：无效特码归为未记录，且不影响 7 码方�
   assert.deepEqual(loose.invalid, []);
   // 平码无效仍然整期排除，特码不救回该期
   assert.throws(() => normalizeSource(source([sample('2026-324', [1, 1, 2, 3, 4, 5], 9)], '2026-324')), /没有有效|无效/);
-  // 把每一期特码整体改动，逐期方案必须一字不差
+  // 引擎A使用第7位特码作为历史信号：改动特码会影响后续推荐（这是预期行为）
   const mutated = records.map(r => ({ ...r, special: ((r.special || 1) % 49) + 1 }));
   const mutatedReplay = buildReplay(mutated.slice(0, 400));
   const originalReplay = buildReplay(records.slice(0, 400));
   assert.equal(mutatedReplay.length, originalReplay.length);
-  for (let i = 0; i < mutatedReplay.length; i++) {
-    assert.deepEqual(mutatedReplay[i].recommended, originalReplay[i].recommended, mutatedReplay[i].label + ' 方案受特码影响');
-    assert.deepEqual(mutatedReplay[i].hits, originalReplay[i].hits);
-    assert.equal(mutatedReplay[i].triples, originalReplay[i].triples);
-  }
+  assert.ok(mutatedReplay.some((r, i) => r.recommended.join(',') !== originalReplay[i].recommended.join(',')), '引擎A应受特码历史影响');
 });
 
-test('固定 7 码内核：号码与历史、期号无关，且只改一处即可换号', () => {
+test('引擎A · 纯净版内核：基于历史动态计算，walk-forward 且确定性', () => {
   const next = engine.nextLabelOf(records.at(-1).label);
   const p = engine.parseLabel(next);
   const rec = engine.run3in3At(records, records.length, p.year, p.periodNum, engine.periodToDate(p.year, p.periodNum));
-  assert.equal(rec.method, 'fixed');
+  assert.equal(rec.method, 'engineA');
   assert.equal(rec.label, next);
-  assert.deepEqual(rec.opt, Array.from(engine.FIXED_SEVEN));
   assert.equal(rec.opt.length, 7);
   assert.equal(new Set(rec.opt).size, 7);
-  assert.ok(rec.opt.every(n => n >= 1 && n <= 49));
-  assert.deepEqual(rec.opt, rec.opt.slice().sort((a, b) => a - b), '固定号码应按升序展示');
-  // 与历史完全无关：换历史长度、换特码、空历史都得到同一组
-  const again = engine.run3in3At(records.slice(0, 100).map(r => ({ ...r, special: 1 })), 100, p.year, p.periodNum, '2026-11-21');
+  assert.ok(rec.opt.every(n => Number.isInteger(n) && n >= 1 && n <= 49));
+  assert.deepEqual(rec.opt, rec.opt.slice().sort((a, b) => a - b), '推荐号码应按升序展示');
+  // 确定性：同样输入得到同样输出
+  const again = engine.run3in3At(records, records.length, p.year, p.periodNum, engine.periodToDate(p.year, p.periodNum));
   assert.deepEqual(again.opt, rec.opt);
-  assert.deepEqual(engine.run3in3At([], 0, 2030, 1).opt, rec.opt);
-  // 任意 30 期都得到同一组（不会因为期号不同而变号）
-  const seen = new Set();
-  for (let i = 1; i <= 30; i++) seen.add(engine.run3in3At(records, records.length, 2027, i).opt.join(','));
-  assert.equal(seen.size, 1);
-  // fixedSeven 返回副本：调用方修改不会污染常量
-  const copy = engine.fixedSeven();
-  copy[0] = 49;
-  assert.deepEqual(Array.from(engine.FIXED_SEVEN), Array.from(rec.opt));
+  // 动态：历史变化时结果可以变化（不再是固定常量）
+  const alt = engine.run3in3At(records.slice(0, 200), 200, p.year, p.periodNum, engine.periodToDate(p.year, p.periodNum));
+  assert.equal(alt.opt.length, 7);
+  // 历史不足时返回空推荐，不伪造 7 码
+  const short = engine.run3in3At(records.slice(0, 30), 30, p.year, p.periodNum, engine.periodToDate(p.year, p.periodNum));
+  assert.deepEqual(short.opt, []);
+  assert.equal(short.method, 'engineA');
   // 随机基线常量与理论值一致（仅用于指标卡对照）
   assert.ok(Math.abs(engine.RANDOM_WIN_RATE - 3.095178) < 1e-5);
   assert.ok(Math.abs(engine.RANDOM_AVG_INTERVAL - 32.3083) < 1e-3);
@@ -123,10 +116,9 @@ test('固定 7 码内核：号码与历史、期号无关，且只改一处即�
 });
 
 test('回放逐期只使用同期之前的记录，并同时给出三中三与特码命中', () => {
-  // 固定 7 码总能给出 7 码，因此每条有效记录都有一行回放：
-  // 1786 = 1787 期原始数据 - 1 期无效（2022-132 前 6 码重复）
-  assert.equal(replay.length, 1786);
-  assert.equal(replay.length, records.length);
+  // 引擎A需要足够历史（>=60期）；历史不足的早期期次会跳过
+  assert.ok(replay.length > 1700 && replay.length <= records.length);
+  assert.ok(replay.length < records.length, '早期历史不足时应跳过，而不是伪造推荐');
   assert.ok(replay.every(r => r.recommended.length === 7));
   assert.ok(replay.every(r => r.specialHit === r.recommended.includes(r.special)));
   assert.ok(replay.every(r => r.specialHit === true || r.specialHit === false));
@@ -154,18 +146,18 @@ test('回放逐期只使用同期之前的记录，并同时给出三中三与�
   assert.equal(lastRow.recommended.length, 7);
 });
 
-test('固定 7 码的回放口径：与随机基线同一水平，不做任何「更准」的暗示', () => {
+test('引擎A回放口径：动态推荐、walk-forward、统计口径正确', () => {
   const stats = summarizeReplay(replay);
   assert.equal(stats.periods, replay.length);
-  assert.equal(stats.periods, 1786);
-  // 每一期推荐的都必须是同一组固定号码
-  assert.ok(replay.every(r => r.recommended.join(',') === Array.from(engine.FIXED_SEVEN).join(',')));
-  // 1786 期的随机波动：平均命中标准差约 0.024、有奖率标准差约 0.41pp
-  assert.ok(Math.abs(stats.avgHits - stats.baselineAvgHits) < 0.06, `平均命中 ${stats.avgHits} 偏离随机 ${stats.baselineAvgHits} 过多`);
-  assert.ok(Math.abs(stats.winningRate - stats.baselineWinningRate) < 1.5, `有奖率 ${stats.winningRate} 偏离随机 ${stats.baselineWinningRate} 过多`);
-  // 特码命中也应贴近 7/49 ≈ 14.29%
+  assert.ok(stats.periods > 1700);
+  // 引擎A是动态的：不应所有期都同一组号码
+  const uniq = new Set(replay.map(r => r.recommended.join(',')));
+  assert.ok(uniq.size > 100, `推荐应随历史变化，实际只有 ${uniq.size} 种`);
+  // 统计量应在合理范围内（模型不保证跑赢随机）
+  assert.ok(stats.avgHits > 0.7 && stats.avgHits < 1.1, `平均命中 ${stats.avgHits} 异常`);
+  assert.ok(stats.winningRate > 1 && stats.winningRate < 6, `有奖率 ${stats.winningRate} 异常`);
   const sp = summarizeSpecial(replay);
-  assert.ok(Math.abs(sp.rate - sp.baseline) < 2.2, `特码命中率 ${sp.rate} 偏离基线 ${sp.baseline} 过多`);
+  assert.ok(sp.rate > 8 && sp.rate < 22, `特码命中率 ${sp.rate} 异常`);
   // 金额口径仍按 35 组 × 2 元，中奖组 1,400 元
   const groups = replay.reduce((sum, r) => sum + r.triples, 0);
   assert.equal(stats.cost, stats.periods * 70);
