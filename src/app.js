@@ -2,15 +2,15 @@
 const SOURCE_URL = 'https://whitworthbassalips894-crypto.github.io/Number-selection-tool/data/draws.json';
 const STORAGE_KEY = 'three_in_three_sync_v1';
 // 版本号与 sw.js 缓存名一起提升，避免旧缓存与新代码混用。
-const APP_BUILD = '2026.11.25-r11';
+const APP_BUILD = '2026.11.25-r12';
 const HISTORY_PAGE = 50, SPECIAL_PAGE = 30, RECENT_WINDOW = 100;
 // 检查更新只取上游文件开头一小段，读出 latestId / updatedAt 即可判断差几期。
 const SOURCE_PROBE_RANGE = 'bytes=0-1023';
 // 一位数号码输入后等待这么久没有继续输入，就自动跳到下一格（手机上省掉每格再点一次）。
 const SINGLE_DIGIT_ADVANCE_MS = 700;
 
-let records = [], replay = [], excluded = [], sourceUpdated = '', recommendation = null;
-let historyView = 'special', selectedScope = 'recent', expanded = '', query = '', onlyHit = false;
+let records = [], replay = [], excluded = [], sourceUpdated = '', recommendation = null, builtinRecords = [];
+let historyView = 'special', selectedScope = 'recent', expanded = '', query = '', onlyHit = false, quickFilter = 'all';
 let historyLimit = HISTORY_PAGE, specialLimit = SPECIAL_PAGE;
 let lastSync = null, upstream = null, rangeProbeOk = false, builtinLabel = '', builtinUpdated = '', initNote = '';
 let followSince = '', editingManual = null;
@@ -73,6 +73,17 @@ function flash(kind, message) {
   if (!box) return;
   box.innerHTML = `<div class="info-box ${kind === 'ok' ? 'flash-ok' : 'flash-bad'}" role="status">${esc(message)}</div>`;
 }
+function showToast(message, kind) {
+  try {
+    const wrap = el('toastWrap');
+    if (!wrap || typeof wrap.append !== 'function') return;
+    const node = document.createElement('div');
+    node.className = 'toast' + (kind ? ' ' + kind : '');
+    node.textContent = message;
+    wrap.append(node);
+    setTimeout(() => { if (node && typeof node.remove === 'function') node.remove(); }, 2600);
+  } catch (e) { /* toast 不是关键功能 */ }
+}
 // 本机数据是否已经落后于今天。目标期号的日期早于今天，说明本机停在过去的期次，
 // 照着首屏的「下期目标期」去买就会买错期。这件事必须在首屏说，不能只写在页面最底部的同步卡里。
 function staleness() {
@@ -99,6 +110,35 @@ function renderStaleBanner() {
     + `请先点<a href="#sync">数据同步</a>，核对期号后再购买。`;
   if (rec) rec.textContent = `⚠️ 目标期号 ${s.nextLabel} 对应 ${s.nextDate}，已过期约 ${s.days} 天。号码本身固定不变，但请先同步确认当前真正的期号。`;
 }
+function renderDecisionBanner() {
+  const box = el('decisionBanner');
+  if (!box) return;
+  if (!records.length) { box.hidden = true; return; }
+  const s = staleness();
+  const last = records.at(-1);
+  const pending = upstream && last && upstream.label > last.label ? countPeriodsBetween(last.label, upstream.label) : 0;
+  let kind = 'ok', icon = '✅', text = '', action = '';
+  if (s && s.stale) {
+    kind = 'danger'; icon = '⚠️';
+    text = `数据落后 ${s.days} 天，当前显示的目标期 ${esc(s.nextLabel)} 已过期。先同步再核对期号。`;
+    action = `<a class="btn primary sm" href="#sync">去同步</a>`;
+  } else if (pending > 0) {
+    kind = 'warn'; icon = '🔔';
+    text = `上游有 ${pending} 期可同步，本机最新 ${esc(last.label)}。同步后再复制号码。`;
+    action = `<button class="btn primary sm" id="decisionSyncBtn" type="button">同步 ${pending} 期</button>`;
+  } else {
+    kind = 'ok'; icon = '✅';
+    text = `数据状态正常：本机最新 ${esc(last.label)}（${esc(last.date)}），目标期 ${esc(recommendation ? recommendation.label : nextLabelOf(last.label))} 可直接复制固定 7 码。`;
+    action = `<button class="btn primary sm" id="decisionCopyBtn" type="button">复制7码</button>`;
+  }
+  box.className = 'status-banner ' + kind;
+  box.hidden = false;
+  box.innerHTML = `<span class="dot" aria-hidden="true"></span><span>${icon} ${text}</span><span class="spacer"></span>${action}`;
+  const syncBtn = el('decisionSyncBtn');
+  if (syncBtn && syncBtn.addEventListener) syncBtn.addEventListener('click', () => { const b = el('syncBtn'); if (b && !b.disabled && typeof b.click === 'function') b.click(); });
+  const copyBtn = el('decisionCopyBtn');
+  if (copyBtn && copyBtn.addEventListener) copyBtn.addEventListener('click', () => { const b = el('copyBtn'); if (b && !b.disabled && typeof b.click === 'function') b.click(); });
+}
 function renderSyncStrip() {
   const strip = el('syncStrip');
   if (!strip) return;
@@ -113,6 +153,7 @@ function renderSyncStrip() {
   ];
   strip.innerHTML = cells.map(c =>
     `<div class="stat-cell${c.accent ? ' accent' : ''}${c.alert ? ' alert' : ''}"><div class="k">${esc(c.k)}</div><div class="v">${esc(c.v)}</div><div class="s">${esc(c.s)}</div></div>`).join('');
+  if (typeof renderDecisionBanner === 'function') renderDecisionBanner();
 }
 function setSyncHint(text) {
   const hint = el('syncHint'), btn = el('syncBtn');
@@ -237,6 +278,13 @@ function searchBreakdown(rows, q) {
 function filteredRows(base) {
   let rows = searchBreakdown(base, query).rows;
   if (onlyHit) rows = rows.filter(r => (historyView === 'special' ? r.specialHit === true : r.triples > 0));
+  if (quickFilter && quickFilter !== 'all') {
+    if (quickFilter === 'hit') rows = rows.filter(r => historyView === 'special' ? r.specialHit === true : r.triples > 0);
+    else if (quickFilter === 'miss') rows = rows.filter(r => historyView === 'special' ? r.specialHit === false : r.triples === 0);
+    else if (quickFilter === 'hit4') rows = rows.filter(r => (r.hits ? r.hits.length : 0) >= 4);
+    else if (quickFilter === 'spHit') rows = rows.filter(r => r.specialHit === true);
+    else if (quickFilter === 'streak10') rows = rows.filter(r => historyView === 'special' ? (r.missRun != null && r.missRun >= 10) : r.triples === 0);
+  }
   return rows;
 }
 
@@ -262,6 +310,7 @@ function render() {
   renderSpecialList();
   renderManualState();
   renderSyncStrip();
+  renderDecisionBanner();
 }
 function renderStatStrip() {
   const recent = replay.slice(-RECENT_WINDOW);
@@ -320,6 +369,104 @@ function renderManualState() {
   }
   syncManualDate();
 }
+function rollingRate(rows, window, pred) {
+  const out = [];
+  for (let i = 0; i < rows.length; i++) {
+    const start = Math.max(0, i - window + 1);
+    const slice = rows.slice(start, i + 1);
+    const wins = slice.filter(pred).length;
+    out.push({ label: rows[i].label, rate: wins / slice.length * 100 });
+  }
+  return out;
+}
+function renderHistoryViz(base, s3, sp) {
+  const box = el('historyViz');
+  if (!box) return;
+  const rows = base.slice(-120);
+  if (!rows.length) { box.innerHTML = '<p class="note">暂无数据</p>'; return; }
+  const isSpecial = historyView === 'special';
+  const winPred = isSpecial ? (r => r.specialHit === true) : (r => r.triples > 0);
+  const baseline = isSpecial ? sp.baseline : s3.baselineWinningRate;
+  const winLabel = isSpecial ? '特码命中' : '三中三有奖';
+  const timeline = rows.map(r => {
+    const w3 = r.triples > 0, wsp = r.specialHit === true;
+    const cls = ['hit-cell'];
+    if (w3) cls.push('win3');
+    if (wsp) cls.push('win-sp');
+    const tip = `${r.label} · 平码命中${(r.hits||[]).length} · ${r.triples}组${r.specialHit==null?' · 特码未记':(r.specialHit?' · 7码中特':' · 特码未中')}`;
+    return `<span class="${cls.join(' ')}" data-tip="${esc(tip)}" aria-label="${esc(tip)}"></span>`;
+  }).join('');
+
+  const roll = rollingRate(base, 20, winPred).slice(-120);
+  const W = 600, H = 120, pad = { l: 34, r: 8, t: 10, b: 20 };
+  const innerW = W - pad.l - pad.r, innerH = H - pad.t - pad.b;
+  const maxY = Math.max(baseline * 2, ...roll.map(p => p.rate), 10);
+  const x = i => pad.l + (roll.length <= 1 ? 0 : i / (roll.length - 1) * innerW);
+  const y = v => pad.t + innerH - (v / maxY) * innerH;
+  const path = roll.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.rate).toFixed(1)}`).join(' ');
+  const baseY = y(baseline);
+  const grid = [0, baseline, Math.round(maxY)].map(v => `<line x1="${pad.l}" y1="${y(v).toFixed(1)}" x2="${W-pad.r}" y2="${y(v).toFixed(1)}" stroke="${v===baseline?'#94a3b8':'#e2e8f0'}" stroke-dasharray="${v===baseline?'4 4':'2 4'}"/><text x="${pad.l-4}" y="${(y(v)+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#64748b">${v.toFixed(0)}%</text>`).join('');
+  const area = roll.length ? `${path} L${x(roll.length-1).toFixed(1)} ${(pad.t+innerH).toFixed(1)} L${x(0).toFixed(1)} ${(pad.t+innerH).toFixed(1)} Z` : '';
+
+  const missCur = isSpecial ? sp.currentMiss : (base.length ? (() => { let c=0; for(let i=base.length-1;i>=0;i--){ if(base[i].triples>0) break; c++; } return c; })() : 0);
+  const missMax = isSpecial ? sp.maxMiss : Math.max(0, ...(() => { let m=0,run=0; for(const r of base){ if(r.triples>0){ if(run>m)m=run; run=0; } else run++; } if(run>m)m=run; return [m]; })());
+  const pBase = isSpecial ? sp.baseline/100 : s3.baselineWinningRate/100;
+  const q50 = missRunQuantile(pBase, 0.5) || 0;
+  const q95 = missRunQuantile(pBase, 0.05) || 1;
+  const missScale = Math.max(missMax, q95, missCur, 1);
+  const mark = (v, label) => `<span class="mark" style="left:${Math.min(100, v/missScale*100)}%" data-label="${esc(label)}"></span>`;
+
+  box.innerHTML = `
+    <div class="viz-head">
+      <span>最近 ${rows.length} 期命中时间轴</span>
+      <span class="legend"><span><i style="background:#f59e0b"></i>三中三有奖</span><span><i style="background:#e2e8f0;box-shadow:inset 0 0 0 2px #2563eb"></i>7码中特</span><span><i style="background:#e2e8f0"></i>未中</span></span>
+    </div>
+    <div class="hit-timeline" aria-label="最近${rows.length}期命中时间轴">${timeline}</div>
+    <div class="viz-head" style="margin-top:12px"><span>20期滚动${winLabel}率</span><span class="legend"><span><i style="background:#2563eb"></i>滚动率</span><span><i style="background:#94a3b8"></i>理论基线 ${baseline.toFixed(1)}%</span></span></div>
+    <svg class="trend-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="20期滚动${esc(winLabel)}率">
+      ${grid}
+      <path d="${area}" fill="rgba(37,99,235,.10)" stroke="none"></path>
+      <path d="${path}" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"></path>
+    </svg>
+    <div class="viz-head" style="margin-top:10px"><span>${isSpecial ? '特码' : '三中三'}连错位置（理论分布）</span><span class="legend"><span>当前 ${missCur} 期</span></span></div>
+    <div class="miss-run-bar" aria-label="连错分布">
+      ${mark(q50, '中位'+q50)}
+      ${mark(q95, '95%'+q95)}
+      ${mark(missCur, '当前'+missCur)}
+    </div>
+    <div class="miss-run-legend"><span>0</span><span>最长 ${missMax} 期 · 中位 ${q50} · 95分位 ${q95}</span><span>${missScale}期</span></div>
+    <p class="trend-note">时间轴与滚动率用于观察波动，不用于预测。当前${isSpecial?'特码':''}连错 ${missCur} 期${missCur >= q95 ? '，已超过理论95分位，但每期概率仍独立不变。' : missCur >= q50 ? '，高于中位数，仍在常见波动范围内。' : '，处于常见范围内。'}</p>`;
+}
+
+function renderQuickFilters() {
+  const box = el('quickFilters');
+  if (!box) return;
+  const defs = historyView === 'special'
+    ? [['all', '全部'], ['hit', '只看命中'], ['miss', '只看未中'], ['streak10', '连错≥10期']]
+    : [['all', '全部'], ['hit', '只看有奖'], ['hit4', '命中≥4码'], ['spHit', '7码中特']];
+  const examples = !String(query || '').trim()
+    ? [['2026-320', '期号示例'], ['11-22', '日期示例'], ['07', '号码示例']]
+    : [];
+  const parts = defs.map(([k, t]) => `<button type="button" class="qf${quickFilter === k ? ' active' : ''}" data-qf="${k}">${esc(t)}</button>`);
+  if (examples.length) {
+    parts.push('<span class="pill subtle" style="margin:0 2px">试试</span>');
+    parts.push(...examples.map(([v]) => `<button type="button" class="qf example" data-q="${esc(v)}" title="按${esc(v)}搜索">${esc(v)}</button>`));
+  }
+  box.innerHTML = parts.join('');
+  box.querySelectorAll('[data-qf]').forEach(btn => btn.addEventListener('click', () => {
+    quickFilter = btn.dataset.qf || 'all';
+    const cb = el('onlyHit');
+    if (quickFilter === 'hit') { onlyHit = true; if (cb) cb.checked = true; }
+    else { onlyHit = false; if (cb) cb.checked = false; }
+    historyLimit = HISTORY_PAGE; expanded = ''; renderHistory();
+  }));
+  box.querySelectorAll('[data-q]').forEach(btn => btn.addEventListener('click', () => {
+    query = btn.dataset.q || '';
+    const input = el('historySearch'); if (input) input.value = query;
+    historyLimit = HISTORY_PAGE; expanded = ''; renderHistory();
+  }));
+}
+
 function renderHistory() {
   if (!replay.length) return;
   const years = [...new Set(replay.map(r => String(r.year)))].sort().reverse();
@@ -345,10 +492,12 @@ function renderHistory() {
     ? '每期主推为<b>同一组固定 7 码</b>，此处核对开奖<b>第 7 位特码</b>是否落在 7 码内。特码命中只做记录与命中率统计，<b>不折算金额</b>，也不并入三中三奖金；随机基线 7/49 ≈ 14.3%。<b>样本小时波动很大</b>：近 100 期的 95% 区间是 7.4%~21.1%，看结论请切到「全部」。这组号是模型读完整段历史后挑出来的，回放属<b>样本内核对</b>，不代表未来成绩。'
     : '每期主推为<b>同一组固定 7 码</b>，核对<b>前 6 位平码</b>：命中组数 = C(命中平码数, 3)。理论口径：随机 7 码命中 ≥3 个平码 3.10%/期（平均 32.3 期一次）；每期 35 组、每组 2 元、中奖组总返奖 700 倍（1,400 元，含本金）模拟，未计税费。<b>该赔率下每期期望 −¥16.81（返奖 76%）</b>，实测盈亏请先与期望对照再看。表中「7码中特」一列始终显示，切到本视图也不会丢失特码命中记录。';
 
+  renderQuickFilters();
   const base = scopeRows();
   const rows = filteredRows(base);
   const shown = rows.slice().reverse().slice(0, historyLimit);
   const s3 = summarizeReplay(base), sp = summarizeSpecial(base);
+  renderHistoryViz(base, s3, sp);
   const sb = searchBreakdown(base, query);
   el('filterCount').textContent = sb.label
     ? `筛出 ${rows.length} / ${base.length} 期${onlyHit ? '（已叠加「仅看命中」）' : ''} · ${sb.label}`
@@ -481,16 +630,20 @@ function renderLedger() {
   if (input && input.value !== followSince) input.value = followSince;
   const first = replay.length ? replay[0].date : '';
   const last = replay.length ? replay.at(-1).date : '';
+  const tag = el('ledgerRangeTag');
   if (input) { input.min = first; input.max = last; }
   if (!followSince) {
+    if (tag) tag.textContent = '未设置起点';
     body.innerHTML = `<p class="note">选一个开始跟号的日期，这里会按你的实际跟号区间累计投入、返奖与盈亏——比「近 100 期」更贴近你自己的账。数据覆盖 ${first} ~ ${last}。</p>`;
     return;
   }
   const led = followLedger(replay, followSince);
   if (!led || !led.active) {
+    if (tag) tag.textContent = '起点超出范围';
     body.innerHTML = `<p class="note">该日期之后还没有开奖记录（数据覆盖 ${first} ~ ${last}），请改一个更早的日期。</p>`;
     return;
   }
+  if (tag) tag.textContent = `${led.periods} 期 · ${led.since} 起`;
   const netText = `${led.net >= 0 ? '+' : ''}${money(led.net).replace('-', '-')}`;
   const expectedText = money(Math.round(led.expectedPrize));
   const gap = led.prize - led.expectedPrize;
@@ -634,8 +787,10 @@ async function copyRecommendation() {
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(text);
     else { const area = document.createElement('textarea'); area.value = text; document.body.append(area); area.select(); const ok = document.execCommand('copy'); area.remove(); if (!ok) throw new Error('复制失败'); }
-    el('copyBtn').textContent = '✅ 已复制'; setTimeout(() => { el('copyBtn').textContent = '📋 一键复制7码'; }, 1500);
-  } catch (e) { status('复制失败，请手动抄录页面号码。'); }
+    el('copyBtn').textContent = '✅ 已复制';
+    showToast('7码已复制到剪贴板', 'ok');
+    setTimeout(() => { el('copyBtn').textContent = '📋 一键复制7码'; }, 1500);
+  } catch (e) { status('复制失败，请手动抄录页面号码。'); showToast('复制失败，请手动抄录', 'bad'); }
 }
 function excludedNote() {
   return excluded.length ? `\n${excluded.length} 期前6码无效未参与统计：${excluded.slice(0, 8).join('、')}。` : '';
@@ -668,8 +823,10 @@ function applySource(payload, opts) {
   const tail = `${notes.length ? '\n' + notes.join('；') + '。' : ''}${excludedNote()}${storeWarning}`;
   if (merged.added) {
     status(withNote(`${prefix}✅ 同步完成：新增 ${merged.added} 期（${addedLabels.join('、')}）。本机最新 ${last.label}（${last.date}），${specialText}；上游更新于 ${fmtStamp(upstream.updatedAt)}。${tail}`));
+    showToast(`同步完成，新增 ${merged.added} 期`, 'ok');
   } else {
     status(withNote(`${prefix}✅ 已是最新，没有新期次可加：本机与上游同为 ${last.label}（${last.date}），${specialText}。\n上游数据更新于 ${fmtStamp(upstream.updatedAt)}；上游一般每天开奖后更新一期（近期多在 UTC 22:00 前后，即新加坡时间次日 06:00 前后），等发布后再点即可。${tail}`));
+    showToast('已是最新，没有新期次', 'ok');
   }
   renderSyncStrip();
   return merged;
@@ -753,10 +910,61 @@ async function checkUpdate(auto) {
   }
 }
 
+/* ---------------- 导出 / 导入 ---------------- */
+function exportLocalData() {
+  if (!records.length) { showToast('暂无数据可导出', 'bad'); return; }
+  const payload = storagePayload(records, sourceUpdated, excluded, { followSince });
+  payload.lastSync = lastSync;
+  payload.rangeOk = rangeProbeOk;
+  payload.exportedAt = new Date().toISOString();
+  payload.appBuild = APP_BUILD;
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `lottery-tool-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('已导出本机数据备份', 'ok');
+}
+async function importLocalData(file) {
+  if (!file) return;
+  const text = await file.text();
+  let saved;
+  try { saved = JSON.parse(text); } catch (e) { showToast('导入失败：不是有效的 JSON 文件', 'bad'); status('❌ 导入失败：文件不是有效 JSON。'); return; }
+  if (!saved || !Array.isArray(saved.draws)) { showToast('导入失败：备份格式不正确', 'bad'); status('❌ 导入失败：备份缺少 draws 数据。'); return; }
+  try {
+    const base = builtinRecords.length ? builtinRecords : records;
+    const merged = mergeLocal(base, saved);
+    records = merged.records;
+    if (Array.isArray(saved.invalid) && saved.invalid.length) excluded = saved.invalid;
+    if (saved.lastSync && typeof saved.lastSync === 'object') lastSync = saved.lastSync;
+    if (saved.rangeOk === true) rangeProbeOk = true;
+    followSince = /^\d{4}-\d{2}-\d{2}$/.test(saved.followSince || '') ? saved.followSince : followSince;
+    const warning = safePersist();
+    render();
+    resetManualInputs();
+    const notes = [`✅ 已导入备份：${file.name}`];
+    if (merged.manualKept) notes.push(`恢复手动补录 ${merged.manualKept} 条`);
+    if (merged.manualConfirmed) notes.push(`${merged.manualConfirmed} 条手动记录已被内置快照确认`);
+    if (merged.specialFilled) notes.push(`回填特码 ${merged.specialFilled} 期`);
+    if (merged.conflicts.length) notes.push('⚠️ ' + merged.conflicts.slice(0, 2).join('；'));
+    if (warning) notes.push(warning.trim());
+    status(withNote(notes.join('；') + '。'));
+    showToast('备份导入成功', 'ok');
+  } catch (e) {
+    status('❌ 导入失败，未更改现有数据：' + (e.message || e));
+    showToast('导入失败：' + (e.message || e), 'bad');
+  }
+}
+
 /* ---------------- 初始化 ---------------- */
 function switchView(view) {
   if (view === historyView) return;
-  historyView = view; expanded = ''; historyLimit = HISTORY_PAGE;
+  historyView = view; expanded = ''; historyLimit = HISTORY_PAGE; quickFilter = onlyHit ? 'hit' : 'all';
+  const box = el('onlyHit'); if (box) box.checked = onlyHit;
   renderHistory();
 }
 function bindStaticEvents() {
@@ -769,7 +977,7 @@ function bindStaticEvents() {
   el('historyMore').addEventListener('click', () => { historyLimit += HISTORY_PAGE; renderHistory(); });
   el('specialMore').addEventListener('click', () => { specialLimit += SPECIAL_PAGE; renderSpecialList(); });
   el('historySearch').addEventListener('input', e => { query = e.target.value || ''; historyLimit = HISTORY_PAGE; expanded = ''; renderHistory(); });
-  el('onlyHit').addEventListener('change', e => { onlyHit = !!e.target.checked; historyLimit = HISTORY_PAGE; expanded = ''; renderHistory(); });
+  el('onlyHit').addEventListener('change', e => { onlyHit = !!e.target.checked; quickFilter = onlyHit ? 'hit' : 'all'; historyLimit = HISTORY_PAGE; expanded = ''; renderHistory(); });
   el('manualSubmit').addEventListener('click', submitManual);
   el('manualUndo').addEventListener('click', undoManual);
   el('manualClear').addEventListener('click', () => { resetManualInputs(); flash('ok', '已清空输入框。'); });
@@ -792,6 +1000,43 @@ function bindStaticEvents() {
     renderLedger();
     persistMeta();
   });
+  const ledgerQuick = el('ledgerQuick');
+  if (ledgerQuick) ledgerQuick.querySelectorAll('[data-follow]').forEach(btn => btn.addEventListener('click', () => {
+    const mode = btn.dataset.follow;
+    let next = '';
+    if (mode === 'today') next = todayUTC();
+    else if (mode === 'all') next = (replay[0] && replay[0].date) || (records[0] && records[0].date) || '';
+    else {
+      const n = Number(mode);
+      if (n > 0 && replay.length) next = (replay[Math.max(0, replay.length - n)] || replay[0]).date;
+    }
+    followSince = next;
+    const input = el('followSince'); if (input) input.value = followSince;
+    renderLedger();
+    persistMeta();
+  }));
+  const exportBtn = el('exportBtn');
+  if (exportBtn) exportBtn.addEventListener('click', exportLocalData);
+  const importBtn = el('importBtn');
+  const importFile = el('importFile');
+  if (importBtn && importFile) {
+    importBtn.addEventListener('click', () => importFile.click());
+    importFile.addEventListener('change', async () => { const f = importFile.files && importFile.files[0]; importFile.value = ''; if (f) await importLocalData(f); });
+  }
+  if (typeof IntersectionObserver !== 'undefined' && document.querySelectorAll && document.querySelector) {
+    try {
+      const navLinks = Array.from(document.querySelectorAll('.anchor-nav a[href^="#"]'));
+      const sections = navLinks.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+      if (sections.length) {
+        const io = new IntersectionObserver(entries => {
+          const visible = entries.filter(e => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+          if (!visible) return;
+          navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + visible.target.id));
+        }, { rootMargin: '-20% 0px -70% 0px', threshold: [0, 0.2, 0.4] });
+        sections.forEach(s => io.observe(s));
+      }
+    } catch (e) { /* 导航高亮不是关键功能 */ }
+  }
 }
 async function init() {
   // 经用户确认，仅删除此浏览器本工具的旧快乐8数据，不清除其他站点数据。
@@ -805,6 +1050,7 @@ async function init() {
     if (!response.ok) throw new Error('内置数据读取失败 HTTP ' + response.status);
     const base = normalizeSource(await response.json());
     records = base.records; excluded = base.invalid; sourceUpdated = base.updatedAt;
+    builtinRecords = base.records;
     builtinLabel = base.records.at(-1).label; builtinUpdated = base.updatedAt;
     let savedWarning = '', savedNotes = [];
     try {
