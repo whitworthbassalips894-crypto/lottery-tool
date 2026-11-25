@@ -1,5 +1,5 @@
 'use strict';
-// 选号内核 v6（固定 7 码）：主推号码为人工指定的固定一组 7 码，不随历史数据变化；第 7 位特码只做记录与命中统计，不参与选号。
+// 选号内核（引擎A · 纯净版，固定参数）：基于历史开奖动态计算 7 码推荐；第 7 位特码只做记录与命中统计，不参与选号。
 const WAVE_MAP = (() => {
   const m = new Array(50).fill('green');
   for (const n of [1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46]) m[n] = 'red';
@@ -95,16 +95,92 @@ function buildAll35Triples(seven) {
 }
 
 // ---------------------------------------------------------------------------
-// 选号内核 v6：固定 7 码
-//
-// 按用户要求：主推号码固定为下面这一组，不再由任何算法（随机、冷门、饱和度、
-// 频次、遗漏等）生成，也不随历史开奖变化——同一组号一直用，便于长期跟号与对账。
-//
-// 这组号的来源：附件《7码版双引擎融合修复_33b724e5.html》左侧「引擎A · 纯净版
-// （固定参数）」给出的当期 7 码（原表顺序 34、39、46、16、6、1、43，按升序存放）。
-// 按用户要求换用这组号；换号后回放、指标卡与复制文案自动跟随。
+// 选号内核：引擎A · 纯净版（固定参数）
+// 来源：附件《7码版双引擎融合修复_33b724e5.html》中的 simulateEngine(hist)。
+// 7 码随历史开奖变化：每一期基于该期之前的历史计算，不是固定常量。
 // ---------------------------------------------------------------------------
-const FIXED_SEVEN = Object.freeze([1, 6, 16, 34, 39, 43, 46]);
+
+function getZoneAE(n) { return n <= 10 ? 'A' : n <= 20 ? 'B' : n <= 30 ? 'C' : n <= 40 ? 'D' : 'E'; }
+function isOdd(n) { return n % 2 !== 0; }
+function isBig(n) { return n >= 25; }
+
+// 将本工具的记录格式转为引擎A期望的 hist 元素：[n1..n6, special]，并挂 _label
+function toEngineHist(records, P) {
+  const out = [];
+  const limit = Math.max(0, Math.min(P, records.length));
+  for (let i = 0; i < limit; i++) {
+    const r = records[i];
+    if (!r || !Array.isArray(r.numbers) || r.numbers.length !== 6) continue;
+    if (!Number.isInteger(r.special) || r.special < 1 || r.special > 49) continue;
+    const arr = r.numbers.slice(0, 6).map(Number);
+    arr.push(Number(r.special));
+    arr._label = r.label;
+    arr._year = r.year;
+    out.push(arr);
+  }
+  return out;
+}
+
+// 引擎A · 纯净版（固定参数）——忠实移植自附件 simulateEngine(hist)
+function simulateEngineA(hist, targetLabel) {
+  if (!Array.isArray(hist) || hist.length < 60) return null;
+  const attr = 45, window = 150;
+  const t = hist.length;
+  let oddCount = 0, bigCount = 0;
+  const waveCounts = { red: 0, blue: 0, green: 0 };
+  for (let i = t - attr; i < t; i++) {
+    const n = hist[i][6];
+    if (isOdd(n)) oddCount++;
+    if (isBig(n)) bigCount++;
+    waveCounts[WAVE_MAP[n]]++;
+  }
+  const predOdd = oddCount >= attr / 2 ? 'odd' : 'even';
+  const predBig = bigCount >= attr / 2;
+  const predWave = Object.keys(waveCounts).reduce((a, b) => waveCounts[a] < waveCounts[b] ? a : b);
+  const freq = Array(50).fill(0), last = Array(50).fill(-1);
+  const appearances = Array.from({ length: 50 }, () => []);
+  for (let i = 0; i < t; i++) {
+    const n = hist[i][6];
+    if (i >= t - window) freq[n]++;
+    last[n] = i;
+    appearances[n].push(i);
+  }
+  const maxOmit = Array(50).fill(0), saturation = Array(50).fill(0);
+  for (let n = 1; n <= 49; n++) {
+    const idx = appearances[n];
+    if (idx.length === 0) { maxOmit[n] = t; saturation[n] = 1; }
+    else {
+      let mx = idx[0];
+      for (let j = 1; j < idx.length; j++) mx = Math.max(mx, idx[j] - idx[j - 1] - 1);
+      mx = Math.max(mx, t - 1 - idx[idx.length - 1]);
+      maxOmit[n] = mx;
+      const omit = last[n] < 0 ? t : t - 1 - last[n];
+      saturation[n] = mx > 0 ? omit / mx : 0;
+    }
+  }
+  const scores = [];
+  const W = { freq: 3, wave: 14 };
+  for (let n = 1; n <= 49; n++) {
+    const sat = saturation[n], zone = getZoneAE(n);
+    let satScore;
+    if (sat >= 1.0) satScore = 25; else if (sat >= 0.96) satScore = 42; else if (sat >= 0.90) satScore = 38; else if (sat >= 0.85) satScore = 45;
+    else if (sat >= 0.80) satScore = 5; else if (sat >= 0.75) satScore = -15; else if (sat >= 0.70) satScore = 2; else if (sat >= 0.55) satScore = -10;
+    else if (sat >= 0.50) satScore = -12; else if (sat >= 0.45) satScore = -3; else if (sat >= 0.20) satScore = 0; else if (sat >= 0.15) satScore = 12;
+    else if (sat >= 0.10) satScore = 8; else if (sat >= 0.05) satScore = 2; else satScore = 1;
+    let score = satScore + freq[n] * W.freq;
+    if (WAVE_MAP[n] === predWave) score += W.wave;
+    scores.push({ n, score, sat, omit: last[n] < 0 ? t : t - 1 - last[n], maxOmit: maxOmit[n], zone });
+  }
+  scores.sort((a, b) => b.score - a.score || a.n - b.n);
+  const top7 = []; const usedZones = new Set(); const s5 = scores[4] ? scores[4].score : 0;
+  const cutLine = s5 - 0.2 * Math.abs(s5); // 与附件一致：避免负分区反转
+  for (const s of scores) {
+    if (top7.length >= 7) break;
+    if (top7.length < 5 || !usedZones.has(s.zone) || s.score < cutLine || top7.length >= 6) { top7.push(s); usedZones.add(s.zone); }
+  }
+  if (top7.length < 7) { for (const s of scores) { if (!top7.find(x => x.n === s.n)) { top7.push(s); if (top7.length >= 7) break; } } }
+  return { predOdd, predBig, predWave, pick: top7.map(x => x.n), fullScores: top7, targetLabel };
+}
 
 // 随机基线常量：仅用于指标卡对照，与实际选号无关
 const RANDOM_AVG_HITS = 7 * 6 / 49;                     // 随机 7 码每期平均命中 ≈ 0.857
@@ -116,29 +192,35 @@ const RANDOM_AVG_INTERVAL = 1 / (() => {                // 平均多少期出现
 })();
 const RANDOM_WIN_RATE = 100 / RANDOM_AVG_INTERVAL;      // ≈ 3.095%
 
-// 固定 7 码的副本（升序），调用方随意修改也不会污染常量
-function fixedSeven() {
-  return FIXED_SEVEN.slice().sort((a, b) => a - b);
-}
-
-// 兼容旧签名：P/year/periodNum 仍用于定位期号与日期，但不再影响号码
+// 兼容旧签名：P 表示使用 usableAsc 前 P 期作为历史，推荐目标为 year-periodNum
 function run3in3At(usableAsc, P, year, periodNum, dateStr) {
   const label = `${year}-${String(periodNum).padStart(3, '0')}`;
   const effDate = dateStr || (P > 0 ? usableAsc[P - 1].date : periodToDate(year, periodNum));
-  const opt = fixedSeven();
-  const baseZ = yearZodiacBaseIdx(effDate);
+  const hist = toEngineHist(usableAsc || [], P);
+  const result = simulateEngineA(hist, label);
+  if (!result) {
+    return {
+      opt: [], method: 'engineA', label, date: effDate, picks: [],
+      normMeta: new Array(50), predOdd: null, predBig: null, predWave: null, fullScores: []
+    };
+  }
+  const opt = result.pick.slice().sort((a, b) => a - b);
   const picks = opt.map(n => ({
     num: n,
     wave: WAVE_MAP[n],
-    zodiac: ZODIACS[((baseZ - (n - 1)) % 12 + 12) % 12]
+    zodiac: zodiacOfNumber(n, effDate)
   }));
   return {
     opt,
-    method: 'fixed',
+    method: 'engineA',
     label,
     date: effDate,
     picks,
-    normMeta: picks.reduce((acc, p) => (acc[p.num] = { zodiac: p.zodiac }, acc), new Array(50))
+    normMeta: picks.reduce((acc, p) => (acc[p.num] = { zodiac: p.zodiac }, acc), new Array(50)),
+    predOdd: result.predOdd,
+    predBig: result.predBig,
+    predWave: result.predWave,
+    fullScores: result.fullScores
   };
 }
 
@@ -148,7 +230,8 @@ function zodiacOfNumber(num, dateStr) {
 }
 
 if (typeof module !== 'undefined') module.exports = {
-  run3in3At, fixedSeven, FIXED_SEVEN, validSixNums, parseLabel, nextLabelOf,
+  run3in3At, simulateEngineA, toEngineHist, getZoneAE,
+  validSixNums, parseLabel, nextLabelOf,
   periodToDate, countTriples, buildAll35Triples,
   RANDOM_AVG_HITS, RANDOM_AVG_INTERVAL, RANDOM_WIN_RATE,
   pad2, escapeHtml, zoneOf, maxPeriodOfYear, zodiacOfNumber, yearZodiacBaseIdx, zodiacByBase,

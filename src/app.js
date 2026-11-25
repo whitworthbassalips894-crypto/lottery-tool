@@ -2,7 +2,7 @@
 const SOURCE_URL = 'https://whitworthbassalips894-crypto.github.io/Number-selection-tool/data/draws.json';
 const STORAGE_KEY = 'three_in_three_sync_v1';
 // 版本号与 sw.js 缓存名一起提升，避免旧缓存与新代码混用。
-const APP_BUILD = '2026.11.25-r12';
+const APP_BUILD = '2026.11.25-r15';
 const HISTORY_PAGE = 50, SPECIAL_PAGE = 30, RECENT_WINDOW = 100;
 // 检查更新只取上游文件开头一小段，读出 latestId / updatedAt 即可判断差几期。
 const SOURCE_PROBE_RANGE = 'bytes=0-1023';
@@ -128,7 +128,7 @@ function renderDecisionBanner() {
     action = `<button class="btn primary sm" id="decisionSyncBtn" type="button">同步 ${pending} 期</button>`;
   } else {
     kind = 'ok'; icon = '✅';
-    text = `数据状态正常：本机最新 ${esc(last.label)}（${esc(last.date)}），目标期 ${esc(recommendation ? recommendation.label : nextLabelOf(last.label))} 可直接复制固定 7 码。`;
+    text = `数据状态正常：本机最新 ${esc(last.label)}（${esc(last.date)}），目标期 ${esc(recommendation ? recommendation.label : nextLabelOf(last.label))} 可直接复制推荐 7 码。`;
     action = `<button class="btn primary sm" id="decisionCopyBtn" type="button">复制7码</button>`;
   }
   box.className = 'status-banner ' + kind;
@@ -211,15 +211,13 @@ function safePersist() {
 function createRecommendation(rows) {
   const label = nextLabelOf(rows.at(-1).label), p = parseLabel(label);
   const plan = run3in3At(rows, rows.length, p.year, p.periodNum, periodToDate(p.year, p.periodNum));
-  // 固定 7 码：号码写死在 engine.js 的 FIXED_SEVEN，不随期号或历史变化
-  return { label, numbers: plan.opt, picks: plan.picks, date: plan.date };
+  // 引擎A · 纯净版（固定参数）：基于截至当前最新期的历史动态计算
+  return { label, numbers: plan.opt, picks: plan.picks, date: plan.date, method: plan.method };
 }
 function recommendDetailHtml(rec) {
   if (!rec.picks || rec.picks.length !== 7) return '';
-  return `<details class="fold slim"><summary>固定 7 码 · 号码固定，刷新/换期不变（展开说明）</summary>
-    <div class="fold-body"><p class="note">选号口径（<b>固定 7 码</b>）：每期都用同一组号码，不随开奖结果调整。<b>号码固定</b>，刷新、换期号都不变，方便长期跟号与对账。</p></div>
-  </details>
-  <div class="composition">${rec.picks.map(x => `<span class="chip"><span class="ball ${wave(x.num)}">${pad2(x.num)}</span><small>${WAVE_LABEL[x.wave]} · 生肖${esc(x.zodiac)}</small></span>`).join('')}</div>`;
+  // 逐号波色/生肖模块已按需求移除，保留函数以兼容调用点
+  return '';
 }
 function compositionHtml(nums) {
   if (!nums || nums.length !== 7) return '';
@@ -489,8 +487,8 @@ function renderHistory() {
   el('onlyHitLabel').textContent = historyView === 'special' ? '仅看命中特码' : '仅看有奖期';
   el('historyScopeTag').textContent = selectedScope === 'recent' ? `近${RECENT_WINDOW}期` : selectedScope === 'all' ? `全部${replay.length}期` : selectedScope + '年';
   el('historyNote').innerHTML = historyView === 'special'
-    ? '每期主推为<b>同一组固定 7 码</b>，此处核对开奖<b>第 7 位特码</b>是否落在 7 码内。特码命中只做记录与命中率统计，<b>不折算金额</b>，也不并入三中三奖金；随机基线 7/49 ≈ 14.3%。<b>样本小时波动很大</b>：近 100 期的 95% 区间是 7.4%~21.1%，看结论请切到「全部」。这组号是模型读完整段历史后挑出来的，回放属<b>样本内核对</b>，不代表未来成绩。'
-    : '每期主推为<b>同一组固定 7 码</b>，核对<b>前 6 位平码</b>：命中组数 = C(命中平码数, 3)。理论口径：随机 7 码命中 ≥3 个平码 3.10%/期（平均 32.3 期一次）；每期 35 组、每组 2 元、中奖组总返奖 700 倍（1,400 元，含本金）模拟，未计税费。<b>该赔率下每期期望 −¥16.81（返奖 76%）</b>，实测盈亏请先与期望对照再看。表中「7码中特」一列始终显示，切到本视图也不会丢失特码命中记录。';
+    ? '每期主推为<b>引擎A · 纯净版（固定参数）</b>动态计算的 7 码，基于该期之前的历史开奖生成；此处核对开奖<b>第 7 位特码</b>是否落在 7 码内。特码命中只做记录与命中率统计，<b>不折算金额</b>，也不并入三中三奖金；随机基线 7/49 ≈ 14.3%。<b>样本小时波动很大</b>：近 100 期的 95% 区间是 7.4%~21.1%，看结论请切到「全部」。历史回放为 walk-forward（每期只用当期之前数据），但模型仍不保证未来中奖。'
+    : '每期主推为<b>引擎A · 纯净版（固定参数）</b>动态计算的 7 码，基于该期之前的历史开奖生成；核对<b>前 6 位平码</b>：命中组数 = C(命中平码数, 3)。理论口径：随机 7 码命中 ≥3 个平码 3.10%/期（平均 32.3 期一次）；每期 35 组、每组 2 元、中奖组总返奖 700 倍（1,400 元，含本金）模拟，未计税费。<b>该赔率下每期期望 −¥16.81（返奖 76%）</b>，实测盈亏请先与期望对照再看。表中「7码中特」一列始终显示，切到本视图也不会丢失特码命中记录。';
 
   renderQuickFilters();
   const base = scopeRows();
@@ -573,9 +571,9 @@ function specialMetricsHtml(sp, s3) {
   </div><div class="metric">
     <div class="metric-head">统计口径</div>
     <div class="calc-line"><span>判定</span><b>主推7码是否含当期特码</b></div>
-    <div class="calc-line"><span>选号依据</span><b>固定 7 码（样本内）</b></div>
+    <div class="calc-line"><span>选号依据</span><b>引擎A · 纯净版（固定参数）</b></div>
     <div class="calc-line"><span>金额</span><b>不模拟、不并入</b></div>
-    <div class="metric-sub">这组号是模型读完整段历史后挑出来的，所以回放是<b>样本内核对</b>；未来每期的命中率在数学上就等于 ${baseline}%。</div>
+    <div class="metric-sub">回放按 walk-forward 逐期生成（每期只用当期之前数据），不是固定号的样本内挑选；但模型仍不保证未来命中率高于随机基线 ${baseline}%。</div>
   </div>`;
 }
 function pick3MetricsHtml(s3, sp) {
@@ -590,7 +588,7 @@ function pick3MetricsHtml(s3, sp) {
     : '样本不足';
   const p3 = s3.baselineWinningRate / 100;
   const missMedian = missRunQuantile(p3, 0.5), missP95 = missRunQuantile(p3, 0.05);
-  // 期望奖金：固定 7 码与随机等价，所以这段区间的期望只由赔率口径决定，与号码好坏无关。
+  // 期望奖金：任意 7 码在随机开奖下的理论期望相同，这段区间的期望只由赔率口径决定，与号码好坏无关。
   const expPrize = Math.round(s3.expectedPrize);
   const devGroups = s3.groups - s3.periods * EXPECTED_GROUPS_PER_PERIOD;
   return `<div class="metric hero">
@@ -611,7 +609,7 @@ function pick3MetricsHtml(s3, sp) {
     <div class="metric-sub">当前连错 <b>${sp.currentMiss} 期</b> · 最长连错 ${sp.maxMiss} 期（随机中位 ${missRunQuantile(sp.baseline / 100, 0.5)} 期、95 分位 ${missRunQuantile(sp.baseline / 100, 0.05)} 期）<br>随机基线 ${sp.baseline.toFixed(1)}% · 特码命中只记录，不计入上面的模拟奖金。</div>
   </div><div class="metric">
     <div class="metric-head">回放核算说明</div>
-    <div class="calc-line"><span>选号内核</span><b>固定 7 码（样本内）</b></div>
+    <div class="calc-line"><span>选号内核</span><b>引擎A · 纯净版（固定参数）</b></div>
     <div class="calc-line"><span>每期投入</span><b>35 组 × 2 元 = 70 元</b></div>
     <div class="calc-line"><span>每组模拟奖金</span><b>2 元 × ${PAYOUT_MULTIPLIER} = ${money(PRIZE_PER_GROUP)}</b></div>
     <div class="calc-line"><span>命中组数</span><b>C(命中平码数, 3)</b></div>

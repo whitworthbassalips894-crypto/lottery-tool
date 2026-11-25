@@ -131,11 +131,12 @@ h2::before{content:"";width:4px;height:16px;border-radius:99px;background:var(--
 .composition .chip{white-space:nowrap}
 .chip{font-size:11.5px;font-weight:700;color:var(--ink-soft);background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 10px}
 .chip b{color:var(--brand);font-family:var(--mono)}
-/* 主推 7 码：参考站点的 pick-grid 卡片样式，每码一张小卡 */
-#recommendPicks .composition{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:9px;margin-top:10px}
-#recommendPicks .chip{display:flex;flex-direction:column;align-items:center;gap:6px;white-space:normal;text-align:center;border-radius:11px;padding:10px 4px 8px;background:#fff;border-color:var(--line)}
-#recommendPicks .chip .ball{width:34px;height:34px;font-size:13px;border-width:1.5px}
-#recommendPicks .chip small{font-size:10.5px;font-weight:700;line-height:1.3;color:var(--ink-soft)}
+/* 主推 7 码逐号信息：紧凑 inline，默认收在折叠面板内，避免占据首屏 */
+#recommendPicks .pick-compact{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+#recommendPicks .pick-compact .chip{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:12px;color:var(--ink-soft);white-space:nowrap}
+.pick-n{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 5px;border-radius:999px;color:#fff;font:800 11px/1 var(--mono)}
+.pick-n.red{background:#dc2626}.pick-n.blue{background:#2563eb}.pick-n.green{background:#059669}
+.pick-meta{font-size:11.5px;font-weight:700;color:var(--muted)}
 .copy-preview{margin-top:12px;padding:8px 11px;border-radius:8px;background:var(--surface);border:1px dashed var(--line-strong);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
 .copy-preview code{font:700 13px/1.4 var(--mono);color:var(--ink);word-break:break-all}
 .info-box{margin:14px 0 0;padding:11px 14px;background:var(--brand-soft);border:1px solid var(--brand-line);border-radius:10px;font-size:12.5px;color:#1e3a5f;line-height:1.75}
@@ -432,7 +433,7 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
     <div class="hero-balls balls" id="latestBalls" aria-label="最新开奖号码，末位为特码"></div>
     <details class="fold slim">
       <summary>平码 / 特码口径</summary>
-      <div class="fold-body"><p class="hero-note">前 6 位平码用于三中三命中核对；第 7 位特码单独记录、单独统计命中。下期 7 码为「固定 7 码」，每期使用同一组号码。</p></div>
+      <div class="fold-body"><p class="hero-note">前 6 位平码用于三中三命中核对；第 7 位特码单独记录、单独统计命中。下期 7 码由「引擎A · 纯净版（固定参数）」基于历史开奖动态计算，会随数据更新而变化。</p></div>
     </details>
   </section>
 
@@ -449,8 +450,8 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
     </div>
     <div class="ticket">
       <div class="ticket-top">
-        <span class="ticket-name">📌 固定 7 码 · 复式</span>
-        <span class="pill subtle">每期同一组号码</span>
+        <span class="ticket-name">📌 引擎A · 纯净版 · 复式</span>
+        <span class="pill subtle">按历史动态计算</span>
         <span class="spacer"></span>
         <span class="pill warn" id="recommendCost">35 组 × 2 元 = 70 元</span>
       </div>
@@ -463,8 +464,8 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
     <details class="fold">
       <summary>选号口径与概率说明</summary>
       <div class="fold-body">
-        <div class="info-box">选号口径为<b>固定 7 码</b>：每期使用同一组号码，不随开奖结果或历史数据调整。长期命中率与随机 7 码相同（命中 ≥3 个平码约 3.10%/期、平均 32.3 期一次），每期 70 元的期望返奖约 53 元（≈76%）；开奖随机，固定号码同样无法保证中奖或盈利。7码复式包含 35 组，按每组 2 元计共 70 元；回放按中奖组返奖 700 倍（1,400 元，含本金）模拟。实际售价、奖金、开奖时间及玩法请以当地合法销售机构规则为准。购买前请同步并核对期号。</div>
-        <p class="note">号码固定写在 <code>src/engine.js</code> 的 <code>FIXED_SEVEN</code>，需要换号时改这一处即可，回放与指标卡会自动跟随。7中3＝1组 · 7中4＝4组 · 7中5＝10组 · 7中6＝20组（指组合数量，不代表奖金）。7 码是否含当期特码另见「历史命中 · 特码」视图。</p>
+        <div class="info-box">选号口径为<b>引擎A · 纯净版（固定参数）</b>：基于每期之前的历史开奖动态计算 7 码，数据更新后推荐会随之变化。回放采用 walk-forward（每期只用当期之前数据），不等于未来命中保证。7码复式包含 35 组，按每组 2 元计共 70 元；回放按中奖组返奖 700 倍（1,400 元，含本金）模拟。实际售价、奖金、开奖时间及玩法请以当地合法销售机构规则为准。购买前请同步并核对期号。</div>
+        <p class="note">算法实现位于 <code>src/engine.js</code> 的 <code>simulateEngineA()</code> / <code>run3in3At()</code>，来源于附件《7码版双引擎融合修复_33b724e5.html》中的引擎A纯净版逻辑。7中3＝1组 · 7中4＝4组 · 7中5＝10组 · 7中6＝20组（指组合数量，不代表奖金）。7 码是否含当期特码另见「历史命中 · 特码」视图。</p>
       </div>
     </details>
   </section>
@@ -477,7 +478,7 @@ footer{text-align:center;font-size:11.5px;color:var(--faint);line-height:1.9;pad
     </div>
     <details class="fold">
       <summary>账本口径</summary>
-      <div class="fold-body"><p class="note">从你选择的日期起，按固定 7 码每期 35 组 × 2 元累计投入、返奖、盈亏与回本缺口。账本只保存在当前浏览器；建议在「数据同步」里定期导出备份。</p></div>
+      <div class="fold-body"><p class="note">从你选择的日期起，按每期引擎A推荐 7 码（35 组 × 2 元）累计投入、返奖、盈亏与回本缺口。账本只保存在当前浏览器；建议在「数据同步」里定期导出备份。</p></div>
     </details>
     <div class="ledger" id="ledger">
       <div class="ledger-head">
