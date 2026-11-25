@@ -1,5 +1,5 @@
 'use strict';
-// 选号内核（引擎A · 纯净版，固定参数）：基于历史开奖动态计算 7 码推荐；第 7 位特码只做记录与命中统计，不参与选号。
+// 选号内核（热冷随机 v1，固定规则）：3热 + 2冷 + 2随机，基于历史平码动态计算 7 码推荐；确定性种子，可追踪复现。
 const WAVE_MAP = (() => {
   const m = new Array(50).fill('green');
   for (const n of [1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46]) m[n] = 'red';
@@ -95,91 +95,150 @@ function buildAll35Triples(seven) {
 }
 
 // ---------------------------------------------------------------------------
-// 选号内核：引擎A · 纯净版（固定参数）
-// 来源：附件《7码版双引擎融合修复_33b724e5.html》中的 simulateEngine(hist)。
-// 7 码随历史开奖变化：每一期基于该期之前的历史计算，不是固定常量。
+// 选号内核：热冷随机 v1（固定规则，可追踪）
+// 规则：3热 + 2冷 + 2随机 = 7码。热/冷基于目标期之前的平码历史。
+// 随机选取使用确定性种子，保证同一数据/同一期/同一规则版本可复现。
 // ---------------------------------------------------------------------------
 
-function getZoneAE(n) { return n <= 10 ? 'A' : n <= 20 ? 'B' : n <= 30 ? 'C' : n <= 40 ? 'D' : 'E'; }
-function isOdd(n) { return n % 2 !== 0; }
-function isBig(n) { return n >= 25; }
+const HCR_RULE_VERSION = 'hcr-v1';
+const HCR_HOT_WINDOW = 60;
+const HCR_HOT_POOL = 10;
+const HCR_COLD_POOL = 10;
+const HCR_PICK_HOT = 3;
+const HCR_PICK_COLD = 2;
+const HCR_PICK_RANDOM = 2;
+const HCR_MIN_HISTORY = 60;
 
-// 将本工具的记录格式转为引擎A期望的 hist 元素：[n1..n6, special]，并挂 _label
-function toEngineHist(records, P) {
-  const out = [];
+function hashString(str) {
+  // FNV-1a 32-bit
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+
+function mulberry32(seed) {
+  let t = seed >>> 0;
+  return function () {
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ (t >>> 15), t | 1);
+    r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function deterministicPick(arr, k, rng) {
+  const pool = arr.slice();
+  const picked = [];
+  for (let i = 0; i < k && pool.length > 0; i++) {
+    const idx = Math.floor(rng() * pool.length);
+    picked.push(pool[idx]);
+    pool.splice(idx, 1);
+  }
+  return picked;
+}
+
+function buildHcrTrace(records, P, targetLabel) {
   const limit = Math.max(0, Math.min(P, records.length));
+  const hist = [];
   for (let i = 0; i < limit; i++) {
     const r = records[i];
     if (!r || !Array.isArray(r.numbers) || r.numbers.length !== 6) continue;
-    if (!Number.isInteger(r.special) || r.special < 1 || r.special > 49) continue;
-    const arr = r.numbers.slice(0, 6).map(Number);
-    arr.push(Number(r.special));
-    arr._label = r.label;
-    arr._year = r.year;
-    out.push(arr);
+    hist.push(r);
   }
-  return out;
+  if (hist.length < HCR_MIN_HISTORY) return null;
+
+  const last60 = hist.slice(-HCR_HOT_WINDOW);
+  const hotFreq = Array(50).fill(0);
+  for (const r of last60) for (const n of r.numbers) if (n >= 1 && n <= 49) hotFreq[n]++;
+
+  const lastSeen = Array(50).fill(-1);
+  for (let i = 0; i < hist.length; i++) for (const n of hist[i].numbers) if (n >= 1 && n <= 49) lastSeen[n] = i;
+  const t = hist.length;
+  const omit = Array(50).fill(t);
+  for (let n = 1; n <= 49; n++) omit[n] = lastSeen[n] < 0 ? t : (t - 1 - lastSeen[n]);
+
+  const allNums = Array.from({ length: 49 }, (_, i) => i + 1);
+  const hotRanked = allNums.slice().sort((a, b) =>
+    hotFreq[b] - hotFreq[a] || omit[a] - omit[b] || a - b
+  );
+  const coldRanked = allNums.slice().sort((a, b) =>
+    omit[b] - omit[a] || hotFreq[a] - hotFreq[b] || a - b
+  );
+
+  const hotPool = hotRanked.slice(0, HCR_HOT_POOL);
+  const lastLabel = hist[hist.length - 1] ? hist[hist.length - 1].label : '';
+  const seedStr = `${HCR_RULE_VERSION}|${targetLabel}|${limit}|${lastLabel}`;
+  const seed = hashString(seedStr);
+  const rng = mulberry32(seed);
+
+  const pickedHot = deterministicPick(hotPool, HCR_PICK_HOT, rng).sort((a, b) => a - b);
+  const selected = new Set(pickedHot);
+  const coldPool = coldRanked.filter(n => !selected.has(n)).slice(0, HCR_COLD_POOL);
+  const pickedCold = deterministicPick(coldPool, HCR_PICK_COLD, rng).sort((a, b) => a - b);
+  for (const n of pickedCold) selected.add(n);
+  const remainPool = allNums.filter(n => !selected.has(n));
+  const pickedRandom = deterministicPick(remainPool, HCR_PICK_RANDOM, rng).sort((a, b) => a - b);
+  const pick = pickedHot.concat(pickedCold, pickedRandom).sort((a, b) => a - b);
+
+  return {
+    ruleVersion: HCR_RULE_VERSION,
+    targetLabel,
+    historyCount: limit,
+    lastLabel,
+    seedStr,
+    seed,
+    hotWindow: HCR_HOT_WINDOW,
+    hotPool,
+    coldPool,
+    pickedHot,
+    pickedCold,
+    pickedRandom,
+    pick,
+    hotFreq,
+    omit
+  };
 }
 
-// 引擎A · 纯净版（固定参数）——忠实移植自附件 simulateEngine(hist)
-function simulateEngineA(hist, targetLabel) {
-  if (!Array.isArray(hist) || hist.length < 60) return null;
-  const attr = 45, window = 150;
-  const t = hist.length;
-  let oddCount = 0, bigCount = 0;
-  const waveCounts = { red: 0, blue: 0, green: 0 };
-  for (let i = t - attr; i < t; i++) {
-    const n = hist[i][6];
-    if (isOdd(n)) oddCount++;
-    if (isBig(n)) bigCount++;
-    waveCounts[WAVE_MAP[n]]++;
+// 兼容旧签名：P 表示使用 usableAsc 前 P 期作为历史，推荐目标为 year-periodNum
+function run3in3At(usableAsc, P, year, periodNum, dateStr) {
+  const label = `${year}-${String(periodNum).padStart(3, '0')}`;
+  const effDate = dateStr || (P > 0 && usableAsc[P - 1] ? usableAsc[P - 1].date : periodToDate(year, periodNum));
+  const trace = buildHcrTrace(usableAsc || [], P, label);
+  if (!trace) {
+    return {
+      opt: [], method: HCR_RULE_VERSION, label, date: effDate, picks: [],
+      normMeta: new Array(50), trace: null
+    };
   }
-  const predOdd = oddCount >= attr / 2 ? 'odd' : 'even';
-  const predBig = bigCount >= attr / 2;
-  const predWave = Object.keys(waveCounts).reduce((a, b) => waveCounts[a] < waveCounts[b] ? a : b);
-  const freq = Array(50).fill(0), last = Array(50).fill(-1);
-  const appearances = Array.from({ length: 50 }, () => []);
-  for (let i = 0; i < t; i++) {
-    const n = hist[i][6];
-    if (i >= t - window) freq[n]++;
-    last[n] = i;
-    appearances[n].push(i);
-  }
-  const maxOmit = Array(50).fill(0), saturation = Array(50).fill(0);
-  for (let n = 1; n <= 49; n++) {
-    const idx = appearances[n];
-    if (idx.length === 0) { maxOmit[n] = t; saturation[n] = 1; }
-    else {
-      let mx = idx[0];
-      for (let j = 1; j < idx.length; j++) mx = Math.max(mx, idx[j] - idx[j - 1] - 1);
-      mx = Math.max(mx, t - 1 - idx[idx.length - 1]);
-      maxOmit[n] = mx;
-      const omit = last[n] < 0 ? t : t - 1 - last[n];
-      saturation[n] = mx > 0 ? omit / mx : 0;
+  const opt = trace.pick.slice();
+  const picks = opt.map(n => ({
+    num: n,
+    wave: WAVE_MAP[n],
+    zodiac: zodiacOfNumber(n, effDate),
+    role: trace.pickedHot.includes(n) ? 'hot' : trace.pickedCold.includes(n) ? 'cold' : 'random'
+  }));
+  return {
+    opt,
+    method: HCR_RULE_VERSION,
+    label,
+    date: effDate,
+    picks,
+    normMeta: picks.reduce((acc, p) => (acc[p.num] = { zodiac: p.zodiac, role: p.role }, acc), new Array(50)),
+    trace: {
+      ruleVersion: trace.ruleVersion,
+      seed: trace.seed,
+      seedStr: trace.seedStr,
+      hotWindow: trace.hotWindow,
+      hotPool: trace.hotPool,
+      coldPool: trace.coldPool,
+      pickedHot: trace.pickedHot,
+      pickedCold: trace.pickedCold,
+      pickedRandom: trace.pickedRandom
     }
-  }
-  const scores = [];
-  const W = { freq: 3, wave: 14 };
-  for (let n = 1; n <= 49; n++) {
-    const sat = saturation[n], zone = getZoneAE(n);
-    let satScore;
-    if (sat >= 1.0) satScore = 25; else if (sat >= 0.96) satScore = 42; else if (sat >= 0.90) satScore = 38; else if (sat >= 0.85) satScore = 45;
-    else if (sat >= 0.80) satScore = 5; else if (sat >= 0.75) satScore = -15; else if (sat >= 0.70) satScore = 2; else if (sat >= 0.55) satScore = -10;
-    else if (sat >= 0.50) satScore = -12; else if (sat >= 0.45) satScore = -3; else if (sat >= 0.20) satScore = 0; else if (sat >= 0.15) satScore = 12;
-    else if (sat >= 0.10) satScore = 8; else if (sat >= 0.05) satScore = 2; else satScore = 1;
-    let score = satScore + freq[n] * W.freq;
-    if (WAVE_MAP[n] === predWave) score += W.wave;
-    scores.push({ n, score, sat, omit: last[n] < 0 ? t : t - 1 - last[n], maxOmit: maxOmit[n], zone });
-  }
-  scores.sort((a, b) => b.score - a.score || a.n - b.n);
-  const top7 = []; const usedZones = new Set(); const s5 = scores[4] ? scores[4].score : 0;
-  const cutLine = s5 - 0.2 * Math.abs(s5); // 与附件一致：避免负分区反转
-  for (const s of scores) {
-    if (top7.length >= 7) break;
-    if (top7.length < 5 || !usedZones.has(s.zone) || s.score < cutLine || top7.length >= 6) { top7.push(s); usedZones.add(s.zone); }
-  }
-  if (top7.length < 7) { for (const s of scores) { if (!top7.find(x => x.n === s.n)) { top7.push(s); if (top7.length >= 7) break; } } }
-  return { predOdd, predBig, predWave, pick: top7.map(x => x.n), fullScores: top7, targetLabel };
+  };
 }
 
 // 随机基线常量：仅用于指标卡对照，与实际选号无关
@@ -192,45 +251,15 @@ const RANDOM_AVG_INTERVAL = 1 / (() => {                // 平均多少期出现
 })();
 const RANDOM_WIN_RATE = 100 / RANDOM_AVG_INTERVAL;      // ≈ 3.095%
 
-// 兼容旧签名：P 表示使用 usableAsc 前 P 期作为历史，推荐目标为 year-periodNum
-function run3in3At(usableAsc, P, year, periodNum, dateStr) {
-  const label = `${year}-${String(periodNum).padStart(3, '0')}`;
-  const effDate = dateStr || (P > 0 ? usableAsc[P - 1].date : periodToDate(year, periodNum));
-  const hist = toEngineHist(usableAsc || [], P);
-  const result = simulateEngineA(hist, label);
-  if (!result) {
-    return {
-      opt: [], method: 'engineA', label, date: effDate, picks: [],
-      normMeta: new Array(50), predOdd: null, predBig: null, predWave: null, fullScores: []
-    };
-  }
-  const opt = result.pick.slice().sort((a, b) => a - b);
-  const picks = opt.map(n => ({
-    num: n,
-    wave: WAVE_MAP[n],
-    zodiac: zodiacOfNumber(n, effDate)
-  }));
-  return {
-    opt,
-    method: 'engineA',
-    label,
-    date: effDate,
-    picks,
-    normMeta: picks.reduce((acc, p) => (acc[p.num] = { zodiac: p.zodiac }, acc), new Array(50)),
-    predOdd: result.predOdd,
-    predBig: result.predBig,
-    predWave: result.predWave,
-    fullScores: result.fullScores
-  };
-}
-
 
 function zodiacOfNumber(num, dateStr) {
   return zodiacByBase(num, yearZodiacBaseIdx(dateStr));
 }
 
 if (typeof module !== 'undefined') module.exports = {
-  run3in3At, simulateEngineA, toEngineHist, getZoneAE,
+  run3in3At, buildHcrTrace,
+  HCR_RULE_VERSION, HCR_HOT_WINDOW, HCR_HOT_POOL, HCR_COLD_POOL, HCR_PICK_HOT, HCR_PICK_COLD, HCR_PICK_RANDOM, HCR_MIN_HISTORY,
+  hashString, mulberry32, deterministicPick,
   validSixNums, parseLabel, nextLabelOf,
   periodToDate, countTriples, buildAll35Triples,
   RANDOM_AVG_HITS, RANDOM_AVG_INTERVAL, RANDOM_WIN_RATE,

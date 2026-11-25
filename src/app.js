@@ -2,7 +2,7 @@
 const SOURCE_URL = 'https://whitworthbassalips894-crypto.github.io/Number-selection-tool/data/draws.json';
 const STORAGE_KEY = 'three_in_three_sync_v1';
 // 版本号与 sw.js 缓存名一起提升，避免旧缓存与新代码混用。
-const APP_BUILD = '2026.11.25-r15';
+const APP_BUILD = '2026.11.25-r16';
 const HISTORY_PAGE = 50, SPECIAL_PAGE = 30, RECENT_WINDOW = 100;
 // 检查更新只取上游文件开头一小段，读出 latestId / updatedAt 即可判断差几期。
 const SOURCE_PROBE_RANGE = 'bytes=0-1023';
@@ -211,27 +211,28 @@ function safePersist() {
 function createRecommendation(rows) {
   const label = nextLabelOf(rows.at(-1).label), p = parseLabel(label);
   const plan = run3in3At(rows, rows.length, p.year, p.periodNum, periodToDate(p.year, p.periodNum));
-  // 引擎A · 纯净版（固定参数）：基于截至当前最新期的历史动态计算
-  return { label, numbers: plan.opt, picks: plan.picks, date: plan.date, method: plan.method };
+  // 热冷随机 v1：3热+2冷+2随机，确定性种子，可追踪复现
+  return { label, numbers: plan.opt, picks: plan.picks, date: plan.date, method: plan.method, trace: plan.trace };
 }
 function recommendDetailHtml(rec) {
   if (!rec.picks || rec.picks.length !== 7) return '';
   // 逐号波色/生肖模块已按需求移除，保留函数以兼容调用点
   return '';
 }
-function compositionHtml(nums) {
+function compositionHtml(rec) {
+  const nums = rec && rec.numbers;
   if (!nums || nums.length !== 7) return '';
-  const w = { red: 0, blue: 0, green: 0 };
-  const z = [0, 0, 0];
-  let odd = 0;
-  const tails = new Set();
-  for (const n of nums) { w[wave(n)]++; z[zoneOf(n) - 1]++; if (n % 2 === 1) odd++; tails.add(n % 10); }
+  const t = rec.trace;
+  if (!t) return '<span class="chip">规则 <b>3热2冷2随机</b></span>';
+  const fmt = arr => arr.map(pad2).join('、');
+  const seedShort = (t.seed >>> 0).toString(16).toUpperCase().padStart(8, '0');
   return [
-    `波色 红<b>${w.red}</b> 蓝<b>${w.blue}</b> 绿<b>${w.green}</b>`,
-    `区间 01-16<b>${z[0]}</b> · 17-33<b>${z[1]}</b> · 34-49<b>${z[2]}</b>`,
-    `单双 单<b>${odd}</b> 双<b>${7 - odd}</b>`,
-    `尾数 <b>${tails.size}</b> 个`
-  ].map(t => `<span class="chip">${t}</span>`).join('');
+    `规则 <b>3热2冷2随机</b>`,
+    `热 <b>${fmt(t.pickedHot)}</b>`,
+    `冷 <b>${fmt(t.pickedCold)}</b>`,
+    `随机 <b>${fmt(t.pickedRandom)}</b>`,
+    `种子 <b>${seedShort}</b>`
+  ].map(x => `<span class="chip">${x}</span>`).join('');
 }
 
 /* ---------------- 回放统计辅助 ---------------- */
@@ -331,7 +332,7 @@ function renderRecommendation() {
   el('recommendBalls').innerHTML = nums.length === 7
     ? nums.map(n => ballHtml(n, { size: 'lg' })).join('')
     : '<span class="note">有效历史不足，暂无法生成完整 7 码，请同步更多数据。</span>';
-  el('recommendComposition').innerHTML = compositionHtml(nums);
+  el('recommendComposition').innerHTML = compositionHtml(recommendation);
   el('recommendPicks').innerHTML = recommendDetailHtml(recommendation);
   const copyText = el('recommendCopyText');
   if (copyText) copyText.textContent = nums.length === 7 ? nums.map(pad2).join('，') : '--';
@@ -487,8 +488,8 @@ function renderHistory() {
   el('onlyHitLabel').textContent = historyView === 'special' ? '仅看命中特码' : '仅看有奖期';
   el('historyScopeTag').textContent = selectedScope === 'recent' ? `近${RECENT_WINDOW}期` : selectedScope === 'all' ? `全部${replay.length}期` : selectedScope + '年';
   el('historyNote').innerHTML = historyView === 'special'
-    ? '每期主推为<b>引擎A · 纯净版（固定参数）</b>动态计算的 7 码，基于该期之前的历史开奖生成；此处核对开奖<b>第 7 位特码</b>是否落在 7 码内。特码命中只做记录与命中率统计，<b>不折算金额</b>，也不并入三中三奖金；随机基线 7/49 ≈ 14.3%。<b>样本小时波动很大</b>：近 100 期的 95% 区间是 7.4%~21.1%，看结论请切到「全部」。历史回放为 walk-forward（每期只用当期之前数据），但模型仍不保证未来中奖。'
-    : '每期主推为<b>引擎A · 纯净版（固定参数）</b>动态计算的 7 码，基于该期之前的历史开奖生成；核对<b>前 6 位平码</b>：命中组数 = C(命中平码数, 3)。理论口径：随机 7 码命中 ≥3 个平码 3.10%/期（平均 32.3 期一次）；每期 35 组、每组 2 元、中奖组总返奖 700 倍（1,400 元，含本金）模拟，未计税费。<b>该赔率下每期期望 −¥16.81（返奖 76%）</b>，实测盈亏请先与期望对照再看。表中「7码中特」一列始终显示，切到本视图也不会丢失特码命中记录。';
+    ? '每期主推为<b>热冷随机 v1（3热+2冷+2随机）</b>规则化生成的 7 码：近 60 期平码频次定热码、遗漏定冷码，剩余按确定性种子随机补齐；同一数据与期号可复现。此处核对开奖<b>第 7 位特码</b>是否落在 7 码内。特码命中只做记录与命中率统计，<b>不折算金额</b>，也不并入三中三奖金；随机基线 7/49 ≈ 14.3%。<b>样本小时波动很大</b>：近 100 期的 95% 区间是 7.4%~21.1%，看结论请切到「全部」。历史回放为 walk-forward，回测仅供参考，不改变彩票随机性。'
+    : '每期主推为<b>热冷随机 v1（3热+2冷+2随机）</b>规则化生成的 7 码：近 60 期平码频次定热码、遗漏定冷码，剩余按确定性种子随机补齐；同一数据与期号可复现。核对<b>前 6 位平码</b>：命中组数 = C(命中平码数, 3)。理论口径：随机 7 码命中 ≥3 个平码 3.10%/期（平均 32.3 期一次）；每期 35 组、每组 2 元、中奖组总返奖 700 倍（1,400 元，含本金）模拟，未计税费。<b>该赔率下每期期望 −¥16.81（返奖 76%）</b>，实测盈亏请先与期望对照再看。表中「7码中特」一列始终显示，切到本视图也不会丢失特码命中记录。';
 
   renderQuickFilters();
   const base = scopeRows();
@@ -571,7 +572,7 @@ function specialMetricsHtml(sp, s3) {
   </div><div class="metric">
     <div class="metric-head">统计口径</div>
     <div class="calc-line"><span>判定</span><b>主推7码是否含当期特码</b></div>
-    <div class="calc-line"><span>选号依据</span><b>引擎A · 纯净版（固定参数）</b></div>
+    <div class="calc-line"><span>选号依据</span><b>热冷随机 v1（3热+2冷+2随机）</b></div>
     <div class="calc-line"><span>金额</span><b>不模拟、不并入</b></div>
     <div class="metric-sub">回放按 walk-forward 逐期生成（每期只用当期之前数据），不是固定号的样本内挑选；但模型仍不保证未来命中率高于随机基线 ${baseline}%。</div>
   </div>`;
@@ -609,7 +610,7 @@ function pick3MetricsHtml(s3, sp) {
     <div class="metric-sub">当前连错 <b>${sp.currentMiss} 期</b> · 最长连错 ${sp.maxMiss} 期（随机中位 ${missRunQuantile(sp.baseline / 100, 0.5)} 期、95 分位 ${missRunQuantile(sp.baseline / 100, 0.05)} 期）<br>随机基线 ${sp.baseline.toFixed(1)}% · 特码命中只记录，不计入上面的模拟奖金。</div>
   </div><div class="metric">
     <div class="metric-head">回放核算说明</div>
-    <div class="calc-line"><span>选号内核</span><b>引擎A · 纯净版（固定参数）</b></div>
+    <div class="calc-line"><span>选号内核</span><b>热冷随机 v1（3热+2冷+2随机）</b></div>
     <div class="calc-line"><span>每期投入</span><b>35 组 × 2 元 = 70 元</b></div>
     <div class="calc-line"><span>每组模拟奖金</span><b>2 元 × ${PAYOUT_MULTIPLIER} = ${money(PRIZE_PER_GROUP)}</b></div>
     <div class="calc-line"><span>命中组数</span><b>C(命中平码数, 3)</b></div>

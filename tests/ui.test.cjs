@@ -69,17 +69,27 @@ test('页面初始化：清除旧快乐8数据、展示最新一期含第7位特
   assert.equal(ctx.get('buildTag').textContent, ctx.call('APP_BUILD'));
   // 推荐 7 码与关键指标条
   assert.equal((ctx.get('recommendBalls').innerHTML.match(/class="ball (?:red|blue|green) lg"/g) || []).length, 7);
-  assert.equal(count(ctx.get('recommendComposition').innerHTML, 'chip'), 4);
-  // 引擎A · 纯净版（固定参数）：按历史动态计算；逐号波色/生肖模块已按需求移除
+  assert.equal(count(ctx.get('recommendComposition').innerHTML, 'chip'), 5);
+  // 热冷随机 v1：3热+2冷+2随机，确定性种子可追踪；逐号波色/生肖模块已按需求移除
+  const composition = ctx.get('recommendComposition').innerHTML;
+  assert.match(composition, /3热2冷2随机/);
+  assert.match(composition, /热/);
+  assert.match(composition, /冷/);
+  assert.match(composition, /随机/);
+  assert.match(composition, /种子/);
   const picks = ctx.get('recommendPicks').innerHTML;
   assert.equal(count(picks, 'chip'), 0);
-  assert.doesNotMatch(picks, /遗漏|出现次数|种子/);
+  assert.doesNotMatch(picks, /遗漏|出现次数/);
   const recommend = ctx.call('recommendation');
   assert.equal(recommend.picks.length, 7);
   assert.equal(new Set(recommend.numbers).size, 7);
   assert.ok(recommend.numbers.every(n => n >= 1 && n <= 49));
   assert.equal(recommend.picks.map(x => x.num).sort((a, b) => a - b).join(','), Array.from(recommend.numbers).slice().sort((a,b)=>a-b).join(','));
-  assert.equal(recommend.method, 'engineA');
+  assert.equal(recommend.method, 'hcr-v1');
+  assert.equal(recommend.trace.ruleVersion, 'hcr-v1');
+  assert.equal(recommend.trace.pickedHot.length, 3);
+  assert.equal(recommend.trace.pickedCold.length, 2);
+  assert.equal(recommend.trace.pickedRandom.length, 2);
   const strip = ctx.get('statStrip').innerHTML;
   assert.match(strip, /有效期开奖/);
   assert.match(strip, /下期目标期/);
@@ -152,10 +162,10 @@ test('切换到三中三视图：金额口径不变，且「7码中特」列与�
   assert.match(summary, /模拟盈亏/);
   assert.match(summary, /7码中特 · 常驻记录/);
   assert.match(summary, /切换视图不丢失/);
-  // 引擎A也必须在指标卡上给出随机对照，避免被误读成「更准」
+  // 热冷随机规则也必须在指标卡上给出随机对照，避免被误读成「更准」
   assert.match(summary, /平均每期命中 <b>0\.\d\d\d<\/b> 个平码（随机基线 0\.857）/);
   assert.match(summary, /随机理论 3\.10%/);
-  assert.match(summary, /引擎A · 纯净版/);
+  assert.match(summary, /热冷随机 v1/);
   const body = ctx.get('historyBody').innerHTML;
   assert.match(body, /¥(?:0|1,400|5,600|14,000|28,000)/);
   assert.ok(count(body, '✓ 7码中特') >= 1, '三中三视图必须继续显示特码命中');
