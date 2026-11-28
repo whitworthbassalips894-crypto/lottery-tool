@@ -2,7 +2,7 @@
 const SOURCE_URL = 'https://whitworthbassalips894-crypto.github.io/Number-selection-tool/data/draws.json';
 const STORAGE_KEY = 'three_in_three_sync_v1';
 // 版本号与 sw.js 缓存名一起提升，避免旧缓存与新代码混用。
-const APP_BUILD = '2026.11.25-r16';
+const APP_BUILD = '2026.11.28-r17';
 const HISTORY_PAGE = 50, SPECIAL_PAGE = 30, RECENT_WINDOW = 100;
 // 检查更新只取上游文件开头一小段，读出 latestId / updatedAt 即可判断差几期。
 const SOURCE_PROBE_RANGE = 'bytes=0-1023';
@@ -293,6 +293,9 @@ function render() {
   const last = records.at(-1);
   el('totalCount').textContent = records.length;
   el('buildTag').textContent = APP_BUILD;
+  // 顶栏也显示版本号：电脑和手机页面不一样时，抬头就能比出哪边是旧缓存。
+  const headerBuild = el('headerBuild');
+  if (headerBuild) headerBuild.textContent = APP_BUILD;
   el('footerBuild').textContent = `版本 ${APP_BUILD} · 内置快照 ${sourceUpdated ? sourceUpdated.slice(0, 10) : '--'} · 数据源 whitworthbassalips894-crypto/Number-selection-tool`;
   el('latestIssue').textContent = last.label;
   el('latestDate').textContent = last.date || '';
@@ -1042,6 +1045,8 @@ async function init() {
   let cleanupWarning = '';
   try { for (const key of ['kl8_manual_draws_v1', 'kl8_recommended_budget_v1', 'kl8_pick_mode_v1']) localStorage.removeItem(key); } catch (e) { cleanupWarning = '\n无法删除旧快乐8浏览器数据，请检查浏览器存储权限。'; }
   el('buildTag').textContent = APP_BUILD;
+  const headerBuild = el('headerBuild');
+  if (headerBuild) headerBuild.textContent = APP_BUILD;
   renderManualInputs();
   bindStaticEvents();
   try {
